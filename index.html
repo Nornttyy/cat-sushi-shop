@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7e8cf" />
+    <title>猫咪寿司店</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-label="猫咪寿司店试玩版">
+      <header class="topbar">
+        <span class="topbar-dot"></span>
+        <h1>猫咪寿司店</h1>
+        <span class="topbar-note">试玩版</span>
+      </header>
+
+      <section class="shop" aria-label="寿司店">
+        <div class="wall">
+          <img class="wooden-sign" src="assets/wooden-sign.svg" alt="空白木招牌" />
+          <div class="sign-title" aria-hidden="true">寿司店</div>
+          <div class="wall-sparkle sparkle-one" aria-hidden="true">✦</div>
+          <div class="wall-sparkle sparkle-two" aria-hidden="true">✦</div>
+        </div>
+
+        <section class="belt-zone" aria-label="寿司传送带">
+          <div class="belt-wrap">
+            <img class="conveyor" src="assets/sushi-conveyor.svg" alt="寿司传送带" />
+            <div class="sushi sushi-salmon" data-sushi="0" aria-hidden="true"><i></i></div>
+            <div class="sushi sushi-egg" data-sushi="1" aria-hidden="true"><i></i></div>
+            <div class="sushi sushi-shrimp" data-sushi="2" aria-hidden="true"><i></i></div>
+          </div>
+          <p id="belt-message" class="belt-message" aria-live="polite">按左右按钮，让寿司转起来</p>
+        </section>
+
+        <section class="counter-zone" aria-label="寿司制作台">
+          <img class="prep-table" src="assets/sushi-prep-table.svg" alt="寿司制作桌" />
+          <div class="chef" aria-label="猫咪店长">
+            <div class="chef-ears" aria-hidden="true"><i></i><i></i></div>
+            <div class="chef-face"><span class="chef-eye left"></span><span class="chef-eye right"></span><span class="chef-mouth"></span></div>
+            <div class="chef-body"></div>
+          </div>
+          <p class="chef-note">猫咪店长正在准备寿司</p>
+        </section>
+
+        <nav class="controls" aria-label="传送带控制">
+          <button id="move-left" type="button" aria-label="传送带往左移动">
+            <img src="assets/button-left.svg" alt="" />
+          </button>
+          <button id="move-right" type="button" aria-label="传送带往右移动">
+            <img src="assets/button-right.svg" alt="" />
+          </button>
+        </nav>
+        <p class="key-tip">也可以按键盘 A / D</p>
+      </section>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>

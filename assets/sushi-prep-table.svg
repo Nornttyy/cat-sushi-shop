@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="230" viewBox="0 0 250 230">
+  <!-- Flat hand-drawn sushi preparation table. Background deliberately transparent. -->
+  <g stroke="#604136" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M36 62Q37 53 47 53H204Q214 54 214 62V103Q213 112 204 112H47Q36 111 36 103Z" fill="#D99362"/>
+    <rect x="62" y="67" width="91" height="31" rx="7" fill="#FFF2D7"/>
+    <path d="M168 68H194Q198 68 198 73V96H168Z" fill="#83AAA3"/>
+    <path d="M36 111H214" fill="none" stroke="#B97855" stroke-width="4"/>
+    <path d="M52 112V190Q53 198 62 198Q71 198 71 190V143H179V190Q180 198 189 198Q198 198 198 190V112" fill="#C88358"/>
+    <path d="M79 160H171" fill="none" stroke="#B97855" stroke-width="5"/>
+    <path d="M96 53V44M104 53V44" fill="none" stroke="#B97855" stroke-width="3"/>
+  </g>
+</svg>

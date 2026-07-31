@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+  <!-- Flat hand-drawn blank wooden sign. Background deliberately transparent. -->
+  <g stroke="#604136" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M82 54V35M238 54V35" fill="none"/>
+    <path d="M74 37Q82 26 90 37V56H74Z" fill="#E5A36D"/>
+    <path d="M230 37Q238 26 246 37V56H230Z" fill="#E5A36D"/>
+    <path d="M55 55Q53 54 55 51Q57 49 62 49H260Q266 50 266 55V135Q265 141 258 142H62Q54 141 54 135Z" fill="#D99362"/>
+    <path d="M68 65Q71 61 76 61M243 132Q249 128 253 127" fill="none" stroke="#B97855" stroke-width="4"/>
+  </g>
+</svg>

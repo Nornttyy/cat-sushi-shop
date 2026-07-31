@@ -1,0 +1,98 @@
+:root {
+  --ink: #604136;
+  --ink-soft: #875d4a;
+  --cream: #fff2d7;
+  --paper: #f7e8cf;
+  --wall: #d99362;
+  --wall-dark: #b97855;
+  --counter: #83583f;
+  --counter-dark: #604136;
+  --belt-zone: #849296;
+  --teal: #7ca8a2;
+  --salmon: #e98771;
+  --egg: #f3c85f;
+  --shrimp: #f1a079;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  min-width: 320px;
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: "Trebuchet MS", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+button { font: inherit; }
+
+.game-shell {
+  width: min(94vw, 620px);
+  margin: 22px 0;
+  overflow: hidden;
+  border: 5px solid var(--ink);
+  border-radius: 28px;
+  background: var(--cream);
+  box-shadow: 0 8px 0 #d9b890;
+}
+
+.topbar {
+  height: 64px;
+  padding: 0 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 4px solid var(--ink);
+  background: #fff7e8;
+}
+
+.topbar h1 { margin: 0; font-size: clamp(20px, 5vw, 27px); letter-spacing: .08em; }
+.topbar-dot { width: 15px; height: 15px; border: 3px solid var(--ink); border-radius: 50%; background: #e98771; }
+.topbar-note { margin-left: auto; color: var(--ink-soft); font-size: 13px; }
+
+.shop { overflow: hidden; }
+.wall { position: relative; height: 205px; background: var(--wall); border-bottom: 4px solid var(--ink); }
+.wooden-sign { position: absolute; z-index: 1; left: 50%; top: 18px; width: min(74%, 380px); height: 166px; transform: translateX(-50%); }
+.sign-title {
+  position: absolute; z-index: 2; top: 91px; left: 0; right: 0; text-align: center;
+  color: var(--cream); font-size: clamp(28px, 8vw, 43px); font-weight: 800; letter-spacing: .24em;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+.wall-sparkle { position: absolute; z-index: 2; color: var(--cream); font-size: 21px; }
+.sparkle-one { left: 13%; top: 88px; transform: rotate(-12deg); }.sparkle-two { right: 12%; top: 116px; transform: rotate(15deg); }
+
+.belt-zone { min-height: 224px; padding: 16px 10px 6px; text-align: center; background: var(--belt-zone); border-bottom: 4px solid var(--ink); }
+.belt-wrap { position: relative; width: min(96%, 470px); aspect-ratio: 380 / 210; margin: 0 auto; }
+.conveyor { width: 100%; height: 100%; display: block; }
+.sushi { position: absolute; top: 37%; width: 13.5%; height: 23%; border: 3px solid var(--ink); border-radius: 50%; background: var(--cream); transform: translateX(-50%); transition: left 260ms cubic-bezier(.2,.9,.35,1.1); }
+.sushi::before { content: ""; position: absolute; left: 13%; right: 13%; top: 24%; bottom: 15%; border-radius: 50%; border: 2px solid var(--ink); background: var(--salmon); }
+.sushi i { position: absolute; z-index: 2; left: 23%; right: 23%; top: 42%; height: 14%; border-radius: 999px; background: #f7c1ad; }
+.sushi-salmon { left: 27%; }.sushi-egg { left: 50%; }.sushi-shrimp { left: 73%; }
+.sushi-egg::before { top: 19%; bottom: 9%; background: var(--egg); border-radius: 48% 48% 42% 42%; }.sushi-egg i { top: 29%; height: 54%; background: #406a5d; border-radius: 44%; }
+.sushi-shrimp::before { background: var(--shrimp); transform: rotate(-12deg); }.sushi-shrimp i { background: #ffd6bf; transform: rotate(-12deg); }
+.belt-message { min-height: 23px; margin: 0; color: #fff9ea; font-size: 14px; font-weight: 700; letter-spacing: .04em; }
+
+.counter-zone { position: relative; height: 250px; overflow: hidden; background: var(--counter); border-bottom: 4px solid var(--ink); }
+.counter-zone::before { content: ""; position: absolute; left: 0; right: 0; top: 45px; height: 7px; background: var(--counter-dark); opacity: .55; }
+.prep-table { position: absolute; z-index: 2; left: 50%; bottom: -13px; width: 232px; transform: translateX(-50%); }
+.chef { position: absolute; z-index: 3; left: 50%; bottom: 151px; width: 62px; height: 80px; transform: translateX(-50%); }
+.chef-ears { position: absolute; top: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 5px; }
+.chef-ears i { width: 27px; height: 28px; display: block; transform: rotate(45deg); border: 4px solid var(--ink); border-radius: 7px 3px 7px 3px; background: #b78d75; }
+.chef-face { position: absolute; z-index: 1; top: 17px; left: 5px; width: 52px; height: 48px; border: 4px solid var(--ink); border-radius: 48% 48% 45% 45%; background: #b78d75; }
+.chef-face::before, .chef-face::after { content: ""; position: absolute; top: 16px; width: 4px; height: 4px; border-radius: 50%; background: var(--ink); }.chef-face::before { left: 14px; }.chef-face::after { right: 14px; }
+.chef-mouth { position: absolute; left: 22px; top: 27px; width: 8px; height: 6px; border-bottom: 3px solid var(--ink); border-radius: 50%; }
+.chef-body { position: absolute; z-index: 0; top: 56px; left: 12px; width: 38px; height: 29px; border: 4px solid var(--ink); border-radius: 15px 15px 8px 8px; background: #fff2d7; }
+.chef-note { position: absolute; z-index: 4; right: 14px; bottom: 7px; margin: 0; color: #f8ddbe; font-size: 12px; font-weight: 700; }
+
+.controls { display: flex; justify-content: space-between; padding: 12px 28px 0; background: var(--cream); }
+.controls button { width: 71px; height: 71px; padding: 0; cursor: pointer; border: 0; background: transparent; transition: transform 120ms ease; }
+.controls button:hover { transform: translateY(-3px); }.controls button:active { transform: translateY(3px) scale(.95); }.controls button:focus-visible { outline: 3px dashed var(--salmon); outline-offset: 4px; border-radius: 20px; }
+.controls img { width: 100%; height: 100%; }
+.key-tip { margin: -52px auto 19px; width: max-content; color: var(--ink-soft); font-size: 13px; }
+
+@media (max-width: 420px) {
+  .game-shell { width: 96vw; border-radius: 21px; }.wall { height: 180px; }.wooden-sign { top: 15px; height: 148px; }.sign-title { top: 82px; font-size: 31px; }.belt-zone { min-height: 192px; }.counter-zone { height: 225px; }.controls { padding-left: 19px; padding-right: 19px; }.controls button { width: 63px; height: 63px; }.key-tip { margin-top: -47px; }
+}

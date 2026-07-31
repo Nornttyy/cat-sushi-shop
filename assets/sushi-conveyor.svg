@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="210" viewBox="0 0 380 210">
+  <!-- Flat hand-drawn conveyor belt. Background deliberately transparent. -->
+  <g stroke="#604136" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M45 80Q45 49 78 49H302Q335 49 335 80V128Q335 160 302 160H78Q45 160 45 128Z" fill="#D99362"/>
+    <path d="M62 82Q62 65 83 65H297Q318 65 318 82V126Q318 144 297 144H83Q62 144 62 126Z" fill="#7CA8A2"/>
+    <path d="M103 65V144M190 65V144M278 65V144" fill="none" stroke="#608A87" stroke-width="3"/>
+    <ellipse cx="102" cy="103" rx="38" ry="19" fill="#FFF2D7"/>
+    <ellipse cx="190" cy="103" rx="38" ry="19" fill="#FFF2D7"/>
+    <ellipse cx="278" cy="103" rx="38" ry="19" fill="#FFF2D7"/>
+    <path d="M79 152H301" fill="none" stroke="#B97855" stroke-width="4"/>
+  </g>
+</svg>
