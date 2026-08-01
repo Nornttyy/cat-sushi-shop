@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e9c28f" />
+    <title>海边寿司店 · 后台</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="restaurant-screen" aria-label="寿司制作后台">
+      <img class="restaurant-scene" src="assets/restaurant/kitchen-station.png" alt="寿司制作操作台" />
+      <div class="day-card"><span>后台</span><b>制作中</b></div>
+      <div class="restaurant-actions" aria-label="后台操作">
+        <button id="return-button" type="button">返回餐厅</button>
+        <button id="make-button" type="button">制作寿司</button>
+      </div>
+      <p id="kitchen-message" class="restaurant-message" aria-live="polite">从食材盘挑选材料，开始做寿司。</p>
+    </main>
+    <script src="kitchen.js"></script>
+  </body>
+</html>

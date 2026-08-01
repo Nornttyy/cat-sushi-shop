@@ -1,9 +1,9 @@
 const message = document.querySelector('#restaurant-message');
 
-document.querySelector('#orders-button').addEventListener('click', () => {
-  message.textContent = '今天的客人已经在等寿司了。';
+document.querySelector('#backstage-button').addEventListener('click', () => {
+  window.location.href = 'kitchen.html';
 });
 
-document.querySelector('#menu-button').addEventListener('click', () => {
-  message.textContent = '菜单和后台制作会在下一步加入。';
+document.querySelector('#close-button').addEventListener('click', () => {
+  message.textContent = '今天先不打烊，去后台准备寿司吧。';
 });
