@@ -3,57 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f7e8cf" />
-    <title>猫咪寿司店</title>
+    <meta name="theme-color" content="#f8ecd9" />
+    <title>寿司店</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main class="game-shell" aria-label="猫咪寿司店试玩版">
-      <header class="topbar">
-        <span class="topbar-dot"></span>
-        <h1>猫咪寿司店</h1>
-        <span class="topbar-note">试玩版</span>
+    <main class="game-shell" aria-label="寿司店游戏">
+      <header class="statusbar">
+        <span class="day-badge">第 <b id="day-count">1</b> 天</span>
+        <h1>寿司店</h1>
+        <span class="coin-count" aria-label="收入"><i>●</i><b id="coins">0</b></span>
       </header>
 
-      <section class="shop" aria-label="寿司店">
-        <div class="wall">
-          <img class="wooden-sign" src="assets/wooden-sign.svg" alt="空白木招牌" />
-          <div class="sign-title" aria-hidden="true">寿司店</div>
-          <div class="wall-sparkle sparkle-one" aria-hidden="true">✦</div>
-          <div class="wall-sparkle sparkle-two" aria-hidden="true">✦</div>
+      <section class="shop-wall">
+        <img class="wooden-sign" src="assets/wooden-sign.svg" alt="木招牌" />
+        <div class="sign-copy">寿司店</div>
+        <div class="open-light"><i></i>营业中</div>
+      </section>
+
+      <section class="order-area" aria-label="当前订单">
+        <div class="customer-mark" aria-hidden="true"><i></i><span></span></div>
+        <div class="order-card">
+          <span class="order-label">客人想要</span>
+          <div class="order-line">
+            <span id="order-icon" class="sushi-icon salmon" aria-hidden="true"><i></i></span>
+            <strong id="order-name">三文鱼寿司</strong>
+          </div>
+          <small>米饭 + <span id="order-topping">三文鱼</span></small>
         </div>
+        <div class="timer" aria-label="剩余时间"><span id="timer-fill"></span></div>
+      </section>
 
-        <section class="belt-zone" aria-label="寿司传送带">
-          <div class="belt-wrap">
-            <img class="conveyor" src="assets/sushi-conveyor.svg" alt="寿司传送带" />
-            <div class="sushi sushi-salmon" data-sushi="0" aria-hidden="true"><i></i></div>
-            <div class="sushi sushi-egg" data-sushi="1" aria-hidden="true"><i></i></div>
-            <div class="sushi sushi-shrimp" data-sushi="2" aria-hidden="true"><i></i></div>
+      <section class="kitchen" aria-label="寿司制作区">
+        <div class="plate-area">
+          <div id="plate" class="plate" aria-label="正在制作的寿司">
+            <span class="plate-rim"></span>
+            <div id="dish" class="dish"></div>
           </div>
-          <p id="belt-message" class="belt-message" aria-live="polite">按左右按钮，让寿司转起来</p>
-        </section>
+          <p id="hint" class="hint" aria-live="polite">先放一团米饭</p>
+        </div>
+        <img class="prep-table" src="assets/sushi-prep-table.svg" alt="寿司制作桌" />
+      </section>
 
-        <section class="counter-zone" aria-label="寿司制作台">
-          <img class="prep-table" src="assets/sushi-prep-table.svg" alt="寿司制作桌" />
-          <div class="chef" aria-label="猫咪店长">
-            <div class="chef-ears" aria-hidden="true"><i></i><i></i></div>
-            <div class="chef-face"><span class="chef-eye left"></span><span class="chef-eye right"></span><span class="chef-mouth"></span></div>
-            <div class="chef-body"></div>
-          </div>
-          <p class="chef-note">猫咪店长正在准备寿司</p>
-        </section>
+      <section class="ingredients" aria-label="选择食材">
+        <button class="ingredient rice" data-ingredient="rice" type="button"><span class="ingredient-picture"></span><b>米饭</b></button>
+        <button class="ingredient salmon" data-ingredient="salmon" type="button"><span class="ingredient-picture"></span><b>三文鱼</b></button>
+        <button class="ingredient shrimp" data-ingredient="shrimp" type="button"><span class="ingredient-picture"></span><b>虾</b></button>
+        <button class="ingredient egg" data-ingredient="egg" type="button"><span class="ingredient-picture"></span><b>玉子</b></button>
+      </section>
 
-        <nav class="controls" aria-label="传送带控制">
-          <button id="move-left" type="button" aria-label="传送带往左移动">
-            <img src="assets/button-left.svg" alt="" />
-          </button>
-          <button id="move-right" type="button" aria-label="传送带往右移动">
-            <img src="assets/button-right.svg" alt="" />
-          </button>
-        </nav>
-        <p class="key-tip">也可以按键盘 A / D</p>
+      <section class="action-row" aria-label="制作操作">
+        <button id="clear-dish" class="small-action" type="button">重做</button>
+        <button id="serve-dish" class="serve-button" type="button" disabled>交给客人</button>
+      </section>
+
+      <section class="conveyor-area" aria-label="寿司传送带">
+        <div class="conveyor-wrap">
+          <img src="assets/sushi-conveyor.svg" alt="寿司传送带" />
+          <span id="belt-dish-a" class="belt-dish salmon"><i></i></span>
+          <span id="belt-dish-b" class="belt-dish egg"><i></i></span>
+          <span id="belt-dish-c" class="belt-dish shrimp"><i></i></span>
+        </div>
+        <div class="belt-controls">
+          <button id="move-left" type="button" aria-label="传送带往左移动"><img src="assets/button-left.svg" alt="" /></button>
+          <span>传送带</span>
+          <button id="move-right" type="button" aria-label="传送带往右移动"><img src="assets/button-right.svg" alt="" /></button>
+        </div>
       </section>
     </main>
+
+    <dialog id="result-dialog">
+      <div class="dialog-star">✦</div>
+      <h2 id="result-title">今天打烊啦</h2>
+      <p>你今天卖出了 <b id="served-count">0</b> 份寿司</p>
+      <p>收入 <b id="final-coins">0</b> 枚硬币</p>
+      <button id="restart" type="button">再开一天</button>
+    </dialog>
     <script src="game.js"></script>
   </body>
 </html>
