@@ -1,4 +1,5 @@
-const MAX_SLICES = 4;
+const MAX_SLICES = 12;
+const SLICE_COLUMNS = 6;
 const CUT_LINES = [0.3, 0.5, 0.7];
 const CUT_START_TOLERANCE = 0.18;
 const CUT_SWIPE_DISTANCE = 0.12;
@@ -212,8 +213,10 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
   const flyingSlice = document.createElement('div');
   const fromX = sourceRect.left + (sourceRect.width * sourceFraction) - stageRect.left;
   const fromY = sourceRect.top + (sourceRect.height * 0.54) - stageRect.top;
-  const toX = rackRect.left + (rackRect.width * (0.125 + (sliceIndex * 0.25))) - stageRect.left;
-  const toY = rackRect.top + (rackRect.height * 0.52) - stageRect.top;
+  const column = sliceIndex % SLICE_COLUMNS;
+  const row = Math.floor(sliceIndex / SLICE_COLUMNS);
+  const toX = rackRect.left + (rackRect.width * ((column + 0.5) / SLICE_COLUMNS)) - stageRect.left;
+  const toY = rackRect.top + (rackRect.height * ((row + 0.5) / 2)) - stageRect.top;
 
   flyingSlice.className = 'flying-salmon-slice';
   flyingSlice.style.left = `${fromX}px`;
