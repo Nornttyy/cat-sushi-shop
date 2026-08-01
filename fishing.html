@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7e8cf" />
+    <title>海边寿司店 · 钓鱼</title>
+    <link rel="stylesheet" href="fishing.css" />
+  </head>
+  <body>
+    <main class="game-screen" aria-label="海边钓鱼">
+      <header class="topbar">
+        <div class="day-info"><span>第 1 天</span><b>营业结束</b></div>
+        <h1>海边钓鱼</h1>
+        <div class="time-info"><span>剩余时间</span><b id="time-text">01:00</b></div>
+      </header>
+
+      <section class="scene" aria-label="海边码头">
+        <img class="scene-background" src="assets/fishing-v2/sea-background.png" alt="海边大海" />
+        <div id="sea" class="sea">
+          <div id="fishing-line" class="fishing-line" aria-hidden="true"></div>
+          <button id="bobber" class="bobber" type="button" aria-label="收线"><img src="assets/fishing-v2/bobber.png" alt="" /></button>
+        </div>
+        <img class="pier" src="assets/fishing-v2/pier.png" alt="木头码头" />
+        <img class="basket-scene" src="assets/fishing-v2/basket.png" alt="空鱼篓" />
+        <img class="angler" src="assets/fishing-v2/fisherman.png" alt="正在钓鱼的店主" />
+        <div id="speech" class="speech" aria-live="polite">今天打烊了，去钓点新鲜的鱼吧！</div>
+        <div id="catch-pop" class="catch-pop" aria-live="polite"></div>
+      </section>
+
+      <section class="basket" aria-label="今天钓到的食材">
+        <span class="basket-title">今天钓到</span>
+        <div class="catch-count"><img src="assets/fishing-v2/salmon.png" alt="三文鱼" /><b id="salmon-count">0</b></div>
+        <div class="catch-count"><img src="assets/fishing-v2/mackerel.png" alt="鲭鱼" /><b id="mackerel-count">0</b></div>
+        <div class="catch-count"><img src="assets/fishing-v2/seabream.png" alt="海鲷" /><b id="seabream-count">0</b></div>
+      </section>
+
+      <section class="bottom-panel" aria-label="钓鱼操作">
+        <p id="instruction">点击放线，等鱼咬钩后及时收线。</p>
+        <div class="controls">
+          <button id="fishing-button" class="primary-button" type="button">放线</button>
+          <button id="finish-button" class="secondary-button" type="button">结束钓鱼</button>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="result-dialog">
+      <div class="dialog-fish">🐟</div>
+      <h2>今天收获不错！</h2>
+      <p>钓到 <b id="total-catch">0</b> 条鱼</p>
+      <p>明天可以用它们做寿司。</p>
+      <button id="back-to-restaurant" type="button">回到餐厅</button>
+    </dialog>
+    <script src="fishing.js"></script>
+  </body>
+</html>
