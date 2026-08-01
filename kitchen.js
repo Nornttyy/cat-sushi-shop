@@ -104,6 +104,7 @@ function pointerPosition(event) {
   const bounds = boardSalmon.getBoundingClientRect();
   return {
     x: (event.clientX - bounds.left) / bounds.width,
+    y: (event.clientY - bounds.top) / bounds.height,
   };
 }
 
