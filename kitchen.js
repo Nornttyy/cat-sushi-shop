@@ -152,8 +152,8 @@ stage.addEventListener('pointermove', (event) => {
   moveHeldKnife(event.clientX, event.clientY);
 });
 
-document.querySelector('#juicer').addEventListener('click', () => {
-  setMessage('果汁机之后会用于制作饮料。');
+document.querySelector('#drink-machine').addEventListener('click', () => {
+  setMessage('饮品机之后会用于制作饮料。');
 });
 
 document.querySelector('#cup-station').addEventListener('click', () => {

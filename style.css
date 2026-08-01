@@ -90,7 +90,7 @@ button { font: inherit; }
 .knife-station { left: 44%; top: 65%; width: 8%; height: 20%; transform: rotate(-35deg); }
 .knife-station.is-held { opacity: .22; filter: grayscale(.45); }
 .rice-station { left: 64.4%; top: 55%; width: 12.5%; height: 35%; }
-.juicer-station { left: 84%; top: 51%; width: 11.4%; height: 28%; }
+.drink-machine-station { left: 84%; top: 51%; width: 11.4%; height: 28%; }
 .cup-station { left: 82%; top: 81%; width: 15%; height: 10%; }
 
 .held-knife { position: absolute; z-index: 80; width: 9%; height: auto; pointer-events: none; transform: translate(-24%, -12%) rotate(-38deg); filter: drop-shadow(0 4px 3px rgb(59 39 28 / .35)); }
