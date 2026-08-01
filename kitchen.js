@@ -43,6 +43,7 @@ function finishSushi() {
 
 function renderSlices() {
   sliceRack.replaceChildren();
+  sliceRack.classList.toggle('is-hidden', state.finished);
   if (state.finished) return;
   const cropPositions = ['12% 48%', '37% 51%', '61% 46%', '84% 50%'];
   for (let index = 0; index < state.slicesReady; index += 1) {

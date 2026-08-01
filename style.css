@@ -85,7 +85,7 @@ button { font: inherit; }
 .salmon-slice-crop { width: 22%; height: 100%; cursor: pointer; border: 3px solid var(--ink); border-radius: 40% 48% 44% 42%; background-color: #f68d62; background-image: url("assets/restaurant/kitchen-layers/salmon-loin.png"); background-repeat: no-repeat; background-size: 360% auto; box-shadow: inset 0 4px 0 rgb(255 205 176 / .65); }
 .rice-portion { position: absolute; left: 25%; top: 42%; z-index: 2; width: 52%; height: 36%; padding: 0; cursor: pointer; border: 0; background: transparent; }
 .rice-portion img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.finished-sushi { position: absolute; left: 6%; top: 20%; z-index: 5; width: 88%; height: 66%; object-fit: contain; }
+.finished-sushi { position: absolute; left: 24%; top: 31%; z-index: 5; width: 52%; height: 43%; object-fit: contain; }
 
 .knife-station { left: 44%; top: 65%; width: 8%; height: 20%; transform: rotate(-35deg); }
 .knife-station.is-held { opacity: .22; filter: grayscale(.45); }
