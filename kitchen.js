@@ -1,10 +1,13 @@
 const MAX_SLICES = 4;
-const CUT_TAPS_REQUIRED = 10;
+const CUT_LINES = [0.3, 0.5, 0.7];
+const CUT_START_ZONE = 0.2;
+const CUT_DISTANCE_REQUIRED = 0.45;
 
 const state = {
   salmonOnBoard: false,
-  cutsMade: 0,
-  cutTaps: 0,
+  cutLines: [false, false, false],
+  activeCut: null,
+  cutStartY: 0,
   slicesReady: 0,
   riceOnBoard: false,
   finished: false,
@@ -18,7 +21,6 @@ const ricePortion = document.querySelector('#rice-portion');
 const sliceRack = document.querySelector('#slice-rack');
 const finishedSushi = document.querySelector('#finished-sushi');
 const serveButton = document.querySelector('#serve-button');
-const cutProgress = document.querySelector('#cut-progress');
 
 function show(element, visible) {
   element.classList.toggle('is-hidden', !visible);
@@ -59,10 +61,11 @@ function render() {
   show(boardSalmon, state.salmonOnBoard);
   show(ricePortion, state.riceOnBoard && !state.finished);
   show(finishedSushi, state.finished);
-  boardSalmon.dataset.taps = String(state.cutTaps);
-  show(cutProgress, state.salmonOnBoard);
-  cutProgress.style.setProperty('--cut-progress', `${(state.cutTaps / CUT_TAPS_REQUIRED) * 100}%`);
-  cutProgress.setAttribute('aria-valuenow', String(state.cutTaps));
+  boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
+  boardSalmon.querySelectorAll('.cut-guide').forEach((guide, index) => {
+    guide.classList.toggle('is-cut', state.cutLines[index]);
+    guide.classList.toggle('is-active', state.activeCut === index);
+  });
   serveButton.disabled = !state.finished;
   renderSlices();
 }
@@ -73,20 +76,42 @@ displaySalmon.addEventListener('click', () => {
     return;
   }
   state.salmonOnBoard = true;
-  state.cutsMade = 0;
-  state.cutTaps = 0;
-  setMessage('大三文鱼已放到切菜板。连续点击它 10 下即可切好 4 片。');
+  state.cutLines = [false, false, false];
+  state.activeCut = null;
+  setMessage('大三文鱼已放到切菜板。按住一条虚线，从上往下划过去。');
   render();
 });
 
-function cutSalmon() {
-  state.cutTaps += 1;
-  if (state.cutTaps < CUT_TAPS_REQUIRED) {
-    setMessage(`继续点击三文鱼：${state.cutTaps} / ${CUT_TAPS_REQUIRED}。`);
+function pointerPosition(event) {
+  const bounds = boardSalmon.getBoundingClientRect();
+  return {
+    x: (event.clientX - bounds.left) / bounds.width,
+    y: (event.clientY - bounds.top) / bounds.height,
+  };
+}
+
+function findCutLine(x) {
+  let closest = -1;
+  let closestDistance = 0.09;
+  CUT_LINES.forEach((line, index) => {
+    const distance = Math.abs(x - line);
+    if (!state.cutLines[index] && distance < closestDistance) {
+      closest = index;
+      closestDistance = distance;
+    }
+  });
+  return closest;
+}
+
+function finishCutLine(index) {
+  state.cutLines[index] = true;
+  state.activeCut = null;
+  const completed = state.cutLines.filter(Boolean).length;
+  if (completed < CUT_LINES.length) {
+    setMessage(`切好一刀，还剩 ${CUT_LINES.length - completed} 条虚线。`);
     render();
     return;
   }
-  state.cutsMade = MAX_SLICES;
   state.slicesReady = Math.min(MAX_SLICES, state.slicesReady + MAX_SLICES);
   state.salmonOnBoard = false;
   setMessage('切好了！一大片三文鱼已经变成 4 片。');
@@ -95,13 +120,42 @@ function cutSalmon() {
 
 boardSalmon.addEventListener('pointerdown', (event) => {
   event.preventDefault();
-  cutSalmon();
+  const point = pointerPosition(event);
+  const cutLine = findCutLine(point.x);
+  if (cutLine === -1 || point.y > CUT_START_ZONE) {
+    setMessage('从虚线顶端按住，再往下划动。');
+    return;
+  }
+  state.activeCut = cutLine;
+  state.cutStartY = point.y;
+  boardSalmon.setPointerCapture(event.pointerId);
+  render();
 });
+
+boardSalmon.addEventListener('pointermove', (event) => {
+  if (state.activeCut === null) return;
+  const point = pointerPosition(event);
+  const isNearLine = Math.abs(point.x - CUT_LINES[state.activeCut]) < 0.14;
+  if (isNearLine && point.y - state.cutStartY >= CUT_DISTANCE_REQUIRED) {
+    finishCutLine(state.activeCut);
+  }
+});
+
+function cancelCut(event) {
+  if (state.activeCut === null) return;
+  state.activeCut = null;
+  if (boardSalmon.hasPointerCapture(event.pointerId)) boardSalmon.releasePointerCapture(event.pointerId);
+  render();
+}
+
+boardSalmon.addEventListener('pointerup', cancelCut);
+boardSalmon.addEventListener('pointercancel', cancelCut);
 
 boardSalmon.addEventListener('keydown', (event) => {
   if (event.key !== 'Enter' && event.key !== ' ') return;
   event.preventDefault();
-  cutSalmon();
+  const cutLine = state.cutLines.findIndex((cut) => !cut);
+  if (cutLine !== -1) finishCutLine(cutLine);
 });
 
 riceBin.addEventListener('click', () => {
@@ -131,7 +185,7 @@ document.querySelector('#cup-station').addEventListener('click', () => {
 });
 
 document.querySelector('#reset-button').addEventListener('click', () => {
-  Object.assign(state, { salmonOnBoard: false, cutsMade: 0, cutTaps: 0, slicesReady: 0, riceOnBoard: false, finished: false });
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, riceOnBoard: false, finished: false });
   setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
   render();
 });

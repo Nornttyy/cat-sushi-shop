@@ -74,11 +74,14 @@ button { font: inherit; }
 
 .board-station { left: 24.8%; top: 64%; width: 18%; height: 23%; }
 .cutting-board { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-.board-salmon { position: absolute; left: 9%; top: 6%; width: 82%; height: 42%; padding: 0; cursor: pointer; border: 0; background: transparent; }
+.board-salmon { position: absolute; left: 9%; top: 6%; width: 82%; height: 42%; padding: 0; cursor: crosshair; border: 0; background: transparent; touch-action: none; }
 .board-salmon img { width: 100%; height: 100%; object-fit: contain; }
-
-.cut-progress { position: absolute; left: 12%; right: 12%; bottom: 8%; height: 8%; overflow: hidden; border: 3px solid var(--ink); border-radius: 999px; background: rgb(255 243 216 / .9); box-shadow: 0 3px 0 rgb(90 57 45 / .18); }
-.cut-progress span { display: block; width: var(--cut-progress, 0%); height: 100%; border-radius: inherit; background: #f29161; transition: width 100ms ease; }
+.cut-guide { position: absolute; top: 19%; bottom: 15%; width: 0; pointer-events: none; border-left: 3px dashed #fff4d6; filter: drop-shadow(1px 1px 0 rgb(90 57 45 / .7)); transition: opacity 150ms ease, border-color 150ms ease; }
+.guide-one { left: 30%; }
+.guide-two { left: 50%; }
+.guide-three { left: 70%; }
+.cut-guide.is-active { border-color: #ffcc63; filter: drop-shadow(0 0 3px #e26d48); }
+.cut-guide.is-cut { opacity: .2; border-color: #8d5b49; }
 
 .assembly-station { left: 50%; top: 66%; width: 11.5%; height: 19%; }
 .slice-rack { position: absolute; left: 2%; right: 2%; top: 3%; z-index: 3; display: flex; justify-content: center; gap: 3%; height: 25%; }

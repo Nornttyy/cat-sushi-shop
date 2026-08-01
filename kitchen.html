@@ -25,10 +25,12 @@
 
         <section class="board-station" aria-label="切菜板">
           <img class="cutting-board" src="assets/restaurant/kitchen-layers/cutting-board.png" alt="切菜板" />
-          <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="大三文鱼，连续点击切片">
+          <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="大三文鱼，按住虚线向下划动切片">
             <img src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="待切三文鱼" />
+            <span class="cut-guide guide-one" aria-hidden="true"></span>
+            <span class="cut-guide guide-two" aria-hidden="true"></span>
+            <span class="cut-guide guide-three" aria-hidden="true"></span>
           </button>
-          <div id="cut-progress" class="cut-progress is-hidden" role="progressbar" aria-label="三文鱼切片进度" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><span></span></div>
         </section>
 
         <section class="assembly-station" aria-label="寿司制作区，在切菜板旁边">
