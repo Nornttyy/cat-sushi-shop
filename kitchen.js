@@ -2,11 +2,11 @@ const MAX_SLICES = 12;
 const MAX_RICE = 8;
 const MAX_SUSHI = 8;
 const MAX_DRINKS = 4;
-const SLICE_COLUMNS = 6;
+const SLICE_COLUMNS = 4;
+const SLICE_ROWS = 3;
 const CUT_LINES = [0.3, 0.5, 0.7];
 const CUT_START_TOLERANCE = 0.18;
 const CUT_SWIPE_DISTANCE = 0.12;
-const SLICE_CROP_POSITIONS = ['12% 48%', '37% 51%', '61% 46%', '84% 50%'];
 const CUT_SLICE_ORIGINS = [[0.15], [0.4], [0.6, 0.85]];
 
 const state = {
@@ -77,11 +77,15 @@ function renderSlices() {
   const displayedSlices = state.slicesReady - state.incomingSlices;
   for (let index = 0; index < displayedSlices; index += 1) {
     const slice = document.createElement('button');
+    const sliceImage = document.createElement('img');
     slice.type = 'button';
     slice.className = 'salmon-slice-crop';
-    slice.style.backgroundPosition = SLICE_CROP_POSITIONS[index % SLICE_CROP_POSITIONS.length];
     slice.setAttribute('aria-label', `第 ${index + 1} 片三文鱼，点击放到米饭上`);
+    sliceImage.src = 'assets/restaurant/kitchen-layers/salmon-slice.png';
+    sliceImage.alt = '';
+    sliceImage.draggable = false;
     slice.addEventListener('click', makeSushi);
+    slice.append(sliceImage);
     sliceRack.append(slice);
   }
 }
@@ -262,20 +266,22 @@ function hasRoomForCut(index) {
 
 function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersion) {
   const stageRect = stage.getBoundingClientRect();
-  const flyingSlice = document.createElement('div');
+  const flyingSlice = document.createElement('img');
   const fromX = sourceRect.left + (sourceRect.width * sourceFraction) - stageRect.left;
   const fromY = sourceRect.top + (sourceRect.height * 0.54) - stageRect.top;
   const column = sliceIndex % SLICE_COLUMNS;
   const row = Math.floor(sliceIndex / SLICE_COLUMNS);
   const toX = rackRect.left + (rackRect.width * ((column + 0.5) / SLICE_COLUMNS)) - stageRect.left;
-  const toY = rackRect.top + (rackRect.height * ((row + 0.5) / 2)) - stageRect.top;
+  const toY = rackRect.top + (rackRect.height * ((row + 0.5) / SLICE_ROWS)) - stageRect.top;
 
   flyingSlice.className = 'flying-salmon-slice';
+  flyingSlice.src = 'assets/restaurant/kitchen-layers/salmon-slice.png';
+  flyingSlice.alt = '';
+  flyingSlice.draggable = false;
   flyingSlice.style.left = `${fromX}px`;
   flyingSlice.style.top = `${fromY}px`;
   flyingSlice.style.width = `${sourceRect.width * 0.2}px`;
   flyingSlice.style.height = `${sourceRect.height * 0.62}px`;
-  flyingSlice.style.backgroundPosition = SLICE_CROP_POSITIONS[sliceIndex % SLICE_CROP_POSITIONS.length];
   stage.append(flyingSlice);
 
   requestAnimationFrame(() => {
