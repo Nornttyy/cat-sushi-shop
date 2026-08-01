@@ -1,11 +1,15 @@
 const MAX_SLICES = 4;
 const CUT_LINES = [0.3, 0.5, 0.7];
+const CUT_START_TOLERANCE = 0.18;
+const CUT_SWIPE_DISTANCE = 0.12;
 const SLICE_CROP_POSITIONS = ['12% 48%', '37% 51%', '61% 46%', '84% 50%'];
 const CUT_SLICE_ORIGINS = [[0.15], [0.4], [0.6, 0.85]];
 
 const state = {
   salmonOnBoard: false,
   cutLines: [false, false, false],
+  activeCut: null,
+  cutStartY: 0,
   slicesReady: 0,
   incomingSlices: 0,
   flightVersion: 0,
@@ -68,11 +72,13 @@ function render() {
   show(boardSalmon, state.salmonOnBoard);
   show(ricePortion, state.riceOnBoard && !state.finished);
   show(finishedSushi, state.finished);
+  boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
   const completedCuts = state.cutLines.filter(Boolean).length;
   const croppedLeft = completedCuts ? CUT_LINES[completedCuts - 1] : 0;
   boardSalmon.style.clipPath = state.salmonOnBoard ? `inset(0 0 0 ${croppedLeft * 100}%)` : '';
   boardSalmon.querySelectorAll('.cut-guide').forEach((guide, index) => {
     guide.classList.toggle('is-cut', state.cutLines[index]);
+    guide.classList.toggle('is-active', state.activeCut === index);
   });
   serveButton.disabled = !state.finished;
   renderSlices();
@@ -89,7 +95,8 @@ displaySalmon.addEventListener('click', () => {
   }
   state.salmonOnBoard = true;
   state.cutLines = [false, false, false];
-  setMessage('大三文鱼已放到切菜板。直接按下一条虚线切片。');
+  state.activeCut = null;
+  setMessage('大三文鱼已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。');
   render();
 });
 
@@ -100,9 +107,9 @@ function pointerPosition(event) {
   };
 }
 
-function findCutLine(x) {
+function findCutLine(x, tolerance = 0.09) {
   const nextCut = state.cutLines.findIndex((cut) => !cut);
-  return nextCut !== -1 && Math.abs(x - CUT_LINES[nextCut]) < 0.09 ? nextCut : -1;
+  return nextCut !== -1 && Math.abs(x - CUT_LINES[nextCut]) < tolerance ? nextCut : -1;
 }
 
 function hasRoomForCut(index) {
@@ -161,17 +168,42 @@ function finishCutLine(index) {
 boardSalmon.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   const point = pointerPosition(event);
-  const cutLine = findCutLine(point.x);
+  const cutLine = findCutLine(point.x, CUT_START_TOLERANCE);
   if (cutLine === -1) {
-    setMessage('直接按在下一条虚线上切片。');
+    setMessage('在下一条虚线附近按住，再向下滑动一点。');
     return;
   }
   if (!hasRoomForCut(cutLine)) {
     setMessage('鱼片架空间不够，先做几份寿司再继续切。');
     return;
   }
-  finishCutLine(cutLine);
+  state.activeCut = cutLine;
+  state.cutStartY = point.y;
+  boardSalmon.setPointerCapture(event.pointerId);
+  render();
 });
+
+boardSalmon.addEventListener('pointermove', (event) => {
+  if (state.activeCut === null) return;
+  const point = pointerPosition(event);
+  const followsGuide = Math.abs(point.x - CUT_LINES[state.activeCut]) < 0.28;
+  if (followsGuide && point.y - state.cutStartY >= CUT_SWIPE_DISTANCE) {
+    const cutLine = state.activeCut;
+    state.activeCut = null;
+    if (boardSalmon.hasPointerCapture(event.pointerId)) boardSalmon.releasePointerCapture(event.pointerId);
+    finishCutLine(cutLine);
+  }
+});
+
+function cancelCut(event) {
+  if (state.activeCut === null) return;
+  state.activeCut = null;
+  if (boardSalmon.hasPointerCapture(event.pointerId)) boardSalmon.releasePointerCapture(event.pointerId);
+  render();
+}
+
+boardSalmon.addEventListener('pointerup', cancelCut);
+boardSalmon.addEventListener('pointercancel', cancelCut);
 
 boardSalmon.addEventListener('keydown', (event) => {
   if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -213,7 +245,7 @@ document.querySelector('#cup-station').addEventListener('click', () => {
 document.querySelector('#reset-button').addEventListener('click', () => {
   state.flightVersion += 1;
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], slicesReady: 0, incomingSlices: 0, riceOnBoard: false, finished: false });
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceOnBoard: false, finished: false });
   setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
   render();
 });
