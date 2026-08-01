@@ -67,7 +67,7 @@ button { font: inherit; }
 .station:active { transform: translateY(1.5%) scale(.98); }
 .station:focus-visible, .display-salmon:focus-visible, .board-salmon:focus-visible, .rice-portion:focus-visible, .salmon-slice-crop:focus-visible { outline: 4px dashed var(--cream); outline-offset: 5px; }
 
-.fish-station { left: 2.2%; top: 50%; width: 14.2%; height: 36.5%; }
+.fish-station { left: 2.2%; top: 52%; width: 14.2%; height: 36.5%; }
 .fish-station > img { display: block; width: 100%; height: 100%; object-fit: fill; }
 .display-salmon { position: absolute; left: 15%; top: 10%; width: 70%; height: 16%; padding: 0; cursor: pointer; border: 0; background: transparent; }
 .display-salmon img { display: block; width: 100%; height: 100%; object-fit: contain; transform: rotate(-5deg); }
