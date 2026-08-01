@@ -1,6 +1,7 @@
 const MAX_SLICES = 12;
 const MAX_RICE = 8;
 const MAX_SUSHI = 8;
+const MAX_DRINKS = 4;
 const SLICE_COLUMNS = 6;
 const CUT_LINES = [0.3, 0.5, 0.7];
 const CUT_START_TOLERANCE = 0.18;
@@ -18,6 +19,10 @@ const state = {
   flightVersion: 0,
   riceStored: 0,
   sushiStored: 0,
+  cupOnMachine: false,
+  drinkPouring: false,
+  drinksStored: 0,
+  drinkVersion: 0,
 };
 
 const stage = document.querySelector('#kitchen-stage');
@@ -31,6 +36,10 @@ const sliceRack = document.querySelector('#slice-rack');
 const riceRack = document.querySelector('#rice-rack');
 const sushiRack = document.querySelector('#sushi-rack');
 const serveButton = document.querySelector('#serve-button');
+const drinkMachine = document.querySelector('#drink-machine');
+const cupStation = document.querySelector('#cup-station');
+const machineCup = document.querySelector('#machine-cup');
+const drinkRack = document.querySelector('#drink-rack');
 let ingredientDrag = null;
 
 stage.addEventListener('dragstart', (event) => event.preventDefault());
@@ -89,6 +98,16 @@ function renderStockRack(rack, count, className, src, alt) {
   }
 }
 
+function renderDrinks() {
+  drinkRack.replaceChildren();
+  for (let index = 0; index < state.drinksStored; index += 1) {
+    const drink = document.createElement('div');
+    drink.className = 'stored-drink';
+    drink.setAttribute('aria-label', '一杯橙味饮料');
+    drinkRack.append(drink);
+  }
+}
+
 function render() {
   show(displaySalmon, true);
   show(boardSalmon, state.salmonOnBoard);
@@ -101,9 +120,12 @@ function render() {
     guide.classList.toggle('is-active', state.activeCut === index);
   });
   serveButton.disabled = !state.sushiStored;
+  show(machineCup, state.cupOnMachine);
+  machineCup.classList.toggle('is-filling', state.drinkPouring);
   renderSlices();
   renderStockRack(riceRack, state.riceStored, 'stored-rice', 'assets/restaurant/kitchen-layers/rice-portion.png', '一团米饭');
   renderStockRack(sushiRack, state.sushiStored, 'stored-sushi', 'assets/restaurant/kitchen-layers/salmon-nigiri.png', '三文鱼握寿司');
+  renderDrinks();
 }
 
 function pointIsInside(event, element) {
@@ -124,6 +146,7 @@ function clearIngredientDrag() {
   ingredientDrag.preview.remove();
   boardStation.classList.remove('is-drop-target');
   assemblyStation.classList.remove('is-drop-target');
+  drinkMachine.classList.remove('is-drop-target');
   ingredientDrag = null;
 }
 
@@ -132,19 +155,21 @@ function startIngredientDrag(event, type) {
   event.preventDefault();
   if (ingredientDrag) return;
 
-  const preview = document.createElement('img');
+  const preview = document.createElement(type === 'cup' ? 'div' : 'img');
   preview.className = `ingredient-drag-preview ${type}`;
-  preview.src = type === 'salmon'
-    ? 'assets/restaurant/kitchen-layers/salmon-loin.png'
-    : 'assets/restaurant/kitchen-layers/rice-portion.png';
-  preview.alt = '';
-  preview.draggable = false;
+  if (type !== 'cup') {
+    preview.src = type === 'salmon'
+      ? 'assets/restaurant/kitchen-layers/salmon-loin.png'
+      : 'assets/restaurant/kitchen-layers/rice-portion.png';
+    preview.alt = '';
+    preview.draggable = false;
+  }
   stage.append(preview);
   ingredientDrag = { type, source, pointerId: event.pointerId, preview };
   source.setPointerCapture(event.pointerId);
-  (type === 'salmon' ? boardStation : assemblyStation).classList.add('is-drop-target');
+  (type === 'salmon' ? boardStation : type === 'rice' ? assemblyStation : drinkMachine).classList.add('is-drop-target');
   moveDragPreview(event);
-  setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板。' : '把米饭拖到寿司制作区。');
+  setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板。' : type === 'rice' ? '把米饭拖到寿司制作区。' : '把空杯拖到饮品机。');
 }
 
 function prepareSalmonDrag(event) {
@@ -167,21 +192,34 @@ function prepareRiceDrag(event) {
   startIngredientDrag(event, 'rice');
 }
 
+function prepareCupDrag(event) {
+  if (state.cupOnMachine || state.drinkPouring) {
+    setMessage('饮品机里已经有一只杯子。');
+    return;
+  }
+  if (state.drinksStored >= MAX_DRINKS) {
+    setMessage('饮料架满了，先等待出餐。');
+    return;
+  }
+  startIngredientDrag(event, 'cup');
+}
+
 displaySalmon.addEventListener('pointerdown', prepareSalmonDrag);
 riceBin.addEventListener('pointerdown', prepareRiceDrag);
+cupStation.addEventListener('pointerdown', prepareCupDrag);
 
 window.addEventListener('pointermove', (event) => moveDragPreview(event));
 window.addEventListener('pointercancel', () => clearIngredientDrag());
 window.addEventListener('pointerup', (event) => {
   if (!ingredientDrag || event.pointerId !== ingredientDrag.pointerId) return;
   const { type, source } = ingredientDrag;
-  const destination = type === 'salmon' ? boardStation : assemblyStation;
+  const destination = type === 'salmon' ? boardStation : type === 'rice' ? assemblyStation : drinkMachine;
   const accepted = pointIsInside(event, destination);
   if (source.hasPointerCapture(event.pointerId)) source.releasePointerCapture(event.pointerId);
   clearIngredientDrag();
 
   if (!accepted) {
-    setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板里。' : '把米饭拖到寿司制作区里。');
+    setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板里。' : type === 'rice' ? '把米饭拖到寿司制作区里。' : '把空杯拖到饮品机里。');
     return;
   }
 
@@ -190,9 +228,12 @@ window.addEventListener('pointerup', (event) => {
     state.cutLines = [false, false, false];
     state.activeCut = null;
     setMessage('大三文鱼已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。');
-  } else {
+  } else if (type === 'rice') {
     state.riceStored += 1;
     setMessage('米饭已放进米饭架。点击一片三文鱼制作寿司。');
+  } else {
+    state.cupOnMachine = true;
+    setMessage('空杯放好了，点击饮品机接饮料。');
   }
   render();
 });
@@ -312,18 +353,31 @@ boardSalmon.addEventListener('keydown', (event) => {
   if (cutLine !== -1 && hasRoomForCut(cutLine)) finishCutLine(cutLine);
 });
 
-document.querySelector('#drink-machine').addEventListener('click', () => {
-  setMessage('饮品机之后会用于制作饮料。');
-});
-
-document.querySelector('#cup-station').addEventListener('click', () => {
-  setMessage('杯子区之后会用于出饮料。');
+drinkMachine.addEventListener('click', () => {
+  if (!state.cupOnMachine) {
+    setMessage('先从杯子区拖一个空杯到饮品机。');
+    return;
+  }
+  if (state.drinkPouring) return;
+  state.drinkPouring = true;
+  const version = state.drinkVersion;
+  setMessage('正在接橙味饮料。');
+  render();
+  window.setTimeout(() => {
+    if (version !== state.drinkVersion) return;
+    state.cupOnMachine = false;
+    state.drinkPouring = false;
+    state.drinksStored += 1;
+    setMessage('饮料做好了，已放进饮料架。');
+    render();
+  }, 650);
 });
 
 document.querySelector('#reset-button').addEventListener('click', () => {
   state.flightVersion += 1;
+  state.drinkVersion += 1;
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, sushiStored: 0 });
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, sushiStored: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0 });
   setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
   render();
 });
