@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="170" height="250" viewBox="0 0 170 250">
+  <!-- Flat, hand-drawn fisherman seen from behind. Transparent background. -->
+  <g stroke="#604136" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M89 116L137 30" fill="none" stroke="#805842" stroke-width="4"/>
+    <path d="M136 30Q145 32 151 42" fill="none" stroke="#805842" stroke-width="3"/>
+    <path d="M54 80Q54 57 76 57Q99 57 99 80V100H54Z" fill="#B97855"/>
+    <path d="M49 64Q54 42 78 42Q104 42 108 64Q95 55 79 55Q62 55 49 64Z" fill="#4F6D72"/>
+    <path d="M50 99Q75 89 102 100L118 177H38Z" fill="#7CA8A2"/>
+    <path d="M46 113L28 153M107 113L121 143" fill="none" stroke="#7CA8A2" stroke-width="17"/>
+    <path d="M56 177L46 235H73L78 183M100 177L107 235H133L115 177" fill="#52697A"/>
+    <path d="M43 235H76M105 235H139" fill="none" stroke="#604136" stroke-width="8"/>
+    <path d="M96 122L113 134" fill="none" stroke="#E9B18A" stroke-width="11"/>
+  </g>
+</svg>

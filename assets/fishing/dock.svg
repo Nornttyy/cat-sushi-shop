@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="210" viewBox="0 0 560 210">
+  <!-- Flat hand-drawn dock, transparent outside its silhouette. -->
+  <g stroke="#604136" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M0 55Q6 48 18 49H530Q550 51 558 64V155Q550 167 530 168H18Q4 165 0 154Z" fill="#C88358"/>
+    <path d="M13 84H546M13 117H546M13 149H546" fill="none" stroke="#A96E50" stroke-width="5"/>
+    <path d="M87 53V163M187 52V165M286 52V165M387 52V165M486 53V165" fill="none" stroke="#A96E50" stroke-width="5"/>
+    <path d="M70 164V204H102V164M445 164V204H477V164" fill="#8A5B45"/>
+  </g>
+</svg>

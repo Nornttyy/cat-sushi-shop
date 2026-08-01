@@ -1,122 +1,110 @@
-const recipes = {
-  salmon: { name: '三文鱼寿司', topping: '三文鱼', coins: 8 },
-  shrimp: { name: '虾寿司', topping: '虾', coins: 10 },
-  egg: { name: '玉子寿司', topping: '玉子', coins: 12 },
+const fish = {
+  salmon: { label: '三文鱼', weight: 45 },
+  mackerel: { label: '鲭鱼', weight: 35 },
+  seabream: { label: '海鲷', weight: 20 },
 };
 
-const state = { order: 'salmon', ingredients: [], coins: 0, served: 0, seconds: 75, beltOrder: [0, 1, 2], gameOver: false };
+const state = { phase: 'ready', seconds: 60, total: 0, catch: { salmon: 0, mackerel: 0, seabream: 0 }, ended: false };
 const $ = (selector) => document.querySelector(selector);
-const ingredientButtons = [...document.querySelectorAll('.ingredient')];
-const dish = $('#dish');
-const hint = $('#hint');
-const serveButton = $('#serve-dish');
-const timerFill = $('#timer-fill');
-const beltDishes = [$('#belt-dish-a'), $('#belt-dish-b'), $('#belt-dish-c')];
+const fishingButton = $('#fishing-button');
+const finishButton = $('#finish-button');
+const line = $('#fishing-line');
+const bobber = $('#bobber');
+const speech = $('#speech');
+const instruction = $('#instruction');
+let biteTimer;
 
-function chooseOrder(previous) {
-  const keys = Object.keys(recipes);
-  const options = keys.filter((key) => key !== previous);
-  return options[Math.floor(Math.random() * options.length)];
+function renderCatch() {
+  Object.keys(state.catch).forEach((type) => { $(`#${type}-count`).textContent = state.catch[type]; });
 }
 
-function renderOrder() {
-  const recipe = recipes[state.order];
-  $('#order-name').textContent = recipe.name;
-  $('#order-topping').textContent = recipe.topping;
-  $('#order-icon').className = `sushi-icon ${state.order}`;
+function weightedFish() {
+  const roll = Math.random() * 100;
+  let running = 0;
+  for (const [type, data] of Object.entries(fish)) {
+    running += data.weight;
+    if (roll < running) return type;
+  }
+  return 'salmon';
 }
 
-function renderDish() {
-  const hasRice = state.ingredients.includes('rice');
-  const topping = state.ingredients.find((item) => item !== 'rice');
-  dish.className = `dish${hasRice ? ' has-rice' : ''}${topping ? ` has-${topping}` : ''}`;
-  ingredientButtons.forEach((button) => button.classList.toggle('selected', state.ingredients.includes(button.dataset.ingredient)));
-  const ready = hasRice && topping === state.order && state.ingredients.length === 2;
-  serveButton.disabled = !ready;
-  if (!hasRice) hint.textContent = '先放一团米饭';
-  else if (!topping) hint.textContent = '再选一种配料';
-  else if (ready) hint.textContent = '做好了，交给客人吧！';
-  else hint.textContent = '这个不是客人点的寿司';
+function resetLine() {
+  window.clearTimeout(biteTimer);
+  state.phase = 'ready';
+  line.classList.remove('casting');
+  bobber.classList.remove('visible', 'biting');
+  fishingButton.textContent = '放线';
+  fishingButton.disabled = false;
 }
 
-function addIngredient(ingredient) {
-  if (state.gameOver) return;
-  if (state.ingredients.includes(ingredient)) return;
-  if (ingredient === 'rice' && state.ingredients.some((item) => item !== 'rice')) {
-    hint.textContent = '先重做，再从米饭开始';
+function showCatch(type) {
+  const popup = $('#catch-pop');
+  popup.textContent = `钓到了 ${fish[type].label}！`;
+  popup.classList.remove('show');
+  void popup.offsetWidth;
+  popup.classList.add('show');
+}
+
+function startFishing() {
+  if (state.ended) return;
+  if (state.phase === 'ready') {
+    state.phase = 'waiting';
+    line.classList.add('casting');
+    bobber.classList.add('visible');
+    fishingButton.textContent = '等一等';
+    fishingButton.disabled = true;
+    instruction.textContent = '安静一点，鱼马上就会靠近……';
+    speech.textContent = '耐心等鱼咬钩。';
+    biteTimer = window.setTimeout(() => {
+      if (state.ended || state.phase !== 'waiting') return;
+      state.phase = 'biting';
+      bobber.classList.add('biting');
+      fishingButton.disabled = false;
+      fishingButton.textContent = '收线！';
+      instruction.textContent = '有鱼咬钩了，快收线！';
+      speech.textContent = '就是现在！';
+    }, 900 + Math.random() * 1600);
     return;
   }
-  if (ingredient !== 'rice' && !state.ingredients.includes('rice')) {
-    hint.textContent = '要先放米饭哦';
-    return;
+  if (state.phase === 'biting') {
+    const caught = weightedFish();
+    state.catch[caught] += 1;
+    state.total += 1;
+    renderCatch();
+    showCatch(caught);
+    instruction.textContent = `收进鱼篓了！明天可以做${fish[caught].label}寿司。`;
+    speech.textContent = '再来一条吧！';
+    resetLine();
   }
-  if (ingredient !== 'rice' && state.ingredients.some((item) => item !== 'rice')) {
-    hint.textContent = '一份寿司只能放一种配料';
-    return;
-  }
-  state.ingredients.push(ingredient);
-  renderDish();
 }
 
-function clearDish() {
-  if (state.gameOver) return;
-  state.ingredients = [];
-  renderDish();
-}
-
-function serveDish() {
-  if (serveButton.disabled || state.gameOver) return;
-  state.coins += recipes[state.order].coins;
-  state.served += 1;
-  $('#coins').textContent = state.coins;
-  hint.textContent = '客人很满意！';
-  state.ingredients = [];
-  serveButton.disabled = true;
-  window.setTimeout(() => {
-    if (state.gameOver) return;
-    state.order = chooseOrder(state.order);
-    renderOrder();
-    renderDish();
-  }, 650);
-}
-
-function renderBelt() {
-  const slots = [27, 50, 73];
-  state.beltOrder.forEach((dishIndex, slot) => { beltDishes[dishIndex].style.left = `${slots[slot]}%`; });
-}
-
-function moveBelt(direction) {
-  if (direction === 'left') state.beltOrder.push(state.beltOrder.shift());
-  else state.beltOrder.unshift(state.beltOrder.pop());
-  renderBelt();
-}
-
-function endDay() {
-  state.gameOver = true;
-  $('#served-count').textContent = state.served;
-  $('#final-coins').textContent = state.coins;
+function endFishing() {
+  if (state.ended) return;
+  state.ended = true;
+  window.clearTimeout(biteTimer);
+  line.classList.remove('casting');
+  bobber.classList.remove('visible', 'biting');
+  fishingButton.disabled = true;
+  finishButton.disabled = true;
+  $('#total-catch').textContent = state.total;
   $('#result-dialog').showModal();
 }
 
 function tick() {
-  if (state.gameOver) return;
+  if (state.ended) return;
   state.seconds -= 1;
-  timerFill.style.width = `${Math.max(0, state.seconds / 75 * 100)}%`;
-  if (state.seconds <= 0) endDay();
+  const minutes = Math.floor(Math.max(0, state.seconds) / 60).toString().padStart(2, '0');
+  const seconds = (Math.max(0, state.seconds) % 60).toString().padStart(2, '0');
+  $('#time-text').textContent = `${minutes}:${seconds}`;
+  if (state.seconds <= 0) endFishing();
 }
 
-ingredientButtons.forEach((button) => button.addEventListener('click', () => addIngredient(button.dataset.ingredient)));
-$('#clear-dish').addEventListener('click', clearDish);
-serveButton.addEventListener('click', serveDish);
-$('#move-left').addEventListener('click', () => moveBelt('left'));
-$('#move-right').addEventListener('click', () => moveBelt('right'));
-$('#restart').addEventListener('click', () => window.location.reload());
-window.addEventListener('keydown', (event) => {
-  if (event.key.toLowerCase() === 'a' || event.key === 'ArrowLeft') moveBelt('left');
-  if (event.key.toLowerCase() === 'd' || event.key === 'ArrowRight') moveBelt('right');
+fishingButton.addEventListener('click', startFishing);
+bobber.addEventListener('click', startFishing);
+finishButton.addEventListener('click', endFishing);
+$('#back-to-restaurant').addEventListener('click', () => {
+  $('#result-dialog').close();
+  speech.textContent = '餐厅场景下一步制作。';
 });
-
-renderOrder();
-renderDish();
-renderBelt();
 window.setInterval(tick, 1000);
+renderCatch();

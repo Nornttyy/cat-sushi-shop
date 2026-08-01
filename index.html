@@ -3,81 +3,58 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f8ecd9" />
-    <title>寿司店</title>
+    <meta name="theme-color" content="#f7e8cf" />
+    <title>海边寿司店 · 钓鱼</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main class="game-shell" aria-label="寿司店游戏">
-      <header class="statusbar">
-        <span class="day-badge">第 <b id="day-count">1</b> 天</span>
-        <h1>寿司店</h1>
-        <span class="coin-count" aria-label="收入"><i>●</i><b id="coins">0</b></span>
+    <main class="game-screen" aria-label="海边钓鱼">
+      <header class="topbar">
+        <div class="day-info"><span>第 1 天</span><b>营业结束</b></div>
+        <h1>海边钓鱼</h1>
+        <div class="time-info"><span>剩余时间</span><b id="time-text">01:00</b></div>
       </header>
 
-      <section class="shop-wall">
-        <img class="wooden-sign" src="assets/wooden-sign.svg" alt="木招牌" />
-        <div class="sign-copy">寿司店</div>
-        <div class="open-light"><i></i>营业中</div>
-      </section>
-
-      <section class="order-area" aria-label="当前订单">
-        <div class="customer-mark" aria-hidden="true"><i></i><span></span></div>
-        <div class="order-card">
-          <span class="order-label">客人想要</span>
-          <div class="order-line">
-            <span id="order-icon" class="sushi-icon salmon" aria-hidden="true"><i></i></span>
-            <strong id="order-name">三文鱼寿司</strong>
-          </div>
-          <small>米饭 + <span id="order-topping">三文鱼</span></small>
+      <section class="scene" aria-label="海边码头">
+        <div class="sky"><span class="sun" aria-hidden="true"></span><span class="cloud cloud-one" aria-hidden="true"></span><span class="cloud cloud-two" aria-hidden="true"></span></div>
+        <div class="far-island" aria-hidden="true"></div>
+        <div id="sea" class="sea">
+          <div class="wave wave-one" aria-hidden="true"></div>
+          <div class="wave wave-two" aria-hidden="true"></div>
+          <img class="swimming-fish fish-a" src="assets/fishing/fish-salmon.svg" alt="" />
+          <img class="swimming-fish fish-b" src="assets/fishing/fish-mackerel.svg" alt="" />
+          <img class="swimming-fish fish-c" src="assets/fishing/fish-seabream.svg" alt="" />
+          <div id="fishing-line" class="fishing-line" aria-hidden="true"></div>
+          <button id="bobber" class="bobber" type="button" aria-label="收线"></button>
         </div>
-        <div class="timer" aria-label="剩余时间"><span id="timer-fill"></span></div>
+        <img class="dock" src="assets/fishing/dock.svg" alt="木头码头" />
+        <img class="angler" src="assets/fishing/angler.svg" alt="正在钓鱼的店主" />
+        <div id="speech" class="speech" aria-live="polite">今天打烊了，去钓点新鲜的鱼吧！</div>
+        <div id="catch-pop" class="catch-pop" aria-live="polite"></div>
       </section>
 
-      <section class="kitchen" aria-label="寿司制作区">
-        <div class="plate-area">
-          <div id="plate" class="plate" aria-label="正在制作的寿司">
-            <span class="plate-rim"></span>
-            <div id="dish" class="dish"></div>
-          </div>
-          <p id="hint" class="hint" aria-live="polite">先放一团米饭</p>
-        </div>
-        <img class="prep-table" src="assets/sushi-prep-table.svg" alt="寿司制作桌" />
+      <section class="basket" aria-label="今天钓到的食材">
+        <span class="basket-title">今天钓到</span>
+        <div class="catch-count"><img src="assets/fishing/fish-salmon.svg" alt="三文鱼" /><b id="salmon-count">0</b></div>
+        <div class="catch-count"><img src="assets/fishing/fish-mackerel.svg" alt="鲭鱼" /><b id="mackerel-count">0</b></div>
+        <div class="catch-count"><img src="assets/fishing/fish-seabream.svg" alt="海鲷" /><b id="seabream-count">0</b></div>
       </section>
 
-      <section class="ingredients" aria-label="选择食材">
-        <button class="ingredient rice" data-ingredient="rice" type="button"><span class="ingredient-picture"></span><b>米饭</b></button>
-        <button class="ingredient salmon" data-ingredient="salmon" type="button"><span class="ingredient-picture"></span><b>三文鱼</b></button>
-        <button class="ingredient shrimp" data-ingredient="shrimp" type="button"><span class="ingredient-picture"></span><b>虾</b></button>
-        <button class="ingredient egg" data-ingredient="egg" type="button"><span class="ingredient-picture"></span><b>玉子</b></button>
-      </section>
-
-      <section class="action-row" aria-label="制作操作">
-        <button id="clear-dish" class="small-action" type="button">重做</button>
-        <button id="serve-dish" class="serve-button" type="button" disabled>交给客人</button>
-      </section>
-
-      <section class="conveyor-area" aria-label="寿司传送带">
-        <div class="conveyor-wrap">
-          <img src="assets/sushi-conveyor.svg" alt="寿司传送带" />
-          <span id="belt-dish-a" class="belt-dish salmon"><i></i></span>
-          <span id="belt-dish-b" class="belt-dish egg"><i></i></span>
-          <span id="belt-dish-c" class="belt-dish shrimp"><i></i></span>
-        </div>
-        <div class="belt-controls">
-          <button id="move-left" type="button" aria-label="传送带往左移动"><img src="assets/button-left.svg" alt="" /></button>
-          <span>传送带</span>
-          <button id="move-right" type="button" aria-label="传送带往右移动"><img src="assets/button-right.svg" alt="" /></button>
+      <section class="bottom-panel" aria-label="钓鱼操作">
+        <p id="instruction">点击放线，等鱼咬钩后及时收线。</p>
+        <div class="controls">
+          <button id="fishing-button" class="primary-button" type="button">放线</button>
+          <button id="finish-button" class="secondary-button" type="button">结束钓鱼</button>
         </div>
       </section>
     </main>
 
     <dialog id="result-dialog">
-      <div class="dialog-star">✦</div>
-      <h2 id="result-title">今天打烊啦</h2>
-      <p>你今天卖出了 <b id="served-count">0</b> 份寿司</p>
-      <p>收入 <b id="final-coins">0</b> 枚硬币</p>
-      <button id="restart" type="button">再开一天</button>
+      <div class="dialog-fish">🐟</div>
+      <h2>今天收获不错！</h2>
+      <p>钓到 <b id="total-catch">0</b> 条鱼</p>
+      <p>明天可以用它们做寿司。</p>
+      <button id="back-to-restaurant" type="button">回到餐厅</button>
     </dialog>
     <script src="game.js"></script>
   </body>
