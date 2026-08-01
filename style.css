@@ -106,7 +106,7 @@ button { font: inherit; }
 .drink-machine-station { left: 84%; top: 51%; width: 11.4%; height: 28%; }
 .cup-station { left: 82%; top: 81%; width: 15%; height: 10%; cursor: grab; touch-action: none; }
 .cup-station:active { cursor: grabbing; }
-.machine-cup { position: absolute; left: 86.7%; top: 67.2%; z-index: 4; width: 3.1%; height: auto; pointer-events: none; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .23)); }
+.machine-cup { position: absolute; left: 86.7%; top: 68%; z-index: 4; width: 3.1%; height: auto; pointer-events: none; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .23)); }
 .machine-cup.is-filling { animation: tea-cup-fill 650ms ease-in both; }
 .drink-rack { position: absolute; left: 77%; top: 79%; z-index: 5; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 10%; width: 4.2%; height: 10%; }
 .stored-drink { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 0 rgb(59 39 28 / .22)); }
