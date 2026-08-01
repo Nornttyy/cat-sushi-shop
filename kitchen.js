@@ -55,7 +55,7 @@ function renderSlices() {
 }
 
 function render() {
-  const salmonStillInDisplay = !state.salmonOnBoard && state.cutsMade === 0;
+  const salmonStillInDisplay = !state.salmonOnBoard;
   show(displaySalmon, salmonStillInDisplay);
   show(boardSalmon, state.salmonOnBoard);
   show(ricePortion, state.riceOnBoard && !state.finished);
@@ -69,8 +69,12 @@ function render() {
 }
 
 displaySalmon.addEventListener('click', () => {
-  if (state.salmonOnBoard || state.cutsMade > 0) return;
+  if (state.salmonOnBoard) {
+    setMessage('切菜板上还有大三文鱼，先把它切完再拿新的。');
+    return;
+  }
   state.salmonOnBoard = true;
+  state.cutsMade = 0;
   setMessage('大三文鱼已放到切菜板。点击刀，把它拿起来。');
   render();
 });
@@ -95,7 +99,7 @@ function cutSalmon() {
   }
   if (state.cutsMade >= MAX_SLICES) return;
   state.cutsMade += 1;
-  state.slicesReady += 1;
+  state.slicesReady = Math.min(MAX_SLICES, state.slicesReady + 1);
   state.knifeHeld = false;
   if (state.cutsMade === MAX_SLICES) state.salmonOnBoard = false;
   setMessage(`切好了第 ${state.cutsMade} / ${MAX_SLICES} 片。${state.cutsMade < MAX_SLICES ? '这块大三文鱼还能继续切。' : '这块大三文鱼已经切完了。'}`);
