@@ -8,41 +8,40 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main class="game-stage kitchen-stage" aria-label="寿司制作后台">
+    <main id="kitchen-stage" class="game-stage kitchen-stage" aria-label="寿司制作后台">
+      <img class="kitchen-background" src="assets/restaurant/kitchen-layers/kitchen-background.png" alt="海边寿司厨房" />
       <header class="game-header">
         <div><span>第 1 天</span><b>寿司制作台</b></div>
         <div class="order-card"><span>今日练习</span><b>三文鱼握寿司</b></div>
       </header>
 
-      <div class="kitchen-sky" aria-hidden="true"></div>
       <section class="work-counter" aria-label="寿司制作操作台">
-        <button id="fish-well" class="station fish-station" type="button" aria-label="从鱼柜取三文鱼">
-          <img src="assets/restaurant/kitchen-layers/fish-well.png" alt="玻璃鱼柜" />
-          <img class="display-salmon" src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="三文鱼" />
-        </button>
+        <section class="fish-station" aria-label="玻璃鱼柜，共三格">
+          <img src="assets/restaurant/kitchen-layers/fish-well.png" alt="三格玻璃鱼柜" />
+          <button id="display-salmon" class="display-salmon" type="button" aria-label="取出第一格中的大三文鱼">
+            <img src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="大三文鱼" />
+          </button>
+        </section>
 
         <section class="board-station" aria-label="切菜板">
           <img class="cutting-board" src="assets/restaurant/kitchen-layers/cutting-board.png" alt="切菜板" />
-          <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="三文鱼，选择刀后点击切片">
-            <img src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="未切的三文鱼" />
+          <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="大三文鱼，拿刀后点击切片">
+            <img src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="待切三文鱼" />
           </button>
-          <button id="salmon-slice" class="salmon-slice is-hidden" type="button" aria-label="切好的三文鱼片">
-            <span></span>
+          <div id="slice-rack" class="slice-rack" aria-label="切好的三文鱼片"></div>
+          <button id="rice-portion" class="rice-portion is-hidden" type="button" aria-label="一团米饭">
+            <img src="assets/restaurant/kitchen-layers/rice-portion.png" alt="一团米饭" />
           </button>
-          <button id="rice-ball" class="rice-ball is-hidden" type="button" aria-label="一团米饭"></button>
-          <div id="finished-sushi" class="finished-sushi is-hidden" aria-label="完成的三文鱼握寿司">
-            <span class="sushi-rice"></span><span class="sushi-salmon"></span>
-          </div>
+          <img id="finished-sushi" class="finished-sushi is-hidden" src="assets/restaurant/kitchen-layers/salmon-nigiri.png" alt="完成的三文鱼握寿司" />
         </section>
 
-        <button id="knife" class="station knife-station" type="button" aria-label="拿起刀切三文鱼">
+        <button id="knife" class="station knife-station" type="button" aria-label="拿起刀">
           <img src="assets/restaurant/kitchen-layers/knife.png" alt="刀" />
         </button>
 
-        <button id="rice-bin" class="station rice-station" type="button" aria-label="取一团米饭">
+        <button id="rice-bin" class="station rice-station" type="button" aria-label="从饭盒取米饭">
           <img src="assets/restaurant/kitchen-layers/rice-bin.png" alt="装满米饭的饭盒" />
         </button>
-
         <button id="juicer" class="station juicer-station" type="button" aria-label="果汁机，暂未开放">
           <img src="assets/restaurant/kitchen-layers/juicer.png" alt="果汁机" />
         </button>
@@ -51,8 +50,9 @@
         </button>
       </section>
 
+      <img id="held-knife" class="held-knife is-hidden" src="assets/restaurant/kitchen-layers/knife.png" alt="" aria-hidden="true" />
       <div class="game-bottom-bar">
-        <p id="kitchen-message" aria-live="polite">先从玻璃鱼柜取一大片三文鱼。</p>
+        <p id="kitchen-message" aria-live="polite">点击鱼柜第一格的大三文鱼，把它放到切菜板。</p>
         <button id="reset-button" type="button">重做</button>
         <button id="serve-button" type="button" disabled>完成寿司</button>
       </div>

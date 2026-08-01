@@ -1,19 +1,23 @@
+const MAX_SLICES = 4;
+
 const state = {
-  tool: null,
   salmonOnBoard: false,
-  salmonCut: false,
-  riceTaken: false,
+  knifeHeld: false,
+  cutsMade: 0,
+  slicesReady: 0,
+  riceOnBoard: false,
   finished: false,
 };
 
+const stage = document.querySelector('#kitchen-stage');
 const message = document.querySelector('#kitchen-message');
-const fishWell = document.querySelector('#fish-well');
-const displaySalmon = document.querySelector('.display-salmon');
+const displaySalmon = document.querySelector('#display-salmon');
 const knife = document.querySelector('#knife');
+const heldKnife = document.querySelector('#held-knife');
 const riceBin = document.querySelector('#rice-bin');
 const boardSalmon = document.querySelector('#board-salmon');
-const salmonSlice = document.querySelector('#salmon-slice');
-const riceBall = document.querySelector('#rice-ball');
+const ricePortion = document.querySelector('#rice-portion');
+const sliceRack = document.querySelector('#slice-rack');
 const finishedSushi = document.querySelector('#finished-sushi');
 const serveButton = document.querySelector('#serve-button');
 
@@ -21,70 +25,106 @@ function show(element, visible) {
   element.classList.toggle('is-hidden', !visible);
 }
 
-function render() {
-  show(displaySalmon, !state.salmonOnBoard && !state.salmonCut && !state.finished);
-  show(boardSalmon, state.salmonOnBoard);
-  show(salmonSlice, state.salmonCut && !state.finished);
-  show(riceBall, state.riceTaken && !state.finished);
-  show(finishedSushi, state.finished);
-  knife.classList.toggle('is-selected', state.tool === 'knife');
-  serveButton.disabled = !state.finished;
-}
-
 function setMessage(text) {
   message.textContent = text;
 }
 
-fishWell.addEventListener('click', () => {
-  if (state.salmonOnBoard || state.salmonCut || state.finished) {
-    setMessage('三文鱼已经在切菜板上了。');
+function finishSushi() {
+  if (!state.riceOnBoard) {
+    setMessage('先从饭盒取一团米饭。');
     return;
   }
+  state.slicesReady -= 1;
+  state.riceOnBoard = false;
+  state.finished = true;
+  setMessage('三文鱼握寿司完成了！这是一张单独绘制的成品图。');
+  render();
+}
+
+function renderSlices() {
+  sliceRack.replaceChildren();
+  if (state.finished) return;
+  const cropPositions = ['12% 48%', '37% 51%', '61% 46%', '84% 50%'];
+  for (let index = 0; index < state.slicesReady; index += 1) {
+    const slice = document.createElement('button');
+    slice.type = 'button';
+    slice.className = 'salmon-slice-crop';
+    slice.style.backgroundPosition = cropPositions[index % cropPositions.length];
+    slice.setAttribute('aria-label', `第 ${index + 1} 片三文鱼，点击放到米饭上`);
+    slice.addEventListener('click', finishSushi);
+    sliceRack.append(slice);
+  }
+}
+
+function render() {
+  const salmonStillInDisplay = !state.salmonOnBoard && state.cutsMade === 0;
+  show(displaySalmon, salmonStillInDisplay);
+  show(boardSalmon, state.salmonOnBoard && !state.finished);
+  show(ricePortion, state.riceOnBoard && !state.finished);
+  show(finishedSushi, state.finished);
+  show(heldKnife, state.knifeHeld);
+  knife.classList.toggle('is-held', state.knifeHeld);
+  stage.classList.toggle('has-knife', state.knifeHeld);
+  boardSalmon.dataset.cuts = String(state.cutsMade);
+  serveButton.disabled = !state.finished;
+  renderSlices();
+}
+
+displaySalmon.addEventListener('click', () => {
+  if (state.salmonOnBoard || state.cutsMade > 0) return;
   state.salmonOnBoard = true;
-  setMessage('把刀拿起来，再点击切菜板上的三文鱼切片。');
+  setMessage('大三文鱼已放到切菜板。点击刀，把它拿起来。');
   render();
 });
 
-knife.addEventListener('click', () => {
-  state.tool = state.tool === 'knife' ? null : 'knife';
-  setMessage(state.tool ? '刀已拿起：点击切菜板上的三文鱼。' : '刀已放下。');
+function moveHeldKnife(clientX, clientY) {
+  const bounds = stage.getBoundingClientRect();
+  heldKnife.style.left = `${((clientX - bounds.left) / bounds.width) * 100}%`;
+  heldKnife.style.top = `${((clientY - bounds.top) / bounds.height) * 100}%`;
+}
+
+knife.addEventListener('click', (event) => {
+  state.knifeHeld = !state.knifeHeld;
+  if (state.knifeHeld) moveHeldKnife(event.clientX, event.clientY);
+  setMessage(state.knifeHeld ? '刀已拿起，移动到大三文鱼上再点击切下第一片。' : '刀已放下。');
   render();
 });
 
 boardSalmon.addEventListener('click', () => {
-  if (state.tool !== 'knife') {
-    setMessage('先点击刀，再切三文鱼。');
+  if (!state.knifeHeld) {
+    setMessage('先点击刀，把它拿起来。');
     return;
   }
-  state.salmonOnBoard = false;
-  state.salmonCut = true;
-  state.tool = null;
-  setMessage('三文鱼切好了。现在从饭盒取一团米饭。');
+  if (state.cutsMade >= MAX_SLICES) return;
+  state.cutsMade += 1;
+  state.slicesReady += 1;
+  state.knifeHeld = false;
+  if (state.cutsMade === MAX_SLICES) state.salmonOnBoard = false;
+  setMessage(`切好了第 ${state.cutsMade} / ${MAX_SLICES} 片。${state.cutsMade < MAX_SLICES ? '这块大三文鱼还能继续切。' : '这块大三文鱼已经切完了。'}`);
   render();
 });
 
 riceBin.addEventListener('click', () => {
-  if (!state.salmonCut) {
-    setMessage('先把三文鱼切成片。');
+  if (state.finished) {
+    setMessage('先完成出餐，再做下一份。');
     return;
   }
-  if (state.riceTaken) {
-    setMessage('米饭已经放到切菜板上了。');
+  if (!state.slicesReady) {
+    setMessage('先用刀从大三文鱼切下一片。');
     return;
   }
-  state.riceTaken = true;
-  setMessage('把切好的三文鱼放到米饭上。');
+  if (state.riceOnBoard) {
+    setMessage('米饭已经在切菜板上了，点击一片三文鱼。');
+    return;
+  }
+  state.riceOnBoard = true;
+  setMessage('米饭放好了。点击裁自大三文鱼的鱼片，完成寿司。');
   render();
 });
 
-salmonSlice.addEventListener('click', () => {
-  if (!state.riceTaken) {
-    setMessage('先从饭盒取米饭。');
-    return;
-  }
-  state.finished = true;
-  setMessage('三文鱼握寿司完成了！');
-  render();
+stage.addEventListener('pointermove', (event) => {
+  if (!state.knifeHeld) return;
+  moveHeldKnife(event.clientX, event.clientY);
 });
 
 document.querySelector('#juicer').addEventListener('click', () => {
@@ -96,14 +136,15 @@ document.querySelector('#cup-station').addEventListener('click', () => {
 });
 
 document.querySelector('#reset-button').addEventListener('click', () => {
-  Object.assign(state, { tool: null, salmonOnBoard: false, salmonCut: false, riceTaken: false, finished: false });
-  setMessage('重新开始：先从玻璃鱼柜取三文鱼。');
+  Object.assign(state, { salmonOnBoard: false, knifeHeld: false, cutsMade: 0, slicesReady: 0, riceOnBoard: false, finished: false });
+  setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
   render();
 });
 
 serveButton.addEventListener('click', () => {
-  setMessage('寿司已放到出餐台。下一步再加入订单与顾客。');
-  serveButton.disabled = true;
+  state.finished = false;
+  setMessage(state.cutsMade < MAX_SLICES ? '寿司已放到出餐台。这块三文鱼还能继续切。' : '寿司已放到出餐台。');
+  render();
 });
 
 render();
