@@ -87,14 +87,9 @@ button { font: inherit; }
 .rice-portion img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .finished-sushi { position: absolute; left: 24%; top: 31%; z-index: 5; width: 52%; height: 43%; object-fit: contain; }
 
-.knife-station { left: 44%; top: 65%; width: 8%; height: 20%; transform: rotate(-35deg); }
-.knife-station.is-held { opacity: .22; filter: grayscale(.45); }
 .rice-station { left: 64.4%; top: 55%; width: 12.5%; height: 35%; }
 .drink-machine-station { left: 84%; top: 51%; width: 11.4%; height: 28%; }
 .cup-station { left: 82%; top: 81%; width: 15%; height: 10%; }
-
-.held-knife { position: absolute; z-index: 80; width: 9%; height: auto; pointer-events: none; transform: translate(-24%, -12%) rotate(-38deg); filter: drop-shadow(0 4px 3px rgb(59 39 28 / .35)); }
-.game-stage.has-knife, .game-stage.has-knife button { cursor: none !important; }
 
 .game-bottom-bar { position: absolute; top: 13.5%; right: 2%; z-index: 20; display: flex; align-items: center; gap: clamp(6px, 1vw, 14px); }
 .game-bottom-bar button { min-width: clamp(62px, 9vw, 130px); padding: clamp(7px, .8vw, 12px) clamp(9px, 1.2vw, 18px); cursor: pointer; border: 3px solid var(--ink); border-radius: 13px; color: var(--ink); background: #f6d293; box-shadow: 0 3px 0 #a96d50; font-size: clamp(10px, 1.05vw, 17px); font-weight: 900; }

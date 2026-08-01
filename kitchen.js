@@ -3,7 +3,6 @@ const CUT_TAPS_REQUIRED = 10;
 
 const state = {
   salmonOnBoard: false,
-  knifeHeld: false,
   cutsMade: 0,
   cutTaps: 0,
   slicesReady: 0,
@@ -11,11 +10,8 @@ const state = {
   finished: false,
 };
 
-const stage = document.querySelector('#kitchen-stage');
 const message = document.querySelector('#kitchen-message');
 const displaySalmon = document.querySelector('#display-salmon');
-const knife = document.querySelector('#knife');
-const heldKnife = document.querySelector('#held-knife');
 const riceBin = document.querySelector('#rice-bin');
 const boardSalmon = document.querySelector('#board-salmon');
 const ricePortion = document.querySelector('#rice-portion');
@@ -63,9 +59,6 @@ function render() {
   show(boardSalmon, state.salmonOnBoard);
   show(ricePortion, state.riceOnBoard && !state.finished);
   show(finishedSushi, state.finished);
-  show(heldKnife, state.knifeHeld);
-  knife.classList.toggle('is-held', state.knifeHeld);
-  stage.classList.toggle('has-knife', state.knifeHeld);
   boardSalmon.dataset.taps = String(state.cutTaps);
   show(cutProgress, state.salmonOnBoard);
   cutProgress.style.setProperty('--cut-progress', `${(state.cutTaps / CUT_TAPS_REQUIRED) * 100}%`);
@@ -82,38 +75,20 @@ displaySalmon.addEventListener('click', () => {
   state.salmonOnBoard = true;
   state.cutsMade = 0;
   state.cutTaps = 0;
-  setMessage('大三文鱼已放到切菜板。点击刀，把它拿起来。');
-  render();
-});
-
-function moveHeldKnife(clientX, clientY) {
-  const bounds = stage.getBoundingClientRect();
-  heldKnife.style.left = `${((clientX - bounds.left) / bounds.width) * 100}%`;
-  heldKnife.style.top = `${((clientY - bounds.top) / bounds.height) * 100}%`;
-}
-
-knife.addEventListener('click', (event) => {
-  state.knifeHeld = !state.knifeHeld;
-  if (state.knifeHeld) moveHeldKnife(event.clientX, event.clientY);
-  setMessage(state.knifeHeld ? '刀已拿起，移动到大三文鱼上再点击切下第一片。' : '刀已放下。');
+  setMessage('大三文鱼已放到切菜板。连续点击它 10 下即可切好 4 片。');
   render();
 });
 
 function cutSalmon() {
-  if (!state.knifeHeld) {
-    setMessage('先点击刀，把它拿起来。');
-    return;
-  }
   state.cutTaps += 1;
   if (state.cutTaps < CUT_TAPS_REQUIRED) {
-    setMessage(`继续切：${state.cutTaps} / ${CUT_TAPS_REQUIRED} 下。第 ${CUT_TAPS_REQUIRED} 下会一次切好 4 片。`);
+    setMessage(`继续点击三文鱼：${state.cutTaps} / ${CUT_TAPS_REQUIRED}。`);
     render();
     return;
   }
   state.cutsMade = MAX_SLICES;
   state.slicesReady = Math.min(MAX_SLICES, state.slicesReady + MAX_SLICES);
   state.salmonOnBoard = false;
-  state.knifeHeld = false;
   setMessage('切好了！一大片三文鱼已经变成 4 片。');
   render();
 }
@@ -135,7 +110,7 @@ riceBin.addEventListener('click', () => {
     return;
   }
   if (!state.slicesReady) {
-    setMessage('先用刀从大三文鱼切下一片。');
+    setMessage('先点击大三文鱼，把它切成鱼片。');
     return;
   }
   if (state.riceOnBoard) {
@@ -147,11 +122,6 @@ riceBin.addEventListener('click', () => {
   render();
 });
 
-stage.addEventListener('pointermove', (event) => {
-  if (!state.knifeHeld) return;
-  moveHeldKnife(event.clientX, event.clientY);
-});
-
 document.querySelector('#drink-machine').addEventListener('click', () => {
   setMessage('饮品机之后会用于制作饮料。');
 });
@@ -161,7 +131,7 @@ document.querySelector('#cup-station').addEventListener('click', () => {
 });
 
 document.querySelector('#reset-button').addEventListener('click', () => {
-  Object.assign(state, { salmonOnBoard: false, knifeHeld: false, cutsMade: 0, cutTaps: 0, slicesReady: 0, riceOnBoard: false, finished: false });
+  Object.assign(state, { salmonOnBoard: false, cutsMade: 0, cutTaps: 0, slicesReady: 0, riceOnBoard: false, finished: false });
   setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
   render();
 });

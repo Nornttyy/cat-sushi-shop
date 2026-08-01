@@ -25,7 +25,7 @@
 
         <section class="board-station" aria-label="切菜板">
           <img class="cutting-board" src="assets/restaurant/kitchen-layers/cutting-board.png" alt="切菜板" />
-          <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="大三文鱼，拿刀后点击切片">
+          <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="大三文鱼，连续点击切片">
             <img src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="待切三文鱼" />
           </button>
           <div id="cut-progress" class="cut-progress is-hidden" role="progressbar" aria-label="三文鱼切片进度" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><span></span></div>
@@ -39,10 +39,6 @@
           <img id="finished-sushi" class="finished-sushi is-hidden" src="assets/restaurant/kitchen-layers/salmon-nigiri.png" alt="完成的三文鱼握寿司" />
         </section>
 
-        <button id="knife" class="station knife-station" type="button" aria-label="拿起刀">
-          <img src="assets/restaurant/kitchen-layers/knife.png" alt="刀" />
-        </button>
-
         <button id="rice-bin" class="station rice-station" type="button" aria-label="从饭盒取米饭">
           <img src="assets/restaurant/kitchen-layers/rice-bin.png" alt="装满米饭的饭盒" />
         </button>
@@ -54,7 +50,6 @@
         </button>
       </section>
 
-      <img id="held-knife" class="held-knife is-hidden" src="assets/restaurant/kitchen-layers/knife.png" alt="" aria-hidden="true" />
       <div class="game-bottom-bar">
         <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击鱼柜第一格的大三文鱼，把它放到切菜板。</span>
         <button id="reset-button" type="button">重做</button>
