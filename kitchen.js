@@ -34,6 +34,7 @@ function finishSushi() {
     setMessage('先从饭盒取一团米饭。');
     return;
   }
+  state.slicesReady -= 1;
   state.riceOnBoard = false;
   state.finished = true;
   setMessage('三文鱼握寿司完成了！这是一张单独绘制的成品图。');
