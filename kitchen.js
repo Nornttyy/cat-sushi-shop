@@ -101,9 +101,11 @@ function renderStockRack(rack, count, className, src, alt) {
 function renderDrinks() {
   drinkRack.replaceChildren();
   for (let index = 0; index < state.drinksStored; index += 1) {
-    const drink = document.createElement('div');
+    const drink = document.createElement('img');
     drink.className = 'stored-drink';
-    drink.setAttribute('aria-label', '一杯橙味饮料');
+    drink.src = 'assets/restaurant/kitchen-layers/tea-cup-ready.png';
+    drink.alt = '一杯橙味饮料';
+    drink.draggable = false;
     drinkRack.append(drink);
   }
 }
@@ -121,6 +123,9 @@ function render() {
   });
   serveButton.disabled = !state.sushiStored;
   show(machineCup, state.cupOnMachine);
+  machineCup.src = state.drinkPouring
+    ? 'assets/restaurant/kitchen-layers/tea-cup-ready.png'
+    : 'assets/restaurant/kitchen-layers/tea-cup-empty.png';
   machineCup.classList.toggle('is-filling', state.drinkPouring);
   renderSlices();
   renderStockRack(riceRack, state.riceStored, 'stored-rice', 'assets/restaurant/kitchen-layers/rice-portion.png', '一团米饭');
@@ -155,15 +160,15 @@ function startIngredientDrag(event, type) {
   event.preventDefault();
   if (ingredientDrag) return;
 
-  const preview = document.createElement(type === 'cup' ? 'div' : 'img');
+  const preview = document.createElement('img');
   preview.className = `ingredient-drag-preview ${type}`;
-  if (type !== 'cup') {
-    preview.src = type === 'salmon'
-      ? 'assets/restaurant/kitchen-layers/salmon-loin.png'
-      : 'assets/restaurant/kitchen-layers/rice-portion.png';
-    preview.alt = '';
-    preview.draggable = false;
-  }
+  preview.src = type === 'salmon'
+    ? 'assets/restaurant/kitchen-layers/salmon-loin.png'
+    : type === 'rice'
+      ? 'assets/restaurant/kitchen-layers/rice-portion.png'
+      : 'assets/restaurant/kitchen-layers/tea-cup-empty.png';
+  preview.alt = '';
+  preview.draggable = false;
   stage.append(preview);
   ingredientDrag = { type, source, pointerId: event.pointerId, preview };
   source.setPointerCapture(event.pointerId);
