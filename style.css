@@ -101,7 +101,7 @@ button { font: inherit; }
 .stored-rice { filter: drop-shadow(0 1px 0 rgb(90 57 45 / .22)); }
 .stored-sushi { filter: drop-shadow(0 1px 0 rgb(90 57 45 / .28)); }
 
-.rice-station { left: 65.2%; top: 60%; width: 10.6%; height: 30%; cursor: grab; touch-action: none; }
+.rice-station { left: 65.9%; top: 60%; width: 10.6%; height: 30%; cursor: grab; touch-action: none; }
 .drink-machine-station { left: 84%; top: 51%; width: 11.4%; height: 28%; }
 .cup-station { left: 82%; top: 81%; width: 15%; height: 10%; }
 
