@@ -34,7 +34,6 @@ function finishSushi() {
     setMessage('先从饭盒取一团米饭。');
     return;
   }
-  state.slicesReady -= 1;
   state.riceOnBoard = false;
   state.finished = true;
   setMessage('三文鱼握寿司完成了！这是一张单独绘制的成品图。');
@@ -43,8 +42,6 @@ function finishSushi() {
 
 function renderSlices() {
   sliceRack.replaceChildren();
-  sliceRack.classList.toggle('is-hidden', state.finished);
-  if (state.finished) return;
   const cropPositions = ['12% 48%', '37% 51%', '61% 46%', '84% 50%'];
   for (let index = 0; index < state.slicesReady; index += 1) {
     const slice = document.createElement('button');
@@ -60,7 +57,7 @@ function renderSlices() {
 function render() {
   const salmonStillInDisplay = !state.salmonOnBoard && state.cutsMade === 0;
   show(displaySalmon, salmonStillInDisplay);
-  show(boardSalmon, state.salmonOnBoard && !state.finished);
+  show(boardSalmon, state.salmonOnBoard);
   show(ricePortion, state.riceOnBoard && !state.finished);
   show(finishedSushi, state.finished);
   show(heldKnife, state.knifeHeld);
