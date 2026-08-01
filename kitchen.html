@@ -28,6 +28,7 @@
           <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="大三文鱼，拿刀后点击切片">
             <img src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="待切三文鱼" />
           </button>
+          <div id="cut-progress" class="cut-progress is-hidden" role="progressbar" aria-label="三文鱼切片进度" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><span></span></div>
         </section>
 
         <section class="assembly-station" aria-label="寿司制作区，在切菜板旁边">
@@ -55,7 +56,7 @@
 
       <img id="held-knife" class="held-knife is-hidden" src="assets/restaurant/kitchen-layers/knife.png" alt="" aria-hidden="true" />
       <div class="game-bottom-bar">
-        <p id="kitchen-message" aria-live="polite">点击鱼柜第一格的大三文鱼，把它放到切菜板。</p>
+        <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击鱼柜第一格的大三文鱼，把它放到切菜板。</span>
         <button id="reset-button" type="button">重做</button>
         <button id="serve-button" type="button" disabled>完成寿司</button>
       </div>

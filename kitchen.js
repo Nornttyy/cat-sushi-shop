@@ -22,6 +22,7 @@ const ricePortion = document.querySelector('#rice-portion');
 const sliceRack = document.querySelector('#slice-rack');
 const finishedSushi = document.querySelector('#finished-sushi');
 const serveButton = document.querySelector('#serve-button');
+const cutProgress = document.querySelector('#cut-progress');
 
 function show(element, visible) {
   element.classList.toggle('is-hidden', !visible);
@@ -66,6 +67,9 @@ function render() {
   knife.classList.toggle('is-held', state.knifeHeld);
   stage.classList.toggle('has-knife', state.knifeHeld);
   boardSalmon.dataset.taps = String(state.cutTaps);
+  show(cutProgress, state.salmonOnBoard);
+  cutProgress.style.setProperty('--cut-progress', `${(state.cutTaps / CUT_TAPS_REQUIRED) * 100}%`);
+  cutProgress.setAttribute('aria-valuenow', String(state.cutTaps));
   serveButton.disabled = !state.finished;
   renderSlices();
 }
