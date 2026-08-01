@@ -68,7 +68,7 @@ button { font: inherit; }
 .station:active { transform: translateY(1.5%) scale(.98); }
 .station:focus-visible, .display-salmon:focus-visible, .board-salmon:focus-visible, .rice-portion:focus-visible, .salmon-slice-crop:focus-visible { outline: 4px dashed var(--cream); outline-offset: 5px; }
 
-.fish-station { left: 2.2%; top: 54%; width: 12.5%; height: 32%; }
+.fish-station { left: 2.8%; top: 57%; width: 10.5%; height: 29%; }
 .fish-station > img { display: block; width: 100%; height: 100%; object-fit: fill; }
 .display-salmon { position: absolute; left: 15%; top: 10%; width: 70%; height: 16%; padding: 0; cursor: grab; border: 0; background: transparent; touch-action: none; }
 .display-salmon img { display: block; width: 100%; height: 100%; object-fit: contain; transform: rotate(-5deg); }
@@ -101,7 +101,7 @@ button { font: inherit; }
 .stored-rice { filter: drop-shadow(0 1px 0 rgb(90 57 45 / .22)); }
 .stored-sushi { filter: drop-shadow(0 1px 0 rgb(90 57 45 / .28)); }
 
-.rice-station { left: 64.4%; top: 55%; width: 12.5%; height: 35%; cursor: grab; touch-action: none; }
+.rice-station { left: 65.2%; top: 60%; width: 10.6%; height: 30%; cursor: grab; touch-action: none; }
 .drink-machine-station { left: 84%; top: 51%; width: 11.4%; height: 28%; }
 .cup-station { left: 82%; top: 81%; width: 15%; height: 10%; }
 
