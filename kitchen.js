@@ -1,4 +1,6 @@
 const MAX_SLICES = 12;
+const MAX_RICE = 8;
+const MAX_SUSHI = 8;
 const SLICE_COLUMNS = 6;
 const CUT_LINES = [0.3, 0.5, 0.7];
 const CUT_START_TOLERANCE = 0.18;
@@ -14,8 +16,8 @@ const state = {
   slicesReady: 0,
   incomingSlices: 0,
   flightVersion: 0,
-  riceOnBoard: false,
-  finished: false,
+  riceStored: 0,
+  sushiStored: 0,
 };
 
 const stage = document.querySelector('#kitchen-stage');
@@ -25,9 +27,9 @@ const riceBin = document.querySelector('#rice-bin');
 const boardStation = document.querySelector('.board-station');
 const assemblyStation = document.querySelector('.assembly-station');
 const boardSalmon = document.querySelector('#board-salmon');
-const ricePortion = document.querySelector('#rice-portion');
 const sliceRack = document.querySelector('#slice-rack');
-const finishedSushi = document.querySelector('#finished-sushi');
+const riceRack = document.querySelector('#rice-rack');
+const sushiRack = document.querySelector('#sushi-rack');
 const serveButton = document.querySelector('#serve-button');
 let ingredientDrag = null;
 
@@ -41,19 +43,23 @@ function setMessage(text) {
   message.textContent = text;
 }
 
-function finishSushi() {
+function makeSushi() {
   if (state.incomingSlices) {
     setMessage('等鱼片滑到旁边再制作寿司。');
     return;
   }
-  if (!state.riceOnBoard) {
-    setMessage('先从饭盒取一团米饭。');
+  if (!state.riceStored) {
+    setMessage('先拖一团米饭到米饭架。');
+    return;
+  }
+  if (state.sushiStored >= MAX_SUSHI) {
+    setMessage('寿司架满了，先出餐再继续制作。');
     return;
   }
   state.slicesReady -= 1;
-  state.riceOnBoard = false;
-  state.finished = true;
-  setMessage('三文鱼握寿司完成了！这是一张单独绘制的成品图。');
+  state.riceStored -= 1;
+  state.sushiStored += 1;
+  setMessage('三文鱼握寿司做好了，已放进寿司架。');
   render();
 }
 
@@ -66,16 +72,26 @@ function renderSlices() {
     slice.className = 'salmon-slice-crop';
     slice.style.backgroundPosition = SLICE_CROP_POSITIONS[index % SLICE_CROP_POSITIONS.length];
     slice.setAttribute('aria-label', `第 ${index + 1} 片三文鱼，点击放到米饭上`);
-    slice.addEventListener('click', finishSushi);
+    slice.addEventListener('click', makeSushi);
     sliceRack.append(slice);
+  }
+}
+
+function renderStockRack(rack, count, className, src, alt) {
+  rack.replaceChildren();
+  for (let index = 0; index < count; index += 1) {
+    const item = document.createElement('img');
+    item.className = className;
+    item.src = src;
+    item.alt = alt;
+    item.draggable = false;
+    rack.append(item);
   }
 }
 
 function render() {
   show(displaySalmon, true);
   show(boardSalmon, state.salmonOnBoard);
-  show(ricePortion, state.riceOnBoard && !state.finished);
-  show(finishedSushi, state.finished);
   boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
   const completedCuts = state.cutLines.filter(Boolean).length;
   const croppedLeft = completedCuts ? CUT_LINES[completedCuts - 1] : 0;
@@ -84,8 +100,10 @@ function render() {
     guide.classList.toggle('is-cut', state.cutLines[index]);
     guide.classList.toggle('is-active', state.activeCut === index);
   });
-  serveButton.disabled = !state.finished;
+  serveButton.disabled = !state.sushiStored;
   renderSlices();
+  renderStockRack(riceRack, state.riceStored, 'stored-rice', 'assets/restaurant/kitchen-layers/rice-portion.png', '一团米饭');
+  renderStockRack(sushiRack, state.sushiStored, 'stored-sushi', 'assets/restaurant/kitchen-layers/salmon-nigiri.png', '三文鱼握寿司');
 }
 
 function pointIsInside(event, element) {
@@ -142,20 +160,8 @@ function prepareSalmonDrag(event) {
 }
 
 function prepareRiceDrag(event) {
-  if (state.finished) {
-    setMessage('先完成出餐，再做下一份。');
-    return;
-  }
-  if (!state.slicesReady) {
-    setMessage('先切出三文鱼片，再拖米饭。');
-    return;
-  }
-  if (state.incomingSlices) {
-    setMessage('等鱼片滑到旁边再取米饭。');
-    return;
-  }
-  if (state.riceOnBoard) {
-    setMessage('米饭已经放好了，点击一片三文鱼。');
+  if (state.riceStored >= MAX_RICE) {
+    setMessage('米饭架已经存满 8 团。');
     return;
   }
   startIngredientDrag(event, 'rice');
@@ -185,8 +191,8 @@ window.addEventListener('pointerup', (event) => {
     state.activeCut = null;
     setMessage('大三文鱼已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。');
   } else {
-    state.riceOnBoard = true;
-    setMessage('米饭放好了。点击一片三文鱼，完成寿司。');
+    state.riceStored += 1;
+    setMessage('米饭已放进米饭架。点击一片三文鱼制作寿司。');
   }
   render();
 });
@@ -317,14 +323,14 @@ document.querySelector('#cup-station').addEventListener('click', () => {
 document.querySelector('#reset-button').addEventListener('click', () => {
   state.flightVersion += 1;
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceOnBoard: false, finished: false });
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, sushiStored: 0 });
   setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
   render();
 });
 
 serveButton.addEventListener('click', () => {
-  state.finished = false;
-  setMessage(state.salmonOnBoard ? '寿司已放到出餐台。大三文鱼还能继续切。' : '寿司已放到出餐台。');
+  state.sushiStored -= 1;
+  setMessage(state.sushiStored ? '已出餐一份寿司。' : '已出餐，寿司架空了。');
   render();
 });
 

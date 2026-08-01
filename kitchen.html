@@ -35,10 +35,8 @@
 
         <section class="assembly-station" aria-label="寿司制作区，在切菜板旁边">
           <div id="slice-rack" class="slice-rack" aria-label="切好的三文鱼片"></div>
-          <button id="rice-portion" class="rice-portion is-hidden" type="button" aria-label="一团米饭">
-            <img src="assets/restaurant/kitchen-layers/rice-portion.png" alt="一团米饭" />
-          </button>
-          <img id="finished-sushi" class="finished-sushi is-hidden" src="assets/restaurant/kitchen-layers/salmon-nigiri.png" alt="完成的三文鱼握寿司" />
+          <div id="rice-rack" class="stock-rack rice-rack" aria-label="已存米饭"></div>
+          <div id="sushi-rack" class="stock-rack sushi-rack" aria-label="已做寿司"></div>
         </section>
 
         <button id="rice-bin" class="station rice-station" type="button" aria-label="从饭盒拖出米饭">
@@ -55,7 +53,7 @@
       <div class="game-bottom-bar">
         <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击鱼柜第一格的大三文鱼，把它放到切菜板。</span>
         <button id="reset-button" type="button">重做</button>
-        <button id="serve-button" type="button" disabled>完成寿司</button>
+        <button id="serve-button" type="button" disabled>出餐</button>
       </div>
     </main>
     <script src="kitchen.js"></script>

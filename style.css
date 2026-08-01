@@ -94,9 +94,12 @@ button { font: inherit; }
 .assembly-station { left: 50%; top: 66%; width: 11.5%; height: 19%; }
 .slice-rack { position: absolute; left: 2%; right: 2%; top: 2%; z-index: 3; display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(2, 1fr); gap: 7% 2%; height: 34%; }
 .salmon-slice-crop { width: 100%; height: 100%; cursor: pointer; border: 2px solid var(--ink); border-radius: 40% 48% 44% 42%; background-color: #f68d62; background-image: url("assets/restaurant/kitchen-layers/salmon-loin.png"); background-repeat: no-repeat; background-size: 360% auto; box-shadow: inset 0 3px 0 rgb(255 205 176 / .65); }
-.rice-portion { position: absolute; left: 25%; top: 42%; z-index: 2; width: 52%; height: 36%; padding: 0; cursor: pointer; border: 0; background: transparent; }
-.rice-portion img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.finished-sushi { position: absolute; left: 24%; top: 31%; z-index: 5; width: 52%; height: 43%; object-fit: contain; }
+.stock-rack { position: absolute; top: 42%; z-index: 4; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); gap: 4%; height: 55%; }
+.rice-rack { left: 2%; width: 45%; }
+.sushi-rack { right: 2%; width: 45%; }
+.stock-rack img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.stored-rice { filter: drop-shadow(0 1px 0 rgb(90 57 45 / .22)); }
+.stored-sushi { filter: drop-shadow(0 1px 0 rgb(90 57 45 / .28)); }
 
 .rice-station { left: 64.4%; top: 55%; width: 12.5%; height: 35%; cursor: grab; touch-action: none; }
 .drink-machine-station { left: 84%; top: 51%; width: 11.4%; height: 28%; }
