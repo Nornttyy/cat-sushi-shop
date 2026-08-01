@@ -60,7 +60,7 @@ button { font: inherit; }
 .order-card { text-align: right; }
 
 .work-counter { position: absolute; inset: 0; z-index: 1; }
-.station, .board-station, .fish-station { position: absolute; display: block; margin: 0; padding: 0; border: 0; background: transparent; }
+.station, .board-station, .fish-station, .assembly-station { position: absolute; display: block; margin: 0; padding: 0; border: 0; background: transparent; }
 .station { cursor: pointer; }
 .station img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .station:hover { filter: brightness(1.08); transform: translateY(-1.2%); }
@@ -74,18 +74,18 @@ button { font: inherit; }
 
 .board-station { left: 24.8%; top: 64%; width: 18%; height: 23%; }
 .cutting-board { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-.board-salmon { position: absolute; left: 9%; top: 6%; width: 82%; height: 42%; padding: 0; cursor: pointer; border: 0; background: transparent; }
+.board-salmon { position: absolute; left: 9%; top: 6%; width: 82%; height: 42%; padding: 0; cursor: pointer; transform-origin: left center; transition: transform 180ms ease; border: 0; background: transparent; }
 .board-salmon img { width: 100%; height: 100%; object-fit: contain; }
-.board-salmon::after { position: absolute; left: 17%; right: 17%; bottom: 7%; height: 3px; background: rgb(255 248 218 / .9); box-shadow: 0 -9px 0 rgb(255 248 218 / .8), 0 -18px 0 rgb(255 248 218 / .7), 0 -27px 0 rgb(255 248 218 / .6); content: ""; opacity: 0; }
-.board-salmon[data-cuts="1"]::after { opacity: .35; }
-.board-salmon[data-cuts="2"]::after { opacity: .55; }
-.board-salmon[data-cuts="3"]::after { opacity: .75; }
+.board-salmon[data-cuts="1"] { transform: scaleX(.76); }
+.board-salmon[data-cuts="2"] { transform: scaleX(.52); }
+.board-salmon[data-cuts="3"] { transform: scaleX(.28); }
 
-.slice-rack { position: absolute; left: 7%; right: 7%; bottom: 5%; z-index: 3; display: flex; justify-content: center; gap: 3%; height: 21%; }
+.assembly-station { left: 50%; top: 66%; width: 11.5%; height: 19%; }
+.slice-rack { position: absolute; left: 2%; right: 2%; top: 3%; z-index: 3; display: flex; justify-content: center; gap: 3%; height: 25%; }
 .salmon-slice-crop { width: 22%; height: 100%; cursor: pointer; border: 3px solid var(--ink); border-radius: 40% 48% 44% 42%; background-color: #f68d62; background-image: url("assets/restaurant/kitchen-layers/salmon-loin.png"); background-repeat: no-repeat; background-size: 360% auto; box-shadow: inset 0 4px 0 rgb(255 205 176 / .65); }
-.rice-portion { position: absolute; left: 34%; top: 48%; z-index: 2; width: 37%; height: 34%; padding: 0; cursor: pointer; border: 0; background: transparent; }
+.rice-portion { position: absolute; left: 25%; top: 42%; z-index: 2; width: 52%; height: 36%; padding: 0; cursor: pointer; border: 0; background: transparent; }
 .rice-portion img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.finished-sushi { position: absolute; left: 20%; top: 21%; z-index: 5; width: 63%; height: 66%; object-fit: contain; }
+.finished-sushi { position: absolute; left: 6%; top: 20%; z-index: 5; width: 88%; height: 66%; object-fit: contain; }
 
 .knife-station { left: 44%; top: 65%; width: 8%; height: 20%; transform: rotate(-35deg); }
 .knife-station.is-held { opacity: .22; filter: grayscale(.45); }
