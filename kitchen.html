@@ -3,19 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#e9c28f" />
-    <title>海边寿司店 · 后台</title>
+    <meta name="theme-color" content="#56a5d9" />
+    <title>海边寿司店 · 制作台</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main class="restaurant-screen" aria-label="寿司制作后台">
-      <img class="restaurant-scene" src="assets/restaurant/kitchen-station.png" alt="寿司制作操作台" />
-      <div class="day-card"><span>后台</span><b>制作中</b></div>
-      <div class="restaurant-actions" aria-label="后台操作">
-        <button id="return-button" type="button">返回餐厅</button>
-        <button id="make-button" type="button">制作寿司</button>
+    <main class="game-stage kitchen-stage" aria-label="寿司制作后台">
+      <header class="game-header">
+        <div><span>第 1 天</span><b>寿司制作台</b></div>
+        <div class="order-card"><span>今日练习</span><b>三文鱼握寿司</b></div>
+      </header>
+
+      <div class="kitchen-sky" aria-hidden="true"></div>
+      <section class="work-counter" aria-label="寿司制作操作台">
+        <button id="fish-well" class="station fish-station" type="button" aria-label="从鱼柜取三文鱼">
+          <img src="assets/restaurant/kitchen-layers/fish-well.png" alt="玻璃鱼柜" />
+          <img class="display-salmon" src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="三文鱼" />
+        </button>
+
+        <section class="board-station" aria-label="切菜板">
+          <img class="cutting-board" src="assets/restaurant/kitchen-layers/cutting-board.png" alt="切菜板" />
+          <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="三文鱼，选择刀后点击切片">
+            <img src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="未切的三文鱼" />
+          </button>
+          <button id="salmon-slice" class="salmon-slice is-hidden" type="button" aria-label="切好的三文鱼片">
+            <span></span>
+          </button>
+          <button id="rice-ball" class="rice-ball is-hidden" type="button" aria-label="一团米饭"></button>
+          <div id="finished-sushi" class="finished-sushi is-hidden" aria-label="完成的三文鱼握寿司">
+            <span class="sushi-rice"></span><span class="sushi-salmon"></span>
+          </div>
+        </section>
+
+        <button id="knife" class="station knife-station" type="button" aria-label="拿起刀切三文鱼">
+          <img src="assets/restaurant/kitchen-layers/knife.png" alt="刀" />
+        </button>
+
+        <button id="rice-bin" class="station rice-station" type="button" aria-label="取一团米饭">
+          <img src="assets/restaurant/kitchen-layers/rice-bin.png" alt="装满米饭的饭盒" />
+        </button>
+
+        <button id="juicer" class="station juicer-station" type="button" aria-label="果汁机，暂未开放">
+          <img src="assets/restaurant/kitchen-layers/juicer.png" alt="果汁机" />
+        </button>
+        <button id="cup-station" class="station cup-station" type="button" aria-label="杯子区，暂未开放">
+          <img src="assets/restaurant/kitchen-layers/cup-station.png" alt="杯子区" />
+        </button>
+      </section>
+
+      <div class="game-bottom-bar">
+        <p id="kitchen-message" aria-live="polite">先从玻璃鱼柜取一大片三文鱼。</p>
+        <button id="reset-button" type="button">重做</button>
+        <button id="serve-button" type="button" disabled>完成寿司</button>
       </div>
-      <p id="kitchen-message" class="restaurant-message" aria-live="polite">从食材盘挑选材料，开始做寿司。</p>
     </main>
     <script src="kitchen.js"></script>
   </body>
