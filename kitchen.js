@@ -1,15 +1,11 @@
 const MAX_SLICES = 4;
 const CUT_LINES = [0.3, 0.5, 0.7];
-const CUT_START_ZONE = 0.2;
-const CUT_DISTANCE_REQUIRED = 0.45;
 const SLICE_CROP_POSITIONS = ['12% 48%', '37% 51%', '61% 46%', '84% 50%'];
 const CUT_SLICE_ORIGINS = [[0.15], [0.4], [0.6, 0.85]];
 
 const state = {
   salmonOnBoard: false,
   cutLines: [false, false, false],
-  activeCut: null,
-  cutStartY: 0,
   slicesReady: 0,
   incomingSlices: 0,
   flightVersion: 0,
@@ -26,6 +22,8 @@ const ricePortion = document.querySelector('#rice-portion');
 const sliceRack = document.querySelector('#slice-rack');
 const finishedSushi = document.querySelector('#finished-sushi');
 const serveButton = document.querySelector('#serve-button');
+
+stage.addEventListener('dragstart', (event) => event.preventDefault());
 
 function show(element, visible) {
   element.classList.toggle('is-hidden', !visible);
@@ -70,13 +68,11 @@ function render() {
   show(boardSalmon, state.salmonOnBoard);
   show(ricePortion, state.riceOnBoard && !state.finished);
   show(finishedSushi, state.finished);
-  boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
   const completedCuts = state.cutLines.filter(Boolean).length;
   const croppedLeft = completedCuts ? CUT_LINES[completedCuts - 1] : 0;
   boardSalmon.style.clipPath = state.salmonOnBoard ? `inset(0 0 0 ${croppedLeft * 100}%)` : '';
   boardSalmon.querySelectorAll('.cut-guide').forEach((guide, index) => {
     guide.classList.toggle('is-cut', state.cutLines[index]);
-    guide.classList.toggle('is-active', state.activeCut === index);
   });
   serveButton.disabled = !state.finished;
   renderSlices();
@@ -93,8 +89,7 @@ displaySalmon.addEventListener('click', () => {
   }
   state.salmonOnBoard = true;
   state.cutLines = [false, false, false];
-  state.activeCut = null;
-  setMessage('大三文鱼已放到切菜板。按住一条虚线，从上往下划过去。');
+  setMessage('大三文鱼已放到切菜板。直接按下一条虚线切片。');
   render();
 });
 
@@ -102,7 +97,6 @@ function pointerPosition(event) {
   const bounds = boardSalmon.getBoundingClientRect();
   return {
     x: (event.clientX - bounds.left) / bounds.width,
-    y: (event.clientY - bounds.top) / bounds.height,
   };
 }
 
@@ -153,7 +147,6 @@ function finishCutLine(index) {
   const flightVersion = state.flightVersion;
 
   state.cutLines[index] = true;
-  state.activeCut = null;
   state.slicesReady = Math.min(MAX_SLICES, state.slicesReady + sliceOrigins.length);
   state.incomingSlices += sliceOrigins.length;
   const completed = state.cutLines.filter(Boolean).length;
@@ -169,38 +162,16 @@ boardSalmon.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   const point = pointerPosition(event);
   const cutLine = findCutLine(point.x);
-  if (cutLine === -1 || point.y > CUT_START_ZONE) {
-    setMessage('从虚线顶端按住，再往下划动。');
+  if (cutLine === -1) {
+    setMessage('直接按在下一条虚线上切片。');
     return;
   }
   if (!hasRoomForCut(cutLine)) {
     setMessage('鱼片架空间不够，先做几份寿司再继续切。');
     return;
   }
-  state.activeCut = cutLine;
-  state.cutStartY = point.y;
-  boardSalmon.setPointerCapture(event.pointerId);
-  render();
+  finishCutLine(cutLine);
 });
-
-boardSalmon.addEventListener('pointermove', (event) => {
-  if (state.activeCut === null) return;
-  const point = pointerPosition(event);
-  const isNearLine = Math.abs(point.x - CUT_LINES[state.activeCut]) < 0.14;
-  if (isNearLine && point.y - state.cutStartY >= CUT_DISTANCE_REQUIRED) {
-    finishCutLine(state.activeCut);
-  }
-});
-
-function cancelCut(event) {
-  if (state.activeCut === null) return;
-  state.activeCut = null;
-  if (boardSalmon.hasPointerCapture(event.pointerId)) boardSalmon.releasePointerCapture(event.pointerId);
-  render();
-}
-
-boardSalmon.addEventListener('pointerup', cancelCut);
-boardSalmon.addEventListener('pointercancel', cancelCut);
 
 boardSalmon.addEventListener('keydown', (event) => {
   if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -242,7 +213,7 @@ document.querySelector('#cup-station').addEventListener('click', () => {
 document.querySelector('#reset-button').addEventListener('click', () => {
   state.flightVersion += 1;
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceOnBoard: false, finished: false });
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], slicesReady: 0, incomingSlices: 0, riceOnBoard: false, finished: false });
   setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
   render();
 });

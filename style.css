@@ -19,6 +19,7 @@ body {
 }
 
 button { font: inherit; }
+.game-stage img { -webkit-user-drag: none; user-select: none; }
 
 .game-stage {
   position: relative;
@@ -74,13 +75,12 @@ button { font: inherit; }
 
 .board-station { left: 24.8%; top: 64%; width: 18%; height: 23%; }
 .cutting-board { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-.board-salmon { position: absolute; left: 9%; top: 6%; width: 82%; height: 42%; padding: 0; cursor: crosshair; border: 0; background: transparent; touch-action: none; }
+.board-salmon { position: absolute; left: 9%; top: 6%; width: 82%; height: 42%; padding: 0; cursor: pointer; border: 0; background: transparent; touch-action: manipulation; user-select: none; }
 .board-salmon img { width: 100%; height: 100%; object-fit: contain; }
 .cut-guide { position: absolute; top: 19%; bottom: 15%; width: 0; pointer-events: none; border-left: 3px dashed #fff4d6; filter: drop-shadow(1px 1px 0 rgb(90 57 45 / .7)); transition: opacity 150ms ease, border-color 150ms ease; }
 .guide-one { left: 30%; }
 .guide-two { left: 50%; }
 .guide-three { left: 70%; }
-.cut-guide.is-active { border-color: #ffcc63; filter: drop-shadow(0 0 3px #e26d48); }
 .cut-guide.is-cut { opacity: .2; border-color: #8d5b49; }
 .flying-salmon-slice { position: absolute; z-index: 60; pointer-events: none; border: 3px solid var(--ink); border-radius: 40% 48% 44% 42%; background-color: #f68d62; background-image: url("assets/restaurant/kitchen-layers/salmon-loin.png"); background-repeat: no-repeat; background-size: 360% auto; box-shadow: inset 0 4px 0 rgb(255 205 176 / .65), 0 5px 5px rgb(59 39 28 / .2); transform: translate(-50%, -50%) rotate(-8deg) scale(1.06); opacity: .96; transition: left 540ms cubic-bezier(.2, .8, .2, 1), top 540ms cubic-bezier(.2, .8, .2, 1), transform 540ms cubic-bezier(.2, .8, .2, 1), opacity 540ms ease; }
 .flying-salmon-slice.is-flying { transform: translate(-50%, -50%) rotate(4deg) scale(.72); opacity: 1; }
