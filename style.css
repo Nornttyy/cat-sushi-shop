@@ -82,6 +82,8 @@ button { font: inherit; }
 .guide-three { left: 70%; }
 .cut-guide.is-active { border-color: #ffcc63; filter: drop-shadow(0 0 3px #e26d48); }
 .cut-guide.is-cut { opacity: .2; border-color: #8d5b49; }
+.flying-salmon-slice { position: absolute; z-index: 60; pointer-events: none; border: 3px solid var(--ink); border-radius: 40% 48% 44% 42%; background-color: #f68d62; background-image: url("assets/restaurant/kitchen-layers/salmon-loin.png"); background-repeat: no-repeat; background-size: 360% auto; box-shadow: inset 0 4px 0 rgb(255 205 176 / .65), 0 5px 5px rgb(59 39 28 / .2); transform: translate(-50%, -50%) rotate(-8deg) scale(1.06); opacity: .96; transition: left 540ms cubic-bezier(.2, .8, .2, 1), top 540ms cubic-bezier(.2, .8, .2, 1), transform 540ms cubic-bezier(.2, .8, .2, 1), opacity 540ms ease; }
+.flying-salmon-slice.is-flying { transform: translate(-50%, -50%) rotate(4deg) scale(.72); opacity: 1; }
 
 .assembly-station { left: 50%; top: 66%; width: 11.5%; height: 19%; }
 .slice-rack { position: absolute; left: 2%; right: 2%; top: 3%; z-index: 3; display: flex; justify-content: center; gap: 3%; height: 25%; }

@@ -2,6 +2,8 @@ const MAX_SLICES = 4;
 const CUT_LINES = [0.3, 0.5, 0.7];
 const CUT_START_ZONE = 0.2;
 const CUT_DISTANCE_REQUIRED = 0.45;
+const SLICE_CROP_POSITIONS = ['12% 48%', '37% 51%', '61% 46%', '84% 50%'];
+const CUT_SLICE_ORIGINS = [[0.15], [0.4], [0.6, 0.85]];
 
 const state = {
   salmonOnBoard: false,
@@ -9,10 +11,13 @@ const state = {
   activeCut: null,
   cutStartY: 0,
   slicesReady: 0,
+  incomingSlices: 0,
+  flightVersion: 0,
   riceOnBoard: false,
   finished: false,
 };
 
+const stage = document.querySelector('#kitchen-stage');
 const message = document.querySelector('#kitchen-message');
 const displaySalmon = document.querySelector('#display-salmon');
 const riceBin = document.querySelector('#rice-bin');
@@ -31,6 +36,10 @@ function setMessage(text) {
 }
 
 function finishSushi() {
+  if (state.incomingSlices) {
+    setMessage('等鱼片滑到旁边再制作寿司。');
+    return;
+  }
   if (!state.riceOnBoard) {
     setMessage('先从饭盒取一团米饭。');
     return;
@@ -44,12 +53,12 @@ function finishSushi() {
 
 function renderSlices() {
   sliceRack.replaceChildren();
-  const cropPositions = ['12% 48%', '37% 51%', '61% 46%', '84% 50%'];
-  for (let index = 0; index < state.slicesReady; index += 1) {
+  const displayedSlices = state.slicesReady - state.incomingSlices;
+  for (let index = 0; index < displayedSlices; index += 1) {
     const slice = document.createElement('button');
     slice.type = 'button';
     slice.className = 'salmon-slice-crop';
-    slice.style.backgroundPosition = cropPositions[index % cropPositions.length];
+    slice.style.backgroundPosition = SLICE_CROP_POSITIONS[index % SLICE_CROP_POSITIONS.length];
     slice.setAttribute('aria-label', `第 ${index + 1} 片三文鱼，点击放到米饭上`);
     slice.addEventListener('click', finishSushi);
     sliceRack.append(slice);
@@ -62,6 +71,9 @@ function render() {
   show(ricePortion, state.riceOnBoard && !state.finished);
   show(finishedSushi, state.finished);
   boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
+  const completedCuts = state.cutLines.filter(Boolean).length;
+  const croppedLeft = completedCuts ? CUT_LINES[completedCuts - 1] : 0;
+  boardSalmon.style.clipPath = state.salmonOnBoard ? `inset(0 0 0 ${croppedLeft * 100}%)` : '';
   boardSalmon.querySelectorAll('.cut-guide').forEach((guide, index) => {
     guide.classList.toggle('is-cut', state.cutLines[index]);
     guide.classList.toggle('is-active', state.activeCut === index);
@@ -71,6 +83,10 @@ function render() {
 }
 
 displaySalmon.addEventListener('click', () => {
+  if (state.incomingSlices) {
+    setMessage('等切好的鱼片放好后，再拿新的大三文鱼。');
+    return;
+  }
   if (state.salmonOnBoard) {
     setMessage('切菜板上还有大三文鱼，先把它切完再拿新的。');
     return;
@@ -91,31 +107,62 @@ function pointerPosition(event) {
 }
 
 function findCutLine(x) {
-  let closest = -1;
-  let closestDistance = 0.09;
-  CUT_LINES.forEach((line, index) => {
-    const distance = Math.abs(x - line);
-    if (!state.cutLines[index] && distance < closestDistance) {
-      closest = index;
-      closestDistance = distance;
-    }
+  const nextCut = state.cutLines.findIndex((cut) => !cut);
+  return nextCut !== -1 && Math.abs(x - CUT_LINES[nextCut]) < 0.09 ? nextCut : -1;
+}
+
+function hasRoomForCut(index) {
+  return MAX_SLICES - state.slicesReady >= CUT_SLICE_ORIGINS[index].length;
+}
+
+function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersion) {
+  const stageRect = stage.getBoundingClientRect();
+  const flyingSlice = document.createElement('div');
+  const fromX = sourceRect.left + (sourceRect.width * sourceFraction) - stageRect.left;
+  const fromY = sourceRect.top + (sourceRect.height * 0.54) - stageRect.top;
+  const toX = rackRect.left + (rackRect.width * (0.125 + (sliceIndex * 0.25))) - stageRect.left;
+  const toY = rackRect.top + (rackRect.height * 0.52) - stageRect.top;
+
+  flyingSlice.className = 'flying-salmon-slice';
+  flyingSlice.style.left = `${fromX}px`;
+  flyingSlice.style.top = `${fromY}px`;
+  flyingSlice.style.width = `${sourceRect.width * 0.2}px`;
+  flyingSlice.style.height = `${sourceRect.height * 0.62}px`;
+  flyingSlice.style.backgroundPosition = SLICE_CROP_POSITIONS[sliceIndex % SLICE_CROP_POSITIONS.length];
+  stage.append(flyingSlice);
+
+  requestAnimationFrame(() => {
+    flyingSlice.style.left = `${toX}px`;
+    flyingSlice.style.top = `${toY}px`;
+    flyingSlice.classList.add('is-flying');
   });
-  return closest;
+
+  window.setTimeout(() => {
+    flyingSlice.remove();
+    if (flightVersion !== state.flightVersion) return;
+    state.incomingSlices = Math.max(0, state.incomingSlices - 1);
+    render();
+  }, 650 + (sliceIndex * 75));
 }
 
 function finishCutLine(index) {
+  const sourceRect = boardSalmon.getBoundingClientRect();
+  const rackRect = sliceRack.getBoundingClientRect();
+  const sliceOrigins = CUT_SLICE_ORIGINS[index];
+  const firstSliceIndex = state.slicesReady;
+  const flightVersion = state.flightVersion;
+
   state.cutLines[index] = true;
   state.activeCut = null;
+  state.slicesReady = Math.min(MAX_SLICES, state.slicesReady + sliceOrigins.length);
+  state.incomingSlices += sliceOrigins.length;
   const completed = state.cutLines.filter(Boolean).length;
-  if (completed < CUT_LINES.length) {
-    setMessage(`切好一刀，还剩 ${CUT_LINES.length - completed} 条虚线。`);
-    render();
-    return;
-  }
-  state.slicesReady = Math.min(MAX_SLICES, state.slicesReady + MAX_SLICES);
-  state.salmonOnBoard = false;
-  setMessage('切好了！一大片三文鱼已经变成 4 片。');
+  state.salmonOnBoard = completed < CUT_LINES.length;
+  setMessage(completed < CUT_LINES.length ? '切好一片，继续切下一条虚线。' : '最后两片切好了！');
   render();
+  sliceOrigins.forEach((origin, offset) => {
+    flySlice(sourceRect, rackRect, origin, firstSliceIndex + offset, flightVersion);
+  });
 }
 
 boardSalmon.addEventListener('pointerdown', (event) => {
@@ -124,6 +171,10 @@ boardSalmon.addEventListener('pointerdown', (event) => {
   const cutLine = findCutLine(point.x);
   if (cutLine === -1 || point.y > CUT_START_ZONE) {
     setMessage('从虚线顶端按住，再往下划动。');
+    return;
+  }
+  if (!hasRoomForCut(cutLine)) {
+    setMessage('鱼片架空间不够，先做几份寿司再继续切。');
     return;
   }
   state.activeCut = cutLine;
@@ -155,7 +206,7 @@ boardSalmon.addEventListener('keydown', (event) => {
   if (event.key !== 'Enter' && event.key !== ' ') return;
   event.preventDefault();
   const cutLine = state.cutLines.findIndex((cut) => !cut);
-  if (cutLine !== -1) finishCutLine(cutLine);
+  if (cutLine !== -1 && hasRoomForCut(cutLine)) finishCutLine(cutLine);
 });
 
 riceBin.addEventListener('click', () => {
@@ -165,6 +216,10 @@ riceBin.addEventListener('click', () => {
   }
   if (!state.slicesReady) {
     setMessage('先点击大三文鱼，把它切成鱼片。');
+    return;
+  }
+  if (state.incomingSlices) {
+    setMessage('等鱼片滑到旁边再取米饭。');
     return;
   }
   if (state.riceOnBoard) {
@@ -185,7 +240,9 @@ document.querySelector('#cup-station').addEventListener('click', () => {
 });
 
 document.querySelector('#reset-button').addEventListener('click', () => {
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, riceOnBoard: false, finished: false });
+  state.flightVersion += 1;
+  document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceOnBoard: false, finished: false });
   setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
   render();
 });
