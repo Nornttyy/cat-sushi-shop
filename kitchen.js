@@ -90,7 +90,7 @@ knife.addEventListener('click', (event) => {
   render();
 });
 
-boardSalmon.addEventListener('click', () => {
+function cutSalmon() {
   if (!state.knifeHeld) {
     setMessage('先点击刀，把它拿起来。');
     return;
@@ -102,6 +102,17 @@ boardSalmon.addEventListener('click', () => {
   if (state.cutsMade === MAX_SLICES) state.salmonOnBoard = false;
   setMessage(`切好了第 ${state.cutsMade} / ${MAX_SLICES} 片。${state.cutsMade < MAX_SLICES ? '这块大三文鱼还能继续切。' : '这块大三文鱼已经切完了。'}`);
   render();
+}
+
+boardSalmon.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  cutSalmon();
+});
+
+boardSalmon.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  cutSalmon();
 });
 
 riceBin.addEventListener('click', () => {
