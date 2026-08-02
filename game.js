@@ -4,9 +4,9 @@ function showShopPreparation() {
   const stage = document.querySelector('.main-menu-stage');
   const card = document.querySelector('.main-menu-card');
   const background = stage.querySelector('.menu-background');
-  stage.classList.add('is-in-shop');
-  background.src = 'assets/menu/sushi-shop-front-room.jpg?v=shop-front-room-20260802';
-  background.alt = '海边寿司店前台内景';
+  stage.classList.add('is-in-shop', 'is-distant-scene');
+  background.src = 'assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg?v=shop-distant-view-20260802';
+  background.alt = '寿司店窗外的海景';
   card.remove();
 
   const shopUi = document.createElement('section');
