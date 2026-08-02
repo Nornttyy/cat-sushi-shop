@@ -54,15 +54,17 @@ async function enterKitchen(event) {
 
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
+  menuStage.classList.add('is-entering-game');
 
   try {
-    const [kitchenMarkup] = await Promise.all([kitchenMarkupReady, kitchenAssetsReady]);
+    const [kitchenMarkup] = await Promise.all([
+      kitchenMarkupReady,
+      kitchenAssetsReady,
+      waitForMenuTransition(),
+    ]);
     const kitchenDocument = new DOMParser().parseFromString(kitchenMarkup, 'text/html');
     const kitchenStage = kitchenDocument.querySelector('main');
     if (!kitchenStage) throw new Error('营业制作台内容不存在');
-
-    menuStage.classList.add('is-entering-game');
-    await waitForMenuTransition();
 
     document.body.replaceChildren(kitchenStage);
     document.title = '海边寿司店';
