@@ -6,10 +6,11 @@
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
     <main id="kitchen-stage" class="game-stage kitchen-stage" aria-label="寿司制作后台">
-      <img class="kitchen-background" src="assets/restaurant/kitchen-layers/kitchen-background.png" alt="海边寿司厨房" />
+      <img class="kitchen-background" src="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" alt="海边寿司厨房" fetchpriority="high" decoding="async" />
       <header class="game-header">
         <div><span>第 1 天</span><b>寿司制作台</b></div>
         <div class="order-card"><span>今日练习</span><b>三文鱼握寿司</b></div>
@@ -17,16 +18,16 @@
 
       <section class="work-counter" aria-label="寿司制作操作台">
         <section class="fish-station" aria-label="玻璃鱼柜，共三格">
-          <img src="assets/restaurant/kitchen-layers/fish-well.png" alt="三格玻璃鱼柜" />
+          <img src="assets/restaurant/kitchen-layers/optimized/fish-well.png" alt="三格玻璃鱼柜" decoding="async" />
           <button id="display-salmon" class="display-salmon" type="button" aria-label="拖出第一格中的大三文鱼">
-            <img src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="大三文鱼" draggable="false" />
+            <img src="assets/restaurant/kitchen-layers/optimized/salmon-loin.png" alt="大三文鱼" draggable="false" decoding="async" />
           </button>
         </section>
 
         <section class="board-station" aria-label="切菜板">
-          <img class="cutting-board" src="assets/restaurant/kitchen-layers/cutting-board.png" alt="切菜板" />
+          <img class="cutting-board" src="assets/restaurant/kitchen-layers/optimized/cutting-board.png" alt="切菜板" decoding="async" />
           <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="大三文鱼，在虚线附近按住并向下滑动切片">
-            <img src="assets/restaurant/kitchen-layers/salmon-loin.png" alt="待切三文鱼" draggable="false" />
+            <img src="assets/restaurant/kitchen-layers/optimized/salmon-loin.png" alt="待切三文鱼" draggable="false" decoding="async" />
             <span class="cut-guide guide-one" aria-hidden="true"></span>
             <span class="cut-guide guide-two" aria-hidden="true"></span>
             <span class="cut-guide guide-three" aria-hidden="true"></span>
@@ -40,15 +41,15 @@
         </section>
 
         <button id="rice-bin" class="station rice-station" type="button" aria-label="从饭盒拖出米饭">
-          <img src="assets/restaurant/kitchen-layers/rice-bin.png" alt="装满米饭的饭盒" draggable="false" />
+          <img src="assets/restaurant/kitchen-layers/optimized/rice-bin.png" alt="装满米饭的饭盒" draggable="false" decoding="async" />
         </button>
         <button id="drink-machine" class="station drink-machine-station" type="button" aria-label="饮品机，点击接饮料">
-          <img src="assets/restaurant/kitchen-layers/drink-machine-opaque.png" alt="不透明饮品机" draggable="false" />
+          <img src="assets/restaurant/kitchen-layers/optimized/drink-machine-opaque.png" alt="不透明饮品机" draggable="false" decoding="async" />
         </button>
-        <img id="machine-cup" class="machine-cup is-hidden" src="assets/restaurant/kitchen-layers/tea-cup-empty.png" alt="" aria-hidden="true" draggable="false" />
+        <img id="machine-cup" class="machine-cup is-hidden" src="assets/restaurant/kitchen-layers/optimized/tea-cup-empty.png" alt="" aria-hidden="true" draggable="false" decoding="async" />
         <div id="drink-rack" class="drink-rack" aria-label="已做好饮料"></div>
         <button id="cup-station" class="station cup-station" type="button" aria-label="从杯子区拖出空杯">
-          <img src="assets/restaurant/kitchen-layers/cup-station.png" alt="杯子区" draggable="false" />
+          <img src="assets/restaurant/kitchen-layers/optimized/cup-station.png" alt="杯子区" draggable="false" decoding="async" />
         </button>
       </section>
 

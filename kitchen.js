@@ -4,6 +4,7 @@ const MAX_SUSHI = 8;
 const MAX_DRINKS = 4;
 const SLICE_COLUMNS = 4;
 const SLICE_ROWS = 3;
+const KITCHEN_ASSET_PATH = 'assets/restaurant/kitchen-layers/optimized/';
 const CUT_LINES = [0.3, 0.5, 0.7];
 const CUT_START_TOLERANCE = 0.18;
 const CUT_SWIPE_DISTANCE = 0.12;
@@ -81,7 +82,7 @@ function renderSlices() {
     slice.type = 'button';
     slice.className = 'salmon-slice-crop';
     slice.setAttribute('aria-label', `第 ${index + 1} 片三文鱼，点击放到米饭上`);
-    sliceImage.src = 'assets/restaurant/kitchen-layers/salmon-slice.png';
+    sliceImage.src = `${KITCHEN_ASSET_PATH}salmon-slice.png`;
     sliceImage.alt = '';
     sliceImage.draggable = false;
     slice.addEventListener('click', makeSushi);
@@ -107,7 +108,7 @@ function renderDrinks() {
   for (let index = 0; index < state.drinksStored; index += 1) {
     const drink = document.createElement('img');
     drink.className = 'stored-drink';
-    drink.src = 'assets/restaurant/kitchen-layers/tea-cup-ready.png';
+    drink.src = `${KITCHEN_ASSET_PATH}tea-cup-ready.png`;
     drink.alt = '一杯橙味饮料';
     drink.draggable = false;
     drinkRack.append(drink);
@@ -128,12 +129,12 @@ function render() {
   serveButton.disabled = !state.sushiStored;
   show(machineCup, state.cupOnMachine);
   machineCup.src = state.drinkPouring
-    ? 'assets/restaurant/kitchen-layers/tea-cup-ready.png'
-    : 'assets/restaurant/kitchen-layers/tea-cup-empty.png';
+    ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
+    : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
   machineCup.classList.toggle('is-filling', state.drinkPouring);
   renderSlices();
-  renderStockRack(riceRack, state.riceStored, 'stored-rice', 'assets/restaurant/kitchen-layers/rice-portion.png', '一团米饭');
-  renderStockRack(sushiRack, state.sushiStored, 'stored-sushi', 'assets/restaurant/kitchen-layers/salmon-nigiri.png', '三文鱼握寿司');
+  renderStockRack(riceRack, state.riceStored, 'stored-rice', `${KITCHEN_ASSET_PATH}rice-portion.png`, '一团米饭');
+  renderStockRack(sushiRack, state.sushiStored, 'stored-sushi', `${KITCHEN_ASSET_PATH}salmon-nigiri.png`, '三文鱼握寿司');
   renderDrinks();
 }
 
@@ -167,10 +168,10 @@ function startIngredientDrag(event, type) {
   const preview = document.createElement('img');
   preview.className = `ingredient-drag-preview ${type}`;
   preview.src = type === 'salmon'
-    ? 'assets/restaurant/kitchen-layers/salmon-loin.png'
+    ? `${KITCHEN_ASSET_PATH}salmon-loin.png`
     : type === 'rice'
-      ? 'assets/restaurant/kitchen-layers/rice-portion.png'
-      : 'assets/restaurant/kitchen-layers/tea-cup-empty.png';
+      ? `${KITCHEN_ASSET_PATH}rice-portion.png`
+      : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
   preview.alt = '';
   preview.draggable = false;
   stage.append(preview);
@@ -275,7 +276,7 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
   const toY = rackRect.top + (rackRect.height * ((row + 0.5) / SLICE_ROWS)) - stageRect.top;
 
   flyingSlice.className = 'flying-salmon-slice';
-  flyingSlice.src = 'assets/restaurant/kitchen-layers/salmon-slice.png';
+  flyingSlice.src = `${KITCHEN_ASSET_PATH}salmon-slice.png`;
   flyingSlice.alt = '';
   flyingSlice.draggable = false;
   flyingSlice.style.left = `${fromX}px`;
@@ -400,3 +401,16 @@ serveButton.addEventListener('click', () => {
 });
 
 render();
+
+function preloadInteractionAssets() {
+  ['salmon-slice.png', 'rice-portion.png', 'salmon-nigiri.png', 'tea-cup-ready.png'].forEach((name) => {
+    const image = new Image();
+    image.src = `${KITCHEN_ASSET_PATH}${name}`;
+  });
+}
+
+if ('requestIdleCallback' in window) {
+  window.requestIdleCallback(preloadInteractionAssets, { timeout: 1200 });
+} else {
+  window.setTimeout(preloadInteractionAssets, 600);
+}
