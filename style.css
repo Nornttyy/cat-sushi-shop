@@ -125,15 +125,20 @@ button { font: inherit; }
 .is-hidden { display: none !important; }
 .screen-reader-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
 
-.start-stage { background: #56a5d9; }
-.start-sea { position: absolute; inset: 0 0 40%; background: linear-gradient(#71c0e7 0 64%, #4b9ed6 64% 100%); }
-.start-sea::after { position: absolute; right: 10%; bottom: 18%; width: 12%; height: 8%; border-radius: 50%; background: rgb(255 255 255 / .65); box-shadow: -190px -13px 0 -6px rgb(255 255 255 / .48), -350px 17px 0 -11px rgb(255 255 255 / .4); content: ""; }
-.start-counter { position: absolute; inset: 60% 0 0; border-top: clamp(5px, .6vw, 9px) solid #704b38; background: #af7d5c; box-shadow: inset 0 18px 0 rgb(255 235 202 / .12); }
-.start-card { position: absolute; z-index: 2; top: 18%; left: 50%; width: min(58%, 680px); padding: clamp(18px, 3vw, 42px); transform: translateX(-50%); border: clamp(3px, .35vw, 5px) solid var(--ink); border-radius: 24px; background: rgb(255 243 216 / .94); text-align: center; box-shadow: 0 8px 0 rgb(90 57 45 / .2); }
-.start-card span { font-size: clamp(13px, 1.6vw, 23px); font-weight: 900; }
-.start-card h1 { margin: .35em 0 .9em; font-size: clamp(19px, 2.5vw, 38px); }
-.start-card button { padding: .65em 1.5em; cursor: pointer; border: 3px solid var(--ink); border-radius: 14px; color: var(--ink); background: #f39a70; box-shadow: 0 4px 0 #a96d50; font-weight: 900; font-size: clamp(14px, 1.5vw, 22px); }
-.start-card button:active { transform: translateY(4px); box-shadow: none; }
+.main-menu-stage { background: #f4bd79; }
+.menu-background { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.menu-wash { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(255 244 215 / .95) 0%, rgb(255 244 215 / .76) 28%, rgb(255 244 215 / .24) 51%, transparent 72%); }
+.main-menu-card { position: absolute; z-index: 2; top: 50%; left: clamp(24px, 8.2vw, 118px); width: min(40%, 510px); transform: translateY(-50%); text-align: center; }
+.main-menu-kicker { display: inline-block; margin: 0 0 clamp(8px, 1.2vw, 16px); padding: .45em 1em; border: 2px solid rgb(90 57 45 / .78); border-radius: 999px; color: #80503a; background: rgb(255 250 234 / .82); box-shadow: 0 3px 0 rgb(90 57 45 / .14); font-size: clamp(10px, 1.1vw, 16px); font-weight: 900; letter-spacing: .09em; }
+.main-menu-title { margin: 0; color: #8c432d; font-size: clamp(42px, 6.1vw, 88px); font-weight: 1000; line-height: .85; letter-spacing: .07em; text-shadow: 0 4px 0 #fff7df, 0 7px 0 rgb(90 57 45 / .22); }
+.main-menu-title span { display: block; margin-bottom: .1em; color: #ec8b54; font-size: .67em; letter-spacing: .18em; }
+.main-menu-description { margin: clamp(15px, 1.9vw, 28px) auto clamp(20px, 2.8vw, 38px); max-width: 22em; color: #704331; font-size: clamp(13px, 1.45vw, 21px); font-weight: 800; line-height: 1.6; text-shadow: 0 1px 0 rgb(255 255 255 / .75); }
+.main-menu-start { display: inline-grid; gap: 2px; min-width: min(82%, 270px); padding: clamp(11px, 1.05vw, 16px) clamp(22px, 2vw, 34px); cursor: pointer; border: clamp(3px, .3vw, 5px) solid #704331; border-radius: 18px; color: #fff8df; background: linear-gradient(#f4ad60, #df744b); box-shadow: 0 6px 0 #9e4d37, inset 0 2px 0 rgb(255 247 211 / .56); font-weight: 1000; text-shadow: 0 2px 0 rgb(118 57 39 / .38); transition: filter 140ms ease, transform 140ms ease, box-shadow 140ms ease; }
+.main-menu-start:hover { filter: brightness(1.08); transform: translateY(-2px); }
+.main-menu-start:active { transform: translateY(5px); box-shadow: 0 1px 0 #9e4d37, inset 0 2px 0 rgb(255 247 211 / .56); }
+.main-menu-start span { font-size: clamp(18px, 2vw, 29px); }
+.main-menu-start small { font-size: clamp(10px, .95vw, 14px); font-weight: 800; opacity: .9; }
+@media (max-width: 620px) { .main-menu-card { left: 7%; width: 52%; } .main-menu-kicker { letter-spacing: .03em; } .main-menu-title { font-size: clamp(32px, 8vw, 52px); } .main-menu-description { font-size: 11px; } .main-menu-start { min-width: 100%; padding-inline: 10px; } }
 
 @media (max-aspect-ratio: 1/1) {
   body { place-items: start center; background: var(--ink); }

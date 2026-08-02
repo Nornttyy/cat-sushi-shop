@@ -3,19 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#56a5d9" />
-    <title>海边寿司店</title>
+    <meta name="theme-color" content="#f4bd79" />
+    <title>猫猫寿司店</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="preload" as="image" href="assets/menu/sushi-shop-menu-background.jpg" fetchpriority="high" />
   </head>
   <body>
-    <main class="game-stage start-stage" aria-label="海边寿司店">
-      <div class="start-sea" aria-hidden="true"></div>
-      <section class="start-card">
-        <span>海边寿司店</span>
-        <h1>今日从一份三文鱼握寿司开始</h1>
-        <button id="start-button" type="button">进入制作台</button>
+    <main class="game-stage main-menu-stage" aria-label="猫猫寿司店主菜单">
+      <img class="menu-background" src="assets/menu/sushi-shop-menu-background.jpg" alt="阳光下的海边寿司店" fetchpriority="high" decoding="async" />
+      <div class="menu-wash" aria-hidden="true"></div>
+      <section class="main-menu-card">
+        <p class="main-menu-kicker">海边小店 · 今日营业中</p>
+        <h1 class="main-menu-title"><span>猫猫</span>寿司店</h1>
+        <p class="main-menu-description">把新鲜的海味，做成最暖的一口。</p>
+        <button id="start-button" class="main-menu-start" type="button">
+          <span>开始营业</span>
+          <small>进入制作台</small>
+        </button>
       </section>
-      <div class="start-counter" aria-hidden="true"></div>
     </main>
     <script src="game.js"></script>
   </body>
