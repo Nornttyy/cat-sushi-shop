@@ -31,6 +31,8 @@ button { font: inherit; }
 }
 
 .kitchen-background { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; }
+.kitchen-stage .work-counter { transition: transform 280ms ease; }
+.kitchen-stage.is-open .work-counter { transform: translateY(10%); }
 
 .game-header {
   position: absolute;

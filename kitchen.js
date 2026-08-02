@@ -32,6 +32,8 @@ const state = {
 
 const stage = document.querySelector('#kitchen-stage');
 const message = document.querySelector('#kitchen-message');
+const sceneBackground = document.querySelector('#scene-background');
+const stageName = document.querySelector('#stage-name');
 const displaySalmon = document.querySelector('#display-salmon');
 const riceBin = document.querySelector('#rice-bin');
 const boardStation = document.querySelector('.board-station');
@@ -152,6 +154,12 @@ function renderDrinks() {
 }
 
 function render() {
+  stage.classList.toggle('is-open', state.shopOpen);
+  sceneBackground.src = state.shopOpen
+    ? 'assets/restaurant/open-service-room.jpg'
+    : `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
+  sceneBackground.alt = state.shopOpen ? '海边寿司店营业吧台' : '海边寿司厨房';
+  stageName.textContent = state.shopOpen ? '寿司吧台' : '寿司制作台';
   show(displaySalmon, true);
   show(boardSalmon, state.salmonOnBoard);
   boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
