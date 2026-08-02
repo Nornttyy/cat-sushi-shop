@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=smooth-items-v10-20260802" />
+    <link rel="stylesheet" href="style.css?v=smooth-items-v11-20260802" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -24,18 +24,30 @@
         <section class="fish-station" aria-label="三格冰柜">
           <img src="assets/restaurant/kitchen-layers/optimized/fish-well-frosted.png" alt="磨砂三格冰柜" decoding="async" />
           <button id="freezer-button" class="freezer-button" type="button" aria-label="点击冰柜选择刺身"></button>
-          <div id="sashimi-picker" class="sashimi-picker is-hidden" role="dialog" aria-label="选择刺身">
-            <button id="select-salmon" class="sashimi-choice" type="button" aria-label="选择三文鱼刺身">
+          <div id="sashimi-picker" class="sashimi-picker is-hidden" role="dialog" aria-label="选择食材">
+            <button id="select-salmon" class="sashimi-choice" type="button" data-ingredient-id="salmon" aria-label="选择三文鱼刺身">
               <img src="assets/restaurant/kitchen-layers/optimized/salmon-loin.png" alt="" draggable="false" decoding="async" />
               <span>三文鱼刺身</span>
+            </button>
+            <button id="select-tuna" class="sashimi-choice" type="button" data-ingredient-id="tuna" aria-label="选择金枪鱼刺身">
+              <img src="assets/restaurant/kitchen-layers/optimized/tuna-loin.png" alt="" draggable="false" decoding="async" />
+              <span>金枪鱼刺身</span>
+            </button>
+            <button id="select-shrimp" class="sashimi-choice" type="button" data-ingredient-id="shrimp" aria-label="选择甜虾">
+              <img src="assets/restaurant/kitchen-layers/optimized/shrimp-loin.png" alt="" draggable="false" decoding="async" />
+              <span>甜虾</span>
+            </button>
+            <button id="select-tamago" class="sashimi-choice" type="button" data-ingredient-id="tamago" aria-label="选择玉子烧">
+              <img src="assets/restaurant/kitchen-layers/optimized/tamago-loin.png" alt="" draggable="false" decoding="async" />
+              <span>玉子烧</span>
             </button>
           </div>
         </section>
 
         <section class="board-station" aria-label="切菜板">
           <img class="cutting-board" src="assets/restaurant/kitchen-layers/optimized/cutting-board.png" alt="切菜板" decoding="async" />
-          <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="大三文鱼，在虚线附近按住并向下滑动切片">
-            <img src="assets/restaurant/kitchen-layers/optimized/salmon-loin.png" alt="待切三文鱼" draggable="false" decoding="async" />
+          <button id="board-salmon" class="board-salmon is-hidden" type="button" aria-label="食材，在虚线附近按住并向下滑动切片">
+            <img id="board-ingredient-image" src="assets/restaurant/kitchen-layers/optimized/salmon-loin.png" alt="待切三文鱼" draggable="false" decoding="async" />
             <span class="cut-guide guide-one" aria-hidden="true"></span>
             <span class="cut-guide guide-two" aria-hidden="true"></span>
             <span class="cut-guide guide-three" aria-hidden="true"></span>
@@ -43,7 +55,7 @@
         </section>
 
         <section class="assembly-station" aria-label="寿司制作区，在切菜板旁边">
-          <div id="slice-rack" class="slice-rack" aria-label="切好的三文鱼片"></div>
+          <div id="slice-rack" class="slice-rack" aria-label="切好的寿司配料"></div>
           <div id="rice-rack" class="stock-rack rice-rack" aria-label="已存米饭"></div>
           <div id="sushi-rack" class="stock-rack sushi-rack" aria-label="已做寿司"></div>
         </section>
@@ -62,12 +74,12 @@
       </section>
 
       <div class="game-bottom-bar">
-        <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击鱼柜第一格的大三文鱼，把它放到切菜板。</span>
+        <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击冰柜选择食材，把它放到切菜板。</span>
         <button id="reset-button" type="button">重新备料</button>
         <button id="pause-shop-button" type="button">暂停营业</button>
         <button id="open-shop-button" class="is-hidden" type="button">继续营业</button>
       </div>
     </main>
-    <script src="kitchen.js?v=smooth-items-v10-20260802"></script>
+    <script src="kitchen.js?v=smooth-items-v11-20260802"></script>
   </body>
 </html>

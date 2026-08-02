@@ -90,15 +90,15 @@ button { font: inherit; }
 .station img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .station:hover { filter: brightness(1.08); transform: translateY(-1.2%); }
 .station:active { transform: translateY(1.5%) scale(.98); }
-.station:focus-visible, .freezer-button:focus-visible, .board-salmon:focus-visible, .rice-portion:focus-visible, .salmon-slice-crop:focus-visible { outline: 4px dashed var(--cream); outline-offset: 5px; }
+.station:focus-visible, .freezer-button:focus-visible, .board-salmon:focus-visible, .rice-portion:focus-visible, .sushi-slice-crop:focus-visible { outline: 4px dashed var(--cream); outline-offset: 5px; }
 
 .fish-station { left: 2.8%; top: 57%; width: 10.5%; height: 29%; }
 .fish-station > img { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; object-fit: fill; opacity: 1; }
 .freezer-button { position: absolute; inset: 0; z-index: 1; padding: 0; cursor: pointer; border: 0; background: transparent; touch-action: manipulation; }
 .freezer-button:hover, .freezer-button.is-active { filter: brightness(1.04); }
-.sashimi-picker { position: absolute; bottom: 82%; left: 4%; z-index: 4; width: 92%; padding: 6%; border: 2px solid #704331; border-radius: 12px; background: #fff1d1; box-shadow: 0 4px 0 rgb(90 57 45 / .25); animation: sashimi-picker-in 160ms ease-out; transition: opacity 100ms ease, transform 100ms ease; }
+.sashimi-picker { position: absolute; bottom: 82%; left: -30%; z-index: 4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5%; width: 160%; padding: 6%; border: 2px solid #704331; border-radius: 12px; background: #fff1d1; box-shadow: 0 4px 0 rgb(90 57 45 / .25); animation: sashimi-picker-in 160ms ease-out; transition: opacity 100ms ease, transform 100ms ease; }
 .sashimi-picker.is-picked { opacity: 0; pointer-events: none; transform: translateY(6px) scale(.94); }
-.sashimi-choice { display: grid; grid-template-columns: 1fr; gap: 3px; width: 100%; padding: 5%; cursor: pointer; border: 0; border-radius: 8px; color: #704331; background: #ffe2a3; font-size: clamp(8px, .75vw, 12px); font-weight: 900; }
+.sashimi-choice { display: grid; grid-template-columns: 1fr; gap: 3px; width: 100%; padding: 5%; cursor: pointer; border: 0; border-radius: 8px; color: #704331; background: #ffe2a3; font-size: clamp(8px, .75vw, 12px); font-weight: 900; line-height: 1.15; }
 .sashimi-choice:hover { filter: brightness(1.06); transform: translateY(-1px); }
 .sashimi-choice img { width: 100%; height: clamp(24px, 3vw, 43px); object-fit: contain; }
 .sashimi-choice.is-dragging { opacity: 0; }
@@ -116,12 +116,12 @@ button { font: inherit; }
 .cut-guide.is-cut { opacity: .2; border-color: #8d5b49; }
 .board-station.is-drop-target, .assembly-station.is-drop-target, .drink-machine-station.is-drop-target, .rice-rack.is-drop-target { filter: brightness(1.13) drop-shadow(0 0 7px rgb(255 232 150 / .9)); }
 .ingredient-drag-preview { position: absolute; z-index: 90; pointer-events: none; filter: drop-shadow(0 6px 3px rgb(59 39 28 / .28)); transform: translate(-50%, -58%) rotate(-6deg) scale(1.05); }
-.ingredient-drag-preview.salmon { width: 14%; }
+.ingredient-drag-preview.ingredient { width: 14%; }
 .ingredient-drag-preview.slice { width: 7%; }
 .ingredient-drag-preview.cup { width: 3.5%; }
 .ingredient-drag-preview.serve { width: 6.2%; }
-.flying-salmon-slice { position: absolute; z-index: 60; pointer-events: none; object-fit: contain; filter: drop-shadow(0 5px 5px rgb(59 39 28 / .2)); transform: translate(-50%, -50%) rotate(-8deg); opacity: 1; transition: left 540ms cubic-bezier(.2, .8, .2, 1), top 540ms cubic-bezier(.2, .8, .2, 1), transform 540ms cubic-bezier(.2, .8, .2, 1); }
-.flying-salmon-slice.is-flying { transform: translate(-50%, -50%) rotate(4deg); }
+.flying-sushi-slice { position: absolute; z-index: 60; pointer-events: none; object-fit: contain; filter: drop-shadow(0 5px 5px rgb(59 39 28 / .2)); transform: translate(-50%, -50%) rotate(-8deg); opacity: 1; transition: left 540ms cubic-bezier(.2, .8, .2, 1), top 540ms cubic-bezier(.2, .8, .2, 1), transform 540ms cubic-bezier(.2, .8, .2, 1); }
+.flying-sushi-slice.is-flying { transform: translate(-50%, -50%) rotate(4deg); }
 .flying-completed-item { --flight-lift: 22px; --flight-turn: 4deg; position: absolute; z-index: 61; pointer-events: none; object-fit: contain; opacity: .16; filter: drop-shadow(0 4px 4px rgb(59 39 28 / .2)); transform: translate(-50%, -50%) rotate(-7deg) scale(.76); transition: left 780ms cubic-bezier(.16, .84, .22, 1), top 780ms cubic-bezier(.16, .84, .22, 1); will-change: left, top, transform, opacity; }
 .flying-completed-item.rice { --flight-lift: 18px; --flight-turn: 3deg; }
 .flying-completed-item.sushi { --flight-lift: 26px; --flight-turn: 5deg; }
@@ -131,18 +131,18 @@ button { font: inherit; }
 .sushi-making-animation { position: absolute; z-index: 62; pointer-events: none; transform: translate(-50%, -50%); filter: drop-shadow(0 4px 3px rgb(59 39 28 / .2)); }
 .sushi-making-animation img { position: absolute; object-fit: contain; }
 .sushi-making-rice { bottom: 0; left: 3%; width: 94%; height: 76%; opacity: 0; transform: translateY(18%) scale(.78); }
-.sushi-making-salmon { top: 3%; left: 10%; width: 80%; height: 52%; opacity: 0; transform: translateY(-75%) rotate(-11deg) scale(.72); }
+.sushi-making-topping { top: 3%; left: 10%; width: 80%; height: 52%; opacity: 0; transform: translateY(-75%) rotate(-11deg) scale(.72); }
 .sushi-making-animation.is-making .sushi-making-rice { animation: sushi-rice-land 400ms cubic-bezier(.2, .8, .25, 1) both; }
-.sushi-making-animation.is-making .sushi-making-salmon { animation: sushi-salmon-land 400ms cubic-bezier(.2, .8, .25, 1) both; }
+.sushi-making-animation.is-making .sushi-making-topping { animation: sushi-salmon-land 400ms cubic-bezier(.2, .8, .25, 1) both; }
 @keyframes sushi-rice-land { 0% { opacity: 0; transform: translateY(18%) scale(.78); } 58% { opacity: 1; transform: translateY(-4%) scale(1.08); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes sushi-salmon-land { 0% { opacity: 0; transform: translateY(-75%) rotate(-11deg) scale(.72); } 58% { opacity: 1; transform: translateY(4%) rotate(3deg) scale(1.04); } 100% { opacity: 1; transform: translateY(0) rotate(0) scale(1); } }
 
 .assembly-station { left: 44%; top: 62%; width: 18%; height: 28%; }
 .slice-rack { position: absolute; left: 2%; right: 2%; top: 2%; z-index: 3; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); gap: 7% 2%; height: 36%; }
-.salmon-slice-crop { width: 100%; height: 100%; padding: 0; cursor: grab; border: 0; background: transparent; touch-action: none; }
-.salmon-slice-crop.is-dragging { opacity: 0; }
-.salmon-slice-crop:active { cursor: grabbing; }
-.salmon-slice-crop img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 0 rgb(90 57 45 / .25)); }
+.sushi-slice-crop { width: 100%; height: 100%; padding: 0; cursor: grab; border: 0; background: transparent; touch-action: none; }
+.sushi-slice-crop.is-dragging { opacity: 0; }
+.sushi-slice-crop:active { cursor: grabbing; }
+.sushi-slice-crop img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 0 rgb(90 57 45 / .25)); }
 .stock-rack { position: absolute; top: 42%; z-index: 4; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); gap: 4%; height: 55%; }
 .rice-rack { left: 2%; width: 45%; }
 .sushi-rack { right: 2%; width: 45%; }

@@ -6,11 +6,20 @@ const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg',
   'assets/restaurant/kitchen-layers/optimized/fish-well-frosted.png',
   'assets/restaurant/kitchen-layers/optimized/salmon-loin.png',
+  'assets/restaurant/kitchen-layers/optimized/tuna-loin.png',
+  'assets/restaurant/kitchen-layers/optimized/shrimp-loin.png',
+  'assets/restaurant/kitchen-layers/optimized/tamago-loin.png',
   'assets/restaurant/kitchen-layers/optimized/cutting-board.png',
   'assets/restaurant/kitchen-layers/optimized/rice-bin.png',
   'assets/restaurant/kitchen-layers/optimized/rice-portion.png',
   'assets/restaurant/kitchen-layers/optimized/salmon-slice.png',
+  'assets/restaurant/kitchen-layers/optimized/tuna-slice.png',
+  'assets/restaurant/kitchen-layers/optimized/shrimp-slice.png',
+  'assets/restaurant/kitchen-layers/optimized/tamago-slice.png',
   'assets/restaurant/kitchen-layers/optimized/salmon-nigiri.png',
+  'assets/restaurant/kitchen-layers/optimized/tuna-nigiri.png',
+  'assets/restaurant/kitchen-layers/optimized/shrimp-nigiri.png',
+  'assets/restaurant/kitchen-layers/optimized/tamago-nigiri.png',
   'assets/restaurant/kitchen-layers/optimized/drink-machine-opaque.png',
   'assets/restaurant/kitchen-layers/optimized/cup-station.png',
   'assets/restaurant/kitchen-layers/optimized/tea-cup-empty.png',
@@ -77,7 +86,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=smooth-items-v10-20260802';
+    kitchenScript.src = 'kitchen.js?v=smooth-items-v11-20260802';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
