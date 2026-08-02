@@ -101,11 +101,16 @@ function renderSlices() {
     const sliceImage = document.createElement('img');
     slice.type = 'button';
     slice.className = 'salmon-slice-crop';
-    slice.setAttribute('aria-label', `第 ${index + 1} 片三文鱼，点击放到米饭上`);
+    slice.setAttribute('aria-label', `第 ${index + 1} 片三文鱼，拖到米饭上制作寿司`);
     sliceImage.src = `${KITCHEN_ASSET_PATH}salmon-slice.png`;
     sliceImage.alt = '';
     sliceImage.draggable = false;
-    slice.addEventListener('click', () => makeSushi(slice));
+    slice.addEventListener('pointerdown', prepareSliceDrag);
+    slice.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      makeSushi(slice);
+    });
     slice.append(sliceImage);
     sliceRack.append(slice);
   }
@@ -178,6 +183,7 @@ function clearIngredientDrag() {
   boardStation.classList.remove('is-drop-target');
   assemblyStation.classList.remove('is-drop-target');
   drinkMachine.classList.remove('is-drop-target');
+  riceRack.classList.remove('is-drop-target');
   ingredientDrag = null;
 }
 
@@ -192,15 +198,17 @@ function startIngredientDrag(event, type) {
     ? `${KITCHEN_ASSET_PATH}salmon-loin.png`
     : type === 'rice'
       ? `${KITCHEN_ASSET_PATH}rice-portion.png`
+      : type === 'slice'
+        ? `${KITCHEN_ASSET_PATH}salmon-slice.png`
       : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
   preview.alt = '';
   preview.draggable = false;
   stage.append(preview);
   ingredientDrag = { type, source, pointerId: event.pointerId, preview };
   source.setPointerCapture(event.pointerId);
-  (type === 'salmon' ? boardStation : type === 'rice' ? assemblyStation : drinkMachine).classList.add('is-drop-target');
+  (type === 'salmon' ? boardStation : type === 'rice' ? assemblyStation : type === 'cup' ? drinkMachine : riceRack).classList.add('is-drop-target');
   moveDragPreview(event);
-  setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板。' : type === 'rice' ? '把米饭拖到寿司制作区。' : '把空杯拖到饮品机。');
+  setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板。' : type === 'rice' ? '把米饭拖到寿司制作区。' : type === 'cup' ? '把空杯拖到饮品机。' : '把三文鱼片拖到米饭架。');
 }
 
 function prepareSalmonDrag(event) {
@@ -235,6 +243,22 @@ function prepareCupDrag(event) {
   startIngredientDrag(event, 'cup');
 }
 
+function prepareSliceDrag(event) {
+  if (state.incomingSlices) {
+    setMessage('等鱼片滑到架子里再制作寿司。');
+    return;
+  }
+  if (!state.riceStored) {
+    setMessage('先拖一团米饭到米饭架。');
+    return;
+  }
+  if (state.sushiStored >= MAX_SUSHI) {
+    setMessage('寿司架满了，先出餐再继续制作。');
+    return;
+  }
+  startIngredientDrag(event, 'slice');
+}
+
 displaySalmon.addEventListener('pointerdown', prepareSalmonDrag);
 riceBin.addEventListener('pointerdown', prepareRiceDrag);
 cupStation.addEventListener('pointerdown', prepareCupDrag);
@@ -244,13 +268,13 @@ window.addEventListener('pointercancel', () => clearIngredientDrag());
 window.addEventListener('pointerup', (event) => {
   if (!ingredientDrag || event.pointerId !== ingredientDrag.pointerId) return;
   const { type, source } = ingredientDrag;
-  const destination = type === 'salmon' ? boardStation : type === 'rice' ? assemblyStation : drinkMachine;
+  const destination = type === 'salmon' ? boardStation : type === 'rice' ? assemblyStation : type === 'cup' ? drinkMachine : riceRack;
   const accepted = pointIsInside(event, destination);
   if (source.hasPointerCapture(event.pointerId)) source.releasePointerCapture(event.pointerId);
   clearIngredientDrag();
 
   if (!accepted) {
-    setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板里。' : type === 'rice' ? '把米饭拖到寿司制作区里。' : '把空杯拖到饮品机里。');
+    setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板里。' : type === 'rice' ? '把米饭拖到寿司制作区里。' : type === 'cup' ? '把空杯拖到饮品机里。' : '把三文鱼片拖到米饭架里。');
     return;
   }
 
@@ -261,10 +285,13 @@ window.addEventListener('pointerup', (event) => {
     setMessage('大三文鱼已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。');
   } else if (type === 'rice') {
     state.riceStored += 1;
-    setMessage('米饭已放进米饭架。点击一片三文鱼制作寿司。');
-  } else {
+    setMessage('米饭已放进米饭架。拖一片三文鱼到米饭架制作寿司。');
+  } else if (type === 'cup') {
     state.cupOnMachine = true;
     setMessage('空杯放好了，点击饮品机接饮料。');
+  } else {
+    makeSushi(riceRack);
+    return;
   }
   render();
 });
