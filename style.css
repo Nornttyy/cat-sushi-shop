@@ -139,7 +139,6 @@ button { font: inherit; }
 .main-menu-start span { font-size: clamp(18px, 2vw, 29px); }
 .main-menu-start small { font-size: clamp(10px, .95vw, 14px); font-weight: 800; opacity: .9; }
 .main-menu-stage.is-in-shop .menu-wash { opacity: 0; }
-.main-menu-stage.is-distant-scene .menu-background { transform: scale(1.7); transform-origin: 50% 29%; }
 .menu-wash { transition: opacity 360ms ease; }
 .shop-opening-ui { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 .shop-day-panel { position: absolute; top: 5%; left: 4%; display: grid; gap: 2px; padding: clamp(8px, .8vw, 13px) clamp(12px, 1.2vw, 18px); border: 3px solid #704331; border-radius: 14px; color: #704331; background: rgb(255 246 220 / .9); box-shadow: 0 4px 0 rgb(90 57 45 / .18); }
