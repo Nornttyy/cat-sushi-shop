@@ -17,7 +17,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=no-backroom-20260802';
+    kitchenScript.src = 'kitchen.js?v=sashimi-selector-20260802';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {

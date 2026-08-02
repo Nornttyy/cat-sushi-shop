@@ -27,6 +27,7 @@ const state = {
   drinksStored: 0,
   incomingDrinks: 0,
   drinkVersion: 0,
+  salmonIncoming: false,
   shopOpen: true,
 };
 
@@ -158,7 +159,8 @@ function render() {
   sceneBackground.alt = '海边寿司店后台';
   stageName.textContent = state.shopOpen ? '营业制作台' : '寿司制作台';
   show(displaySalmon, true);
-  show(boardSalmon, state.salmonOnBoard);
+  displaySalmon.classList.toggle('is-selecting', state.salmonIncoming);
+  show(boardSalmon, state.salmonOnBoard && !state.salmonIncoming);
   boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
   const completedCuts = state.cutLines.filter(Boolean).length;
   const croppedLeft = completedCuts ? CUT_LINES[completedCuts - 1] : 0;
@@ -229,7 +231,7 @@ function startIngredientDrag(event, type) {
   setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板。' : type === 'cup' ? '把空杯拖到饮品机。' : '把三文鱼片拖到米饭架。');
 }
 
-function prepareSalmonDrag(event) {
+function selectSashimi() {
   if (state.incomingSlices) {
     setMessage('等切好的鱼片放好后，再拿新的大三文鱼。');
     return;
@@ -238,7 +240,15 @@ function prepareSalmonDrag(event) {
     setMessage('切菜板上还有大三文鱼，先把它切完再拿新的。');
     return;
   }
-  startIngredientDrag(event, 'salmon');
+  if (state.salmonIncoming) return;
+
+  const sourceRect = displaySalmon.querySelector('img').getBoundingClientRect();
+  const targetRect = boardStation.getBoundingClientRect();
+  const flightVersion = state.flightVersion;
+  state.salmonIncoming = true;
+  setMessage('已选择三文鱼刺身，正在平滑送到切菜板。');
+  render();
+  flySalmonToBoard(sourceRect, targetRect, flightVersion);
 }
 
 function takeRice() {
@@ -303,7 +313,7 @@ function prepareSliceDrag(event) {
   startIngredientDrag(event, 'slice');
 }
 
-displaySalmon.addEventListener('pointerdown', prepareSalmonDrag);
+displaySalmon.addEventListener('click', selectSashimi);
 riceBin.addEventListener('click', takeRice);
 cupStation.addEventListener('pointerdown', prepareCupDrag);
 
@@ -429,6 +439,46 @@ function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex,
   }, 620);
 }
 
+function flySalmonToBoard(sourceRect, targetRect, flightVersion) {
+  const stageRect = stage.getBoundingClientRect();
+  const salmon = document.createElement('img');
+  const startX = sourceRect.left + (sourceRect.width / 2) - stageRect.left;
+  const startY = sourceRect.top + (sourceRect.height / 2) - stageRect.top;
+  const targetWidth = targetRect.width * 0.82;
+  const targetHeight = targetRect.height * 0.42;
+  const targetX = targetRect.left + (targetRect.width / 2) - stageRect.left;
+  const targetY = targetRect.top + (targetRect.height * 0.27) - stageRect.top;
+
+  salmon.className = 'flying-salmon-loin';
+  salmon.src = `${KITCHEN_ASSET_PATH}salmon-loin.png`;
+  salmon.alt = '';
+  salmon.draggable = false;
+  salmon.style.left = `${startX}px`;
+  salmon.style.top = `${startY}px`;
+  salmon.style.width = `${sourceRect.width}px`;
+  salmon.style.height = `${sourceRect.height}px`;
+  stage.append(salmon);
+
+  requestAnimationFrame(() => {
+    salmon.style.left = `${targetX}px`;
+    salmon.style.top = `${targetY}px`;
+    salmon.style.width = `${targetWidth}px`;
+    salmon.style.height = `${targetHeight}px`;
+    salmon.classList.add('is-flying');
+  });
+
+  window.setTimeout(() => {
+    salmon.remove();
+    if (flightVersion !== state.flightVersion) return;
+    state.salmonIncoming = false;
+    state.salmonOnBoard = true;
+    state.cutLines = [false, false, false];
+    state.activeCut = null;
+    setMessage('三文鱼已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。');
+    render();
+  }, 680);
+}
+
 function finishCutLine(index) {
   const sourceRect = boardSalmon.getBoundingClientRect();
   const rackRect = sliceRack.getBoundingClientRect();
@@ -538,7 +588,8 @@ document.querySelector('#reset-button').addEventListener('click', () => {
   state.drinkVersion += 1;
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
   document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, shopOpen: true });
+  document.querySelectorAll('.flying-salmon-loin').forEach((salmon) => salmon.remove());
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, salmonIncoming: false, shopOpen: true });
   setMessage('营业中：准备寿司后即可出餐。');
   render();
 });

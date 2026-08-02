@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=separate-backroom-20260802" />
+    <link rel="stylesheet" href="style.css?v=sashimi-selector-20260802" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -17,11 +17,12 @@
       </header>
 
       <section class="work-counter" aria-label="寿司制作操作台">
-        <section class="fish-station" aria-label="玻璃鱼柜，共三格">
+        <section class="fish-station" aria-label="半透明玻璃冰柜，共三格">
           <img src="assets/restaurant/kitchen-layers/optimized/fish-well.png" alt="三格玻璃鱼柜" decoding="async" />
-          <button id="display-salmon" class="display-salmon" type="button" aria-label="拖出第一格中的大三文鱼">
+          <button id="display-salmon" class="display-salmon" type="button" aria-label="点击冰柜选择第一格中的三文鱼刺身">
             <img src="assets/restaurant/kitchen-layers/optimized/salmon-loin.png" alt="大三文鱼" draggable="false" decoding="async" />
           </button>
+          <span class="freezer-glass" aria-hidden="true"></span>
         </section>
 
         <section class="board-station" aria-label="切菜板">
@@ -60,6 +61,6 @@
         <button id="serve-button" type="button" disabled>出餐</button>
       </div>
     </main>
-    <script src="kitchen.js?v=no-backroom-20260802"></script>
+    <script src="kitchen.js?v=sashimi-selector-20260802"></script>
   </body>
 </html>
