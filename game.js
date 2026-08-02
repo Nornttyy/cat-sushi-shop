@@ -48,6 +48,10 @@ function waitForMenuTransition() {
   return new Promise((resolve) => window.setTimeout(resolve, 700));
 }
 
+function waitForLoadingScreen() {
+  return new Promise((resolve) => window.setTimeout(resolve, 650));
+}
+
 async function enterKitchen(event) {
   const button = event.currentTarget;
   if (menuStage.classList.contains('is-entering-game')) return;
@@ -57,10 +61,13 @@ async function enterKitchen(event) {
   menuStage.classList.add('is-entering-game');
 
   try {
+    await waitForMenuTransition();
+    menuStage.classList.add('is-loading-game');
+
     const [kitchenMarkup] = await Promise.all([
       kitchenMarkupReady,
       kitchenAssetsReady,
-      waitForMenuTransition(),
+      waitForLoadingScreen(),
     ]);
     const kitchenDocument = new DOMParser().parseFromString(kitchenMarkup, 'text/html');
     const kitchenStage = kitchenDocument.querySelector('main');
@@ -70,13 +77,13 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=customer-depth-v5-20260802';
+    kitchenScript.src = 'kitchen.js?v=loading-and-sushi-v6-20260802';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
     button.disabled = false;
     button.removeAttribute('aria-busy');
-    menuStage.classList.remove('is-entering-game');
+    menuStage.classList.remove('is-entering-game', 'is-loading-game');
     kitchenMarkupReady = loadKitchenMarkup();
     console.error(error);
   }

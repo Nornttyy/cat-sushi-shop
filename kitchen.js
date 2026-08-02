@@ -246,7 +246,46 @@ function resumeShop() {
   scheduleCustomer(550);
 }
 
-function makeSushi(sourceElement) {
+function playSushiMakingAnimation() {
+  const stageRect = stage.getBoundingClientRect();
+  const stationRect = assemblyStation.getBoundingClientRect();
+  const width = Math.max(38, stationRect.width * 0.38);
+  const height = Math.max(34, stationRect.height * 0.43);
+  const centerX = stationRect.left - stageRect.left + (stationRect.width * 0.56);
+  const centerY = stationRect.top - stageRect.top + (stationRect.height * 0.48);
+  const maker = document.createElement('div');
+  const rice = document.createElement('img');
+  const salmon = document.createElement('img');
+
+  maker.className = 'sushi-making-animation';
+  maker.setAttribute('aria-hidden', 'true');
+  maker.style.left = `${centerX}px`;
+  maker.style.top = `${centerY}px`;
+  maker.style.width = `${width}px`;
+  maker.style.height = `${height}px`;
+
+  rice.className = 'sushi-making-rice';
+  rice.src = `${KITCHEN_ASSET_PATH}rice-portion.png`;
+  rice.alt = '';
+  salmon.className = 'sushi-making-salmon';
+  salmon.src = `${KITCHEN_ASSET_PATH}salmon-slice.png`;
+  salmon.alt = '';
+  maker.append(rice, salmon);
+  stage.append(maker);
+  requestAnimationFrame(() => maker.classList.add('is-making'));
+
+  return {
+    maker,
+    sourceRect: {
+      left: stageRect.left + centerX - (width / 2),
+      top: stageRect.top + centerY - (height / 2),
+      width,
+      height,
+    },
+  };
+}
+
+function makeSushi() {
   if (state.incomingSlices) {
     setMessage('等鱼片滑到旁边再制作寿司。');
     return;
@@ -267,26 +306,32 @@ function makeSushi(sourceElement) {
   state.riceStored -= 1;
   state.sushiStored += 1;
   state.incomingSushi += 1;
-  const sourceRect = sourceElement?.getBoundingClientRect() ?? assemblyStation.getBoundingClientRect();
   const targetRect = sushiRack.getBoundingClientRect();
   const targetIndex = state.sushiStored - 1;
-  setMessage('三文鱼握寿司做好了，已放进寿司架。');
+  const animationVersion = state.flightVersion;
+  const makingSushi = playSushiMakingAnimation();
+  setMessage('正在捏制三文鱼寿司。');
   render();
-  flyCompletedItem({
-    className: 'sushi',
-    src: `${KITCHEN_ASSET_PATH}salmon-nigiri.png`,
-    sourceRect,
-    targetRect,
-    targetIndex,
-    columns: 2,
-    rows: 4,
-    gap: 0.04,
-    displayScale: 1.12,
-    onFinish: () => {
-      state.incomingSushi = Math.max(0, state.incomingSushi - 1);
-      render();
-    },
-  });
+  window.setTimeout(() => {
+    makingSushi.maker.remove();
+    if (animationVersion !== state.flightVersion) return;
+    flyCompletedItem({
+      className: 'sushi',
+      src: `${KITCHEN_ASSET_PATH}salmon-nigiri.png`,
+      sourceRect: makingSushi.sourceRect,
+      targetRect,
+      targetIndex,
+      columns: 2,
+      rows: 4,
+      gap: 0.04,
+      displayScale: 1.12,
+      onFinish: () => {
+        state.incomingSushi = Math.max(0, state.incomingSushi - 1);
+        setMessage('三文鱼握寿司做好了，已放进寿司架。');
+        render();
+      },
+    });
+  }, 420);
 }
 
 function renderSlices() {
@@ -305,7 +350,7 @@ function renderSlices() {
     slice.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
-      makeSushi(slice);
+      makeSushi();
     });
     slice.append(sliceImage);
     sliceRack.append(slice);
@@ -592,7 +637,7 @@ window.addEventListener('pointerup', (event) => {
     state.cupOnMachine = true;
     setMessage('空杯放好了，点击饮品机接饮料。');
   } else {
-    makeSushi(riceRack);
+    makeSushi();
     return;
   }
   render();
@@ -800,6 +845,7 @@ document.querySelector('#reset-button').addEventListener('click', () => {
   clearCustomerTimers();
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
   document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
+  document.querySelectorAll('.sushi-making-animation').forEach((item) => item.remove());
   Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, sashimiPickerOpen: false, shopOpen: true, cash: 0, customers: [], customerSerial: 0 });
   setMessage('制作台已整理，第一位客人马上就到。');
   render();

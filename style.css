@@ -62,20 +62,19 @@ button { font: inherit; }
 .cash-card { min-width: 8ch; text-align: center; }
 
 .customer-queue { position: absolute; top: 14%; left: 12%; z-index: 1; display: flex; align-items: end; justify-content: flex-start; gap: clamp(24px, 7vw, 100px); width: 52%; height: 50%; pointer-events: none; }
-.counter-foreground { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: url('assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg') center / 100% 100% no-repeat; clip-path: inset(46.5% 0 0); }
 .customer { position: relative; flex: 0 1 clamp(135px, 15vw, 220px); height: 100%; opacity: 1; }
 .customer.is-entering { animation: customer-enter 850ms cubic-bezier(.2, .8, .2, 1) both; }
 .customer + .customer { z-index: 0; margin-bottom: 1%; margin-left: 5%; opacity: .92; }
 .customer.is-serving, .customer.is-leaving { animation: customer-leave 850ms cubic-bezier(.4, 0, .85, .2) both; }
 .customer.is-drop-target .customer-avatar { filter: brightness(1.1) drop-shadow(0 0 9px rgb(255 233 141 / .95)); }
-.customer-avatar { position: absolute; bottom: -4%; left: 50%; z-index: 1; display: block; width: 100%; height: 90%; object-fit: contain; transform: translateX(-50%); filter: drop-shadow(0 5px 2px rgb(76 47 34 / .2)); }
+.customer-avatar { position: absolute; bottom: -4%; left: 50%; z-index: 1; display: block; width: 100%; height: 90%; object-fit: contain; clip-path: inset(0 0 43% 0); transform: translateX(-50%); filter: drop-shadow(0 5px 2px rgb(76 47 34 / .2)); }
 .customer-order { position: absolute; top: 2%; right: -16%; z-index: 2; display: grid; grid-template-columns: auto 1.1em; align-items: center; gap: 3px; min-width: max-content; padding: 5px 8px 7px; border: 2px solid var(--ink); border-radius: 12px; color: var(--ink); background: #fff4d8; box-shadow: 0 3px 0 rgb(90 57 45 / .22); font-size: clamp(10px, .86vw, 14px); font-weight: 900; }
 .customer-order::after { content: ''; position: absolute; right: 18%; bottom: -7px; width: 12px; height: 12px; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); background: #fff4d8; transform: rotate(45deg); }
 .customer-order img { position: relative; z-index: 1; width: 1.25em; height: 1.25em; object-fit: contain; }
 .customer-order strong { position: relative; z-index: 1; font-size: .88em; white-space: nowrap; }
 .customer-wait { position: absolute; right: 8%; bottom: 39%; left: 8%; z-index: 3; height: 7px; overflow: visible; border: 1px solid rgb(90 57 45 / .45); border-radius: 999px; background: #ffdba3; }
 .customer-wait > i { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7fce93, #f7bf60 65%, #e96d58); transform-origin: left; transition: transform 150ms linear; }
-.customer-received-sushi { position: absolute; bottom: 15%; left: 50%; z-index: 4; width: 31%; height: auto; object-fit: contain; transform: translateX(-50%) rotate(-4deg); filter: drop-shadow(0 3px 2px rgb(59 39 28 / .25)); }
+.customer-received-sushi { position: absolute; bottom: 43%; left: 50%; z-index: 4; width: 31%; height: auto; object-fit: contain; transform: translateX(-50%) rotate(-4deg); filter: drop-shadow(0 3px 2px rgb(59 39 28 / .25)); }
 @keyframes customer-enter { from { opacity: 0; transform: translateX(24px) scale(.94); } to { opacity: 1; transform: translateX(0) scale(1); } }
 @keyframes customer-leave { to { opacity: 0; transform: translateX(-40px) scale(.96); } }
 
@@ -119,6 +118,14 @@ button { font: inherit; }
 .flying-salmon-slice.is-flying { transform: translate(-50%, -50%) rotate(4deg); }
 .flying-completed-item { position: absolute; z-index: 61; pointer-events: none; object-fit: contain; filter: drop-shadow(0 4px 4px rgb(59 39 28 / .2)); transform: translate(-50%, -50%) rotate(-5deg); transition: left 560ms cubic-bezier(.2, .8, .2, 1), top 560ms cubic-bezier(.2, .8, .2, 1), transform 560ms cubic-bezier(.2, .8, .2, 1); }
 .flying-completed-item.is-flying { transform: translate(-50%, -50%) rotate(3deg); }
+.sushi-making-animation { position: absolute; z-index: 62; pointer-events: none; transform: translate(-50%, -50%); filter: drop-shadow(0 4px 3px rgb(59 39 28 / .2)); }
+.sushi-making-animation img { position: absolute; object-fit: contain; }
+.sushi-making-rice { bottom: 0; left: 3%; width: 94%; height: 76%; opacity: 0; transform: translateY(18%) scale(.78); }
+.sushi-making-salmon { top: 3%; left: 10%; width: 80%; height: 52%; opacity: 0; transform: translateY(-75%) rotate(-11deg) scale(.72); }
+.sushi-making-animation.is-making .sushi-making-rice { animation: sushi-rice-land 400ms cubic-bezier(.2, .8, .25, 1) both; }
+.sushi-making-animation.is-making .sushi-making-salmon { animation: sushi-salmon-land 400ms cubic-bezier(.2, .8, .25, 1) both; }
+@keyframes sushi-rice-land { 0% { opacity: 0; transform: translateY(18%) scale(.78); } 58% { opacity: 1; transform: translateY(-4%) scale(1.08); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes sushi-salmon-land { 0% { opacity: 0; transform: translateY(-75%) rotate(-11deg) scale(.72); } 58% { opacity: 1; transform: translateY(4%) rotate(3deg) scale(1.04); } 100% { opacity: 1; transform: translateY(0) rotate(0) scale(1); } }
 
 .assembly-station { left: 44%; top: 62%; width: 18%; height: 28%; }
 .slice-rack { position: absolute; left: 2%; right: 2%; top: 2%; z-index: 3; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); gap: 7% 2%; height: 36%; }
@@ -189,6 +196,12 @@ button { font: inherit; }
 .main-menu-stage.is-entering-game .menu-background { filter: saturate(1.05) brightness(1.03); transform: scale(1.18); }
 .main-menu-stage.is-entering-game .menu-wash { opacity: 0; }
 .main-menu-stage.is-entering-game .main-menu-card { opacity: 0; transform: translate(-18px, -50%); }
+.menu-loading-screen { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; opacity: 0; pointer-events: none; color: #fff5dc; background: #0b0a09; transition: opacity 650ms ease; }
+.menu-loading-screen span { opacity: 0; font-size: clamp(20px, 2.2vw, 32px); font-weight: 900; letter-spacing: .24em; text-shadow: 0 0 16px rgb(255 229 181 / .3); transform: translateY(8px); transition: opacity 260ms ease 230ms, transform 420ms ease 230ms; }
+.menu-loading-screen span::after { content: '···'; display: inline-block; width: 2.3em; overflow: hidden; vertical-align: bottom; animation: loading-dots 1.15s steps(4, end) infinite; }
+.main-menu-stage.is-loading-game .menu-loading-screen { opacity: 1; }
+.main-menu-stage.is-loading-game .menu-loading-screen span { opacity: 1; transform: translateY(0); }
+@keyframes loading-dots { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 .main-menu-kicker { display: inline-block; margin: 0 0 clamp(8px, 1.2vw, 16px); padding: .45em 1em; border: 2px solid rgb(90 57 45 / .78); border-radius: 999px; color: #80503a; background: rgb(255 250 234 / .82); box-shadow: 0 3px 0 rgb(90 57 45 / .14); font-size: clamp(10px, 1.1vw, 16px); font-weight: 900; letter-spacing: .09em; }
 .main-menu-title { margin: 0; color: #8c432d; font-size: clamp(42px, 6.1vw, 88px); font-weight: 1000; line-height: .85; letter-spacing: .07em; text-shadow: 0 4px 0 #fff7df, 0 7px 0 rgb(90 57 45 / .22); }
 .main-menu-title span { display: block; margin-bottom: .1em; color: #ec8b54; font-size: .67em; letter-spacing: .18em; }
