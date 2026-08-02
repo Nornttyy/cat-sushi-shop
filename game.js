@@ -49,7 +49,7 @@ function waitForMenuTransition() {
 }
 
 function waitForLoadingScreen() {
-  return new Promise((resolve) => window.setTimeout(resolve, 650));
+  return new Promise((resolve) => window.setTimeout(resolve, 1800));
 }
 
 async function enterKitchen(event) {
@@ -77,7 +77,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=customer-counter-v7-20260802';
+    kitchenScript.src = 'kitchen.js?v=loading-sushi-loop-v8-20260802';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
