@@ -27,7 +27,8 @@ const state = {
   drinksStored: 0,
   incomingDrinks: 0,
   drinkVersion: 0,
-  salmonIncoming: false,
+  sashimiPickerOpen: false,
+  salmonSelected: false,
   shopOpen: true,
 };
 
@@ -35,7 +36,10 @@ const stage = document.querySelector('#kitchen-stage');
 const message = document.querySelector('#kitchen-message');
 const sceneBackground = document.querySelector('#scene-background');
 const stageName = document.querySelector('#stage-name');
+const freezerButton = document.querySelector('#freezer-button');
 const displaySalmon = document.querySelector('#display-salmon');
+const sashimiPicker = document.querySelector('#sashimi-picker');
+const selectSalmon = document.querySelector('#select-salmon');
 const riceBin = document.querySelector('#rice-bin');
 const boardStation = document.querySelector('.board-station');
 const assemblyStation = document.querySelector('.assembly-station');
@@ -159,8 +163,10 @@ function render() {
   sceneBackground.alt = '海边寿司店后台';
   stageName.textContent = state.shopOpen ? '营业制作台' : '寿司制作台';
   show(displaySalmon, true);
-  displaySalmon.classList.toggle('is-selecting', state.salmonIncoming);
-  show(boardSalmon, state.salmonOnBoard && !state.salmonIncoming);
+  displaySalmon.classList.toggle('is-ready', state.salmonSelected);
+  freezerButton.classList.toggle('is-active', state.sashimiPickerOpen);
+  show(sashimiPicker, state.sashimiPickerOpen);
+  show(boardSalmon, state.salmonOnBoard);
   boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
   const completedCuts = state.cutLines.filter(Boolean).length;
   const croppedLeft = completedCuts ? CUT_LINES[completedCuts - 1] : 0;
@@ -224,31 +230,43 @@ function startIngredientDrag(event, type) {
   preview.draggable = false;
   stage.append(preview);
   ingredientDrag = { type, source, pointerId: event.pointerId, preview };
-  if (type === 'slice') source.classList.add('is-dragging');
+  if (type === 'slice' || type === 'salmon') source.classList.add('is-dragging');
   source.setPointerCapture(event.pointerId);
   (type === 'salmon' ? boardStation : type === 'cup' ? drinkMachine : riceRack).classList.add('is-drop-target');
   moveDragPreview(event);
   setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板。' : type === 'cup' ? '把空杯拖到饮品机。' : '把三文鱼片拖到米饭架。');
 }
 
-function selectSashimi() {
+function canSelectSashimi() {
   if (state.incomingSlices) {
     setMessage('等切好的鱼片放好后，再拿新的大三文鱼。');
-    return;
+    return false;
   }
   if (state.salmonOnBoard) {
     setMessage('切菜板上还有大三文鱼，先把它切完再拿新的。');
-    return;
+    return false;
   }
-  if (state.salmonIncoming) return;
+  return true;
+}
 
-  const sourceRect = displaySalmon.querySelector('img').getBoundingClientRect();
-  const targetRect = boardStation.getBoundingClientRect();
-  const flightVersion = state.flightVersion;
-  state.salmonIncoming = true;
-  setMessage('已选择三文鱼刺身，正在平滑送到切菜板。');
+function openSashimiPicker() {
+  if (!canSelectSashimi()) return;
+  state.sashimiPickerOpen = !state.sashimiPickerOpen;
+  setMessage(state.sashimiPickerOpen ? '选择一种刺身。' : '已收起刺身选择。');
   render();
-  flySalmonToBoard(sourceRect, targetRect, flightVersion);
+}
+
+function chooseSalmon() {
+  if (!canSelectSashimi()) return;
+  state.sashimiPickerOpen = false;
+  state.salmonSelected = true;
+  setMessage('已选择三文鱼刺身，拖动它到切菜板。');
+  render();
+}
+
+function prepareSalmonDrag(event) {
+  if (!state.salmonSelected || !canSelectSashimi()) return;
+  startIngredientDrag(event, 'salmon');
 }
 
 function takeRice() {
@@ -313,7 +331,9 @@ function prepareSliceDrag(event) {
   startIngredientDrag(event, 'slice');
 }
 
-displaySalmon.addEventListener('click', selectSashimi);
+freezerButton.addEventListener('click', openSashimiPicker);
+selectSalmon.addEventListener('click', chooseSalmon);
+displaySalmon.addEventListener('pointerdown', prepareSalmonDrag);
 riceBin.addEventListener('click', takeRice);
 cupStation.addEventListener('pointerdown', prepareCupDrag);
 
@@ -334,6 +354,7 @@ window.addEventListener('pointerup', (event) => {
 
   if (type === 'salmon') {
     state.salmonOnBoard = true;
+    state.salmonSelected = false;
     state.cutLines = [false, false, false];
     state.activeCut = null;
     setMessage('大三文鱼已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。');
@@ -437,46 +458,6 @@ function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex,
     item.remove();
     if (flightVersion === state.flightVersion) onFinish();
   }, 620);
-}
-
-function flySalmonToBoard(sourceRect, targetRect, flightVersion) {
-  const stageRect = stage.getBoundingClientRect();
-  const salmon = document.createElement('img');
-  const startX = sourceRect.left + (sourceRect.width / 2) - stageRect.left;
-  const startY = sourceRect.top + (sourceRect.height / 2) - stageRect.top;
-  const targetWidth = targetRect.width * 0.82;
-  const targetHeight = targetRect.height * 0.42;
-  const targetX = targetRect.left + (targetRect.width / 2) - stageRect.left;
-  const targetY = targetRect.top + (targetRect.height * 0.27) - stageRect.top;
-
-  salmon.className = 'flying-salmon-loin';
-  salmon.src = `${KITCHEN_ASSET_PATH}salmon-loin.png`;
-  salmon.alt = '';
-  salmon.draggable = false;
-  salmon.style.left = `${startX}px`;
-  salmon.style.top = `${startY}px`;
-  salmon.style.width = `${sourceRect.width}px`;
-  salmon.style.height = `${sourceRect.height}px`;
-  stage.append(salmon);
-
-  requestAnimationFrame(() => {
-    salmon.style.left = `${targetX}px`;
-    salmon.style.top = `${targetY}px`;
-    salmon.style.width = `${targetWidth}px`;
-    salmon.style.height = `${targetHeight}px`;
-    salmon.classList.add('is-flying');
-  });
-
-  window.setTimeout(() => {
-    salmon.remove();
-    if (flightVersion !== state.flightVersion) return;
-    state.salmonIncoming = false;
-    state.salmonOnBoard = true;
-    state.cutLines = [false, false, false];
-    state.activeCut = null;
-    setMessage('三文鱼已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。');
-    render();
-  }, 680);
 }
 
 function finishCutLine(index) {
@@ -588,8 +569,7 @@ document.querySelector('#reset-button').addEventListener('click', () => {
   state.drinkVersion += 1;
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
   document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
-  document.querySelectorAll('.flying-salmon-loin').forEach((salmon) => salmon.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, salmonIncoming: false, shopOpen: true });
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, sashimiPickerOpen: false, salmonSelected: false, shopOpen: true });
   setMessage('营业中：准备寿司后即可出餐。');
   render();
 });
