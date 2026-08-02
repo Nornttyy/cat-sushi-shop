@@ -272,8 +272,12 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
   const fromY = sourceRect.top + (sourceRect.height * 0.54) - stageRect.top;
   const column = sliceIndex % SLICE_COLUMNS;
   const row = Math.floor(sliceIndex / SLICE_COLUMNS);
-  const toX = rackRect.left + (rackRect.width * ((column + 0.5) / SLICE_COLUMNS)) - stageRect.left;
-  const toY = rackRect.top + (rackRect.height * ((row + 0.5) / SLICE_ROWS)) - stageRect.top;
+  const columnGap = rackRect.width * 0.02;
+  const rowGap = rackRect.height * 0.07;
+  const targetWidth = (rackRect.width - (columnGap * (SLICE_COLUMNS - 1))) / SLICE_COLUMNS;
+  const targetHeight = (rackRect.height - (rowGap * (SLICE_ROWS - 1))) / SLICE_ROWS;
+  const toX = rackRect.left + (column * (targetWidth + columnGap)) + (targetWidth / 2) - stageRect.left;
+  const toY = rackRect.top + (row * (targetHeight + rowGap)) + (targetHeight / 2) - stageRect.top;
 
   flyingSlice.className = 'flying-salmon-slice';
   flyingSlice.src = `${KITCHEN_ASSET_PATH}salmon-slice.png`;
@@ -281,8 +285,8 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
   flyingSlice.draggable = false;
   flyingSlice.style.left = `${fromX}px`;
   flyingSlice.style.top = `${fromY}px`;
-  flyingSlice.style.width = `${sourceRect.width * 0.2}px`;
-  flyingSlice.style.height = `${sourceRect.height * 0.62}px`;
+  flyingSlice.style.width = `${targetWidth}px`;
+  flyingSlice.style.height = `${targetHeight}px`;
   stage.append(flyingSlice);
 
   requestAnimationFrame(() => {
