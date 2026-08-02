@@ -1,18 +1,24 @@
 const startButton = document.querySelector('#start-button');
 
-function showDayPreparation() {
+function showShopPreparation() {
+  const stage = document.querySelector('.main-menu-stage');
   const card = document.querySelector('.main-menu-card');
-  card.classList.add('is-day-preparation');
-  card.innerHTML = `
-    <p class="day-number">第 1 天</p>
-    <h1 class="day-preparation-title">营业准备</h1>
-    <p class="day-preparation-description">检查食材和工具，准备好后再打开店门。</p>
-    <div class="day-menu-note"><span>今日菜单</span><b>三文鱼握寿司</b></div>
-    <button id="open-business-button" class="main-menu-start" type="button">
-      <span>开门营业</span>
-      <small>进入制作台</small>
-    </button>
+  stage.classList.add('is-in-shop');
+  card.remove();
+
+  const shopUi = document.createElement('section');
+  shopUi.className = 'shop-opening-ui';
+  shopUi.innerHTML = `
+    <div class="shop-day-panel"><span>第 1 天</span><b>开门前</b></div>
+    <div class="shop-opening-panel">
+      <span>海风正好，食材已经备齐</span>
+      <button id="open-business-button" class="main-menu-start" type="button">
+        <span>开门营业</span>
+        <small>开始今天的工作</small>
+      </button>
+    </div>
   `;
+  stage.append(shopUi);
   document.querySelector('#open-business-button').addEventListener('click', enterKitchen);
 }
 
@@ -43,4 +49,4 @@ async function enterKitchen(event) {
   }
 }
 
-startButton.addEventListener('click', showDayPreparation);
+startButton.addEventListener('click', showShopPreparation);

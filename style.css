@@ -138,14 +138,15 @@ button { font: inherit; }
 .main-menu-start:active { transform: translateY(5px); box-shadow: 0 1px 0 #9e4d37, inset 0 2px 0 rgb(255 247 211 / .56); }
 .main-menu-start span { font-size: clamp(18px, 2vw, 29px); }
 .main-menu-start small { font-size: clamp(10px, .95vw, 14px); font-weight: 800; opacity: .9; }
-.main-menu-card.is-day-preparation { width: min(36%, 470px); }
-.day-number { display: inline-block; margin: 0 0 clamp(10px, 1.25vw, 17px); padding: .42em 1.1em; border: 2px solid #8c5238; border-radius: 999px; color: #fff6de; background: #d97a4e; box-shadow: 0 3px 0 #a75037; font-size: clamp(12px, 1.2vw, 17px); font-weight: 1000; letter-spacing: .12em; }
-.day-preparation-title { margin: 0; color: #8c432d; font-size: clamp(34px, 4vw, 58px); line-height: 1; text-shadow: 0 4px 0 #fff7df, 0 7px 0 rgb(90 57 45 / .18); }
-.day-preparation-description { margin: clamp(16px, 1.8vw, 24px) auto; max-width: 17em; color: #704331; font-size: clamp(13px, 1.35vw, 19px); font-weight: 800; line-height: 1.55; }
-.day-menu-note { display: grid; gap: 3px; margin: 0 auto clamp(20px, 2.2vw, 30px); padding: .7em 1.1em; max-width: 19em; border: 2px solid rgb(112 67 49 / .62); border-radius: 13px; background: rgb(255 250 235 / .76); box-shadow: 0 3px 0 rgb(112 67 49 / .12); color: #7c4a35; }
-.day-menu-note span { font-size: clamp(10px, .9vw, 13px); font-weight: 800; letter-spacing: .12em; }
-.day-menu-note b { font-size: clamp(15px, 1.35vw, 20px); }
-@media (max-width: 620px) { .main-menu-card, .main-menu-card.is-day-preparation { left: 7%; width: 52%; } .main-menu-kicker { letter-spacing: .03em; } .main-menu-title { font-size: clamp(32px, 8vw, 52px); } .main-menu-description { font-size: 11px; } .main-menu-start { min-width: 100%; padding-inline: 10px; } }
+.main-menu-stage.is-in-shop .menu-wash { opacity: 0; }
+.menu-wash { transition: opacity 360ms ease; }
+.shop-opening-ui { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.shop-day-panel { position: absolute; top: 5%; left: 4%; display: grid; gap: 2px; padding: clamp(8px, .8vw, 13px) clamp(12px, 1.2vw, 18px); border: 3px solid #704331; border-radius: 14px; color: #704331; background: rgb(255 246 220 / .9); box-shadow: 0 4px 0 rgb(90 57 45 / .18); }
+.shop-day-panel span { font-size: clamp(10px, .95vw, 14px); font-weight: 900; letter-spacing: .1em; }
+.shop-day-panel b { font-size: clamp(14px, 1.4vw, 20px); }
+.shop-opening-panel { position: absolute; right: 4.5%; bottom: 6%; display: grid; justify-items: end; gap: clamp(7px, .8vw, 12px); color: #fff7df; font-size: clamp(11px, 1.1vw, 16px); font-weight: 900; text-align: right; text-shadow: 0 2px 2px rgb(72 40 25 / .6); }
+.shop-opening-panel .main-menu-start { min-width: min(25vw, 270px); pointer-events: auto; }
+@media (max-width: 620px) { .main-menu-card { left: 7%; width: 52%; } .main-menu-kicker { letter-spacing: .03em; } .main-menu-title { font-size: clamp(32px, 8vw, 52px); } .main-menu-description { font-size: 11px; } .main-menu-start { min-width: 100%; padding-inline: 10px; } .shop-opening-panel { right: 4%; bottom: 4%; } .shop-opening-panel .main-menu-start { min-width: 42vw; } }
 
 @media (max-aspect-ratio: 1/1) {
   body { place-items: start center; background: var(--ink); }
