@@ -91,6 +91,7 @@ function makeSushi(sourceElement) {
     columns: 2,
     rows: 4,
     gap: 0.04,
+    displayScale: 1.12,
     onFinish: () => {
       state.incomingSushi = Math.max(0, state.incomingSushi - 1);
       render();
@@ -247,6 +248,7 @@ function takeRice() {
     columns: 2,
     rows: 4,
     gap: 0.04,
+    displayScale: 1.12,
     onFinish: () => {
       state.incomingRice = Math.max(0, state.incomingRice - 1);
       setMessage('米饭已放进米饭架。拖一片三文鱼到米饭架制作寿司。');
@@ -376,7 +378,7 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
   }, 650 + (sliceIndex * 75));
 }
 
-function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex, columns, rows, gap, onFinish }) {
+function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex, columns, rows, gap, displayScale = 1, onFinish }) {
   const flightVersion = state.flightVersion;
   const stageRect = stage.getBoundingClientRect();
   const column = targetIndex % columns;
@@ -397,8 +399,8 @@ function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex,
   item.draggable = false;
   item.style.left = `${fromX}px`;
   item.style.top = `${fromY}px`;
-  item.style.width = `${targetWidth}px`;
-  item.style.height = `${targetHeight}px`;
+  item.style.width = `${targetWidth * displayScale}px`;
+  item.style.height = `${targetHeight * displayScale}px`;
   stage.append(item);
 
   requestAnimationFrame(() => {
