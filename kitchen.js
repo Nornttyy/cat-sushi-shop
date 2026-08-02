@@ -1,7 +1,7 @@
 const MAX_SLICES = 12;
 const MAX_RICE = 8;
 const MAX_SUSHI = 8;
-const MAX_DRINKS = 4;
+const MAX_DRINKS = 6;
 const SLICE_COLUMNS = 4;
 const SLICE_ROWS = 3;
 const KITCHEN_ASSET_PATH = 'assets/restaurant/kitchen-layers/optimized/';
@@ -509,7 +509,7 @@ drinkMachine.addEventListener('click', () => {
       targetRect,
       targetIndex,
       columns: 2,
-      rows: 2,
+      rows: 3,
       gap: 0.1,
       onFinish: () => {
         state.incomingDrinks = Math.max(0, state.incomingDrinks - 1);
