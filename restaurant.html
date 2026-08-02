@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#54b8d6" />
+    <title>海边寿司店 · 餐厅</title>
+    <link rel="stylesheet" href="style.css?v=restaurant-props-20260802" />
+    <link rel="preload" as="image" href="assets/restaurant/restaurant-empty-room.jpg" fetchpriority="high" />
+  </head>
+  <body>
+    <main id="restaurant-stage" class="game-stage restaurant-stage" aria-label="海边寿司店餐厅">
+      <img class="restaurant-background" src="assets/restaurant/restaurant-empty-room.jpg" alt="俯视角海边寿司店餐厅" fetchpriority="high" decoding="async" />
+      <img class="restaurant-counter" src="assets/restaurant/sushi-counter.png" alt="寿司服务台" draggable="false" decoding="async" />
+      <section class="restaurant-tables" aria-label="餐厅桌椅，共八组">
+        <img class="restaurant-table table-one" src="assets/restaurant/dining-table-set.png" alt="第 1 组餐桌和椅子" draggable="false" decoding="async" />
+        <img class="restaurant-table table-two" src="assets/restaurant/dining-table-set.png" alt="第 2 组餐桌和椅子" draggable="false" decoding="async" />
+        <img class="restaurant-table table-three" src="assets/restaurant/dining-table-set.png" alt="第 3 组餐桌和椅子" draggable="false" decoding="async" />
+        <img class="restaurant-table table-four" src="assets/restaurant/dining-table-set.png" alt="第 4 组餐桌和椅子" draggable="false" decoding="async" />
+        <img class="restaurant-table table-five" src="assets/restaurant/dining-table-set.png" alt="第 5 组餐桌和椅子" draggable="false" decoding="async" />
+        <img class="restaurant-table table-six" src="assets/restaurant/dining-table-set.png" alt="第 6 组餐桌和椅子" draggable="false" decoding="async" />
+        <img class="restaurant-table table-seven" src="assets/restaurant/dining-table-set.png" alt="第 7 组餐桌和椅子" draggable="false" decoding="async" />
+        <img class="restaurant-table table-eight" src="assets/restaurant/dining-table-set.png" alt="第 8 组餐桌和椅子" draggable="false" decoding="async" />
+      </section>
+      <header class="game-header">
+        <div><span>第 1 天</span><b>海边寿司店</b></div>
+      </header>
+      <div class="restaurant-status"><span>餐厅</span><b>点击后门进入后台</b></div>
+      <button id="backroom-door" class="restaurant-door" type="button" aria-label="进入后门后的制作后台"></button>
+    </main>
+    <script src="restaurant.js?v=restaurant-props-20260802"></script>
+  </body>
+</html>

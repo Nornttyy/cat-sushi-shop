@@ -31,8 +31,6 @@ button { font: inherit; }
 }
 
 .kitchen-background { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; }
-.kitchen-stage .work-counter { transition: transform 280ms ease; }
-.kitchen-stage.is-open .work-counter { transform: translateY(10%); }
 
 .game-header {
   position: absolute;
@@ -126,6 +124,25 @@ button { font: inherit; }
 .game-bottom-bar button:not(:disabled):active { transform: translateY(3px); box-shadow: none; }
 .is-hidden { display: none !important; }
 .screen-reader-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
+
+.restaurant-stage { background: #54b8d6; }
+.restaurant-background { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; }
+.restaurant-counter { position: absolute; top: 9%; left: 54%; z-index: 1; width: 39%; height: 27%; object-fit: contain; pointer-events: none; }
+.restaurant-tables { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.restaurant-table { position: absolute; width: 13%; height: auto; user-select: none; }
+.table-one { top: 31%; left: 17%; }
+.table-two { top: 31%; left: 34%; }
+.table-three { top: 34%; left: 51%; }
+.table-four { top: 34%; left: 69%; }
+.table-five { top: 58%; left: 17%; }
+.table-six { top: 58%; left: 34%; }
+.table-seven { top: 61%; left: 51%; }
+.table-eight { top: 61%; left: 69%; }
+.restaurant-door { position: absolute; top: 7%; left: 14.5%; z-index: 3; width: 8%; height: 17%; cursor: pointer; border: 0; border-radius: 10px; background: transparent; }
+.restaurant-door:hover, .restaurant-door:focus-visible { outline: 4px dashed #ffe3a2; outline-offset: -5px; filter: drop-shadow(0 0 7px rgb(255 213 111 / .8)); }
+.restaurant-door:active { transform: scale(.98); }
+.restaurant-status { position: absolute; top: 2.2%; right: 2.4%; z-index: 4; display: grid; gap: 2px; padding: clamp(6px, .8vw, 12px) clamp(10px, 1.2vw, 17px); border: clamp(2px, .24vw, 4px) solid var(--ink); border-radius: clamp(10px, 1vw, 16px); color: var(--ink); background: rgb(255 243 216 / .95); box-shadow: 0 3px 0 rgb(90 57 45 / .2); text-align: right; font-size: clamp(10px, 1vw, 16px); font-weight: 800; }
+.restaurant-status b { font-size: clamp(13px, 1.35vw, 21px); }
 
 .main-menu-stage { background: #f4bd79; }
 .menu-background { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 420ms ease; }

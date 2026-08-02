@@ -154,12 +154,9 @@ function renderDrinks() {
 }
 
 function render() {
-  stage.classList.toggle('is-open', state.shopOpen);
-  sceneBackground.src = state.shopOpen
-    ? 'assets/restaurant/open-service-room.jpg'
-    : `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
-  sceneBackground.alt = state.shopOpen ? '海边寿司店营业吧台' : '海边寿司厨房';
-  stageName.textContent = state.shopOpen ? '寿司吧台' : '寿司制作台';
+  sceneBackground.src = `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
+  sceneBackground.alt = '海边寿司店后台';
+  stageName.textContent = state.shopOpen ? '后台制作台' : '寿司制作台';
   show(displaySalmon, true);
   show(boardSalmon, state.salmonOnBoard);
   boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
