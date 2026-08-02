@@ -2,13 +2,21 @@ const MAX_SLICES = 12;
 const MAX_RICE = 8;
 const MAX_SUSHI = 8;
 const MAX_DRINKS = 6;
+const MAX_WAITING_CUSTOMERS = 2;
 const SLICE_COLUMNS = 4;
 const SLICE_ROWS = 3;
 const KITCHEN_ASSET_PATH = 'assets/restaurant/kitchen-layers/optimized/';
+const CUSTOMER_ASSET_PATH = 'assets/restaurant/customers/';
 const CUT_LINES = [0.3, 0.5, 0.7];
 const CUT_START_TOLERANCE = 0.18;
 const CUT_SWIPE_DISTANCE = 0.12;
 const CUT_SLICE_ORIGINS = [[0.15], [0.4], [0.6, 0.85]];
+const CUSTOMER_WAIT_MS = 26000;
+const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
+const CUSTOMER_CATALOG = [
+  { name: '夏海', avatar: 'customer-summer.png', price: 18 },
+  { name: '阿渔', avatar: 'customer-fisher.png', price: 22 },
+];
 
 const state = {
   salmonOnBoard: false,
@@ -29,12 +37,17 @@ const state = {
   drinkVersion: 0,
   sashimiPickerOpen: false,
   shopOpen: true,
+  cash: 0,
+  customers: [],
+  customerSerial: 0,
 };
 
 const stage = document.querySelector('#kitchen-stage');
 const message = document.querySelector('#kitchen-message');
 const sceneBackground = document.querySelector('#scene-background');
 const stageName = document.querySelector('#stage-name');
+const customerQueue = document.querySelector('#customer-queue');
+const cashValue = document.querySelector('#cash-value');
 const freezerButton = document.querySelector('#freezer-button');
 const sashimiPicker = document.querySelector('#sashimi-picker');
 const selectSalmon = document.querySelector('#select-salmon');
@@ -47,6 +60,7 @@ const riceRack = document.querySelector('#rice-rack');
 const sushiRack = document.querySelector('#sushi-rack');
 const serveButton = document.querySelector('#serve-button');
 const openShopButton = document.querySelector('#open-shop-button');
+const pauseShopButton = document.querySelector('#pause-shop-button');
 const shopStatus = document.querySelector('#shop-status');
 const shopStatusDetail = document.querySelector('#shop-status-detail');
 const drinkMachine = document.querySelector('#drink-machine');
@@ -54,6 +68,8 @@ const cupStation = document.querySelector('#cup-station');
 const machineCup = document.querySelector('#machine-cup');
 const drinkRack = document.querySelector('#drink-rack');
 let ingredientDrag = null;
+let customerSpawnTimer = null;
+const customerLeaveTimers = new Map();
 
 stage.addEventListener('dragstart', (event) => event.preventDefault());
 
@@ -63,6 +79,92 @@ function show(element, visible) {
 
 function setMessage(text) {
   message.textContent = text;
+}
+
+function clearCustomerTimers() {
+  if (customerSpawnTimer) window.clearTimeout(customerSpawnTimer);
+  customerSpawnTimer = null;
+  customerLeaveTimers.forEach((timer) => window.clearTimeout(timer));
+  customerLeaveTimers.clear();
+}
+
+function renderCustomers() {
+  customerQueue.replaceChildren();
+  state.customers.forEach((customer) => {
+    const card = document.createElement('article');
+    const avatar = document.createElement('img');
+    const order = document.createElement('div');
+    const sushi = document.createElement('img');
+    const count = document.createElement('strong');
+    const name = document.createElement('span');
+    const wait = document.createElement('div');
+    const fill = document.createElement('i');
+
+    card.className = 'customer';
+    avatar.className = 'customer-avatar';
+    avatar.src = `${CUSTOMER_ASSET_PATH}${customer.avatar}`;
+    avatar.alt = `${customer.name}正在等待点的寿司`;
+    avatar.draggable = false;
+    order.className = 'customer-order';
+    sushi.src = `${KITCHEN_ASSET_PATH}salmon-nigiri.png`;
+    sushi.alt = '';
+    sushi.draggable = false;
+    count.textContent = '×1';
+    order.append('三文鱼寿司', sushi, count);
+    name.className = 'customer-name';
+    name.textContent = customer.name;
+    wait.className = 'customer-wait';
+    fill.style.setProperty('--wait-duration', `${CUSTOMER_WAIT_MS}ms`);
+    fill.style.animationDelay = `${-(performance.now() - customer.arrivedAt)}ms`;
+    wait.append(fill);
+    card.append(avatar, order, name, wait);
+    customerQueue.append(card);
+  });
+}
+
+function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
+  if (customerSpawnTimer) window.clearTimeout(customerSpawnTimer);
+  customerSpawnTimer = null;
+  if (!state.shopOpen || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
+  customerSpawnTimer = window.setTimeout(() => {
+    customerSpawnTimer = null;
+    if (!state.shopOpen || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
+    const template = CUSTOMER_CATALOG[state.customerSerial % CUSTOMER_CATALOG.length];
+    const customer = { ...template, id: `${state.customerSerial}-${Date.now()}`, arrivedAt: performance.now() };
+    state.customerSerial += 1;
+    state.customers.push(customer);
+    customerLeaveTimers.set(customer.id, window.setTimeout(() => customerLeaves(customer.id), CUSTOMER_WAIT_MS));
+    setMessage(`${customer.name}来了，想要一份三文鱼寿司。`);
+    render();
+    scheduleCustomer();
+  }, delay);
+}
+
+function customerLeaves(customerId) {
+  const index = state.customers.findIndex((customer) => customer.id === customerId);
+  customerLeaveTimers.delete(customerId);
+  if (index === -1) return;
+  const [customer] = state.customers.splice(index, 1);
+  setMessage(`${customer.name}等太久离开了。`);
+  render();
+  scheduleCustomer(900);
+}
+
+function pauseShop() {
+  if (!state.shopOpen) return;
+  state.shopOpen = false;
+  clearCustomerTimers();
+  state.customers = [];
+  setMessage('已暂停营业，客人不会再进入。现在可以去捕鱼或补货。');
+  render();
+}
+
+function resumeShop() {
+  if (state.shopOpen) return;
+  state.shopOpen = true;
+  setMessage('继续营业，第一位客人马上就到。');
+  render();
+  scheduleCustomer(550);
 }
 
 function makeSushi(sourceElement) {
@@ -159,7 +261,9 @@ function renderDrinks() {
 function render() {
   sceneBackground.src = `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
   sceneBackground.alt = '海边寿司店后台';
-  stageName.textContent = state.shopOpen ? '营业制作台' : '寿司制作台';
+  const firstCustomer = state.customers[0];
+  stageName.textContent = state.shopOpen ? '营业制作台' : '暂停营业';
+  cashValue.textContent = `¥${state.cash}`;
   freezerButton.classList.toggle('is-active', state.sashimiPickerOpen);
   sashimiPicker.classList.remove('is-picked');
   show(sashimiPicker, state.sashimiPickerOpen);
@@ -172,10 +276,14 @@ function render() {
     guide.classList.toggle('is-cut', state.cutLines[index]);
     guide.classList.toggle('is-active', state.activeCut === index);
   });
-  serveButton.disabled = !state.shopOpen || !state.sushiStored || state.incomingSushi > 0;
+  serveButton.disabled = !state.shopOpen || !firstCustomer || !state.sushiStored || state.incomingSushi > 0;
+  serveButton.textContent = firstCustomer ? `给${firstCustomer.name}出餐` : '等待客人';
+  show(pauseShopButton, state.shopOpen);
   show(openShopButton, !state.shopOpen);
-  shopStatus.textContent = state.shopOpen ? '营业中' : '开门前';
-  shopStatusDetail.textContent = state.shopOpen ? '三文鱼握寿司' : '自由备料';
+  shopStatus.textContent = state.shopOpen ? '营业中' : '暂停营业';
+  shopStatusDetail.textContent = state.shopOpen
+    ? firstCustomer ? `${firstCustomer.name}：三文鱼寿司` : '等待第一位客人'
+    : '可捕鱼或补货';
   show(machineCup, state.cupOnMachine);
   machineCup.src = state.drinkPouring
     ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
@@ -185,6 +293,7 @@ function render() {
   renderStockRack(riceRack, state.riceStored - state.incomingRice, 'stored-rice', `${KITCHEN_ASSET_PATH}rice-portion.png`, '一团米饭');
   renderStockRack(sushiRack, state.sushiStored - state.incomingSushi, 'stored-sushi', `${KITCHEN_ASSET_PATH}salmon-nigiri.png`, '三文鱼握寿司');
   renderDrinks();
+  renderCustomers();
 }
 
 function pointIsInside(event, element) {
@@ -558,27 +667,34 @@ drinkMachine.addEventListener('click', () => {
 document.querySelector('#reset-button').addEventListener('click', () => {
   state.flightVersion += 1;
   state.drinkVersion += 1;
+  clearCustomerTimers();
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
   document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, sashimiPickerOpen: false, shopOpen: true });
-  setMessage('营业中：准备寿司后即可出餐。');
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, sashimiPickerOpen: false, shopOpen: true, cash: 0, customers: [], customerSerial: 0 });
+  setMessage('制作台已整理，第一位客人马上就到。');
   render();
+  scheduleCustomer(500);
 });
 
-openShopButton.addEventListener('click', () => {
-  state.shopOpen = true;
-  setMessage('店门已打开，开始接待客人。');
-  render();
-});
+pauseShopButton.addEventListener('click', pauseShop);
+openShopButton.addEventListener('click', resumeShop);
 
 serveButton.addEventListener('click', () => {
+  const customer = state.customers.shift();
+  if (!customer) return;
+  const leaveTimer = customerLeaveTimers.get(customer.id);
+  if (leaveTimer) window.clearTimeout(leaveTimer);
+  customerLeaveTimers.delete(customer.id);
   state.sushiStored -= 1;
-  setMessage(state.sushiStored ? '已出餐一份寿司。' : '已出餐，寿司架空了。');
+  state.cash += customer.price;
+  setMessage(`已把三文鱼寿司交给${customer.name}，获得 ¥${customer.price}。`);
   render();
+  scheduleCustomer(1400);
 });
 
-setMessage('营业中：准备寿司后即可出餐。');
+setMessage('营业中：第一位客人马上就到。');
 render();
+scheduleCustomer(700);
 
 function preloadInteractionAssets() {
   ['salmon-slice.png', 'rice-portion.png', 'salmon-nigiri.png', 'tea-cup-ready.png'].forEach((name) => {
