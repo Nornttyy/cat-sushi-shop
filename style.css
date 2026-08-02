@@ -122,8 +122,12 @@ button { font: inherit; }
 .ingredient-drag-preview.serve { width: 6.2%; }
 .flying-salmon-slice { position: absolute; z-index: 60; pointer-events: none; object-fit: contain; filter: drop-shadow(0 5px 5px rgb(59 39 28 / .2)); transform: translate(-50%, -50%) rotate(-8deg); opacity: 1; transition: left 540ms cubic-bezier(.2, .8, .2, 1), top 540ms cubic-bezier(.2, .8, .2, 1), transform 540ms cubic-bezier(.2, .8, .2, 1); }
 .flying-salmon-slice.is-flying { transform: translate(-50%, -50%) rotate(4deg); }
-.flying-completed-item { position: absolute; z-index: 61; pointer-events: none; object-fit: contain; filter: drop-shadow(0 4px 4px rgb(59 39 28 / .2)); transform: translate(-50%, -50%) rotate(-5deg); transition: left 560ms cubic-bezier(.2, .8, .2, 1), top 560ms cubic-bezier(.2, .8, .2, 1), transform 560ms cubic-bezier(.2, .8, .2, 1); }
-.flying-completed-item.is-flying { transform: translate(-50%, -50%) rotate(3deg); }
+.flying-completed-item { --flight-lift: 22px; --flight-turn: 4deg; position: absolute; z-index: 61; pointer-events: none; object-fit: contain; opacity: .16; filter: drop-shadow(0 4px 4px rgb(59 39 28 / .2)); transform: translate(-50%, -50%) rotate(-7deg) scale(.76); transition: left 780ms cubic-bezier(.16, .84, .22, 1), top 780ms cubic-bezier(.16, .84, .22, 1); will-change: left, top, transform, opacity; }
+.flying-completed-item.rice { --flight-lift: 18px; --flight-turn: 3deg; }
+.flying-completed-item.sushi { --flight-lift: 26px; --flight-turn: 5deg; }
+.flying-completed-item.drink { --flight-lift: 15px; --flight-turn: -3deg; }
+.flying-completed-item.is-flying { animation: completed-item-flight 780ms cubic-bezier(.16, .84, .22, 1) both; }
+@keyframes completed-item-flight { 0% { opacity: .16; transform: translate(-50%, -50%) rotate(-7deg) scale(.76); } 52% { opacity: 1; transform: translate(-50%, calc(-50% - var(--flight-lift))) rotate(var(--flight-turn)) scale(1.1); } 78% { opacity: 1; transform: translate(-50%, calc(-50% + 2px)) rotate(0) scale(.96); } 100% { opacity: 1; transform: translate(-50%, -50%) rotate(0) scale(1); } }
 .sushi-making-animation { position: absolute; z-index: 62; pointer-events: none; transform: translate(-50%, -50%); filter: drop-shadow(0 4px 3px rgb(59 39 28 / .2)); }
 .sushi-making-animation img { position: absolute; object-fit: contain; }
 .sushi-making-rice { bottom: 0; left: 3%; width: 94%; height: 76%; opacity: 0; transform: translateY(18%) scale(.78); }
@@ -145,20 +149,28 @@ button { font: inherit; }
 .stock-rack img { display: block; width: 100%; height: 100%; object-fit: contain; transform: scale(1.12); }
 .stored-rice { filter: drop-shadow(0 1px 0 rgb(90 57 45 / .22)); }
 .stored-sushi { filter: drop-shadow(0 1px 0 rgb(90 57 45 / .28)); }
+.stock-item-arriving { animation: stock-item-arrive 460ms cubic-bezier(.16, .84, .22, 1) both; will-change: transform, opacity; }
+.stock-rack > img.stock-item-arriving { animation-name: stock-item-arrive-rack; }
+@keyframes stock-item-arrive { 0% { opacity: 0; transform: translateY(-14%) scale(.68); } 62% { opacity: 1; transform: translateY(3%) scale(1.1); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes stock-item-arrive-rack { 0% { opacity: 0; transform: translateY(-14%) scale(.76); } 62% { opacity: 1; transform: translateY(3%) scale(1.22); } 100% { opacity: 1; transform: translateY(0) scale(1.12); } }
 .stored-sushi-button { display: block; width: 100%; height: 100%; padding: 0; cursor: grab; border: 0; background: transparent; touch-action: none; }
 .stored-sushi-button:active { cursor: grabbing; }
 .stored-sushi-button.is-dragging { opacity: 0; }
 .stored-sushi-button img { display: block; width: 100%; height: 100%; object-fit: contain; transform: scale(1.12); filter: drop-shadow(0 1px 0 rgb(90 57 45 / .28)); }
 
 .rice-station { left: 65.9%; top: 60%; width: 10.6%; height: 30%; cursor: pointer; }
+.rice-station.is-dispensing img { animation: rice-bin-scoop 420ms cubic-bezier(.16, .84, .22, 1) both; }
 .drink-machine-station { left: 84%; top: 51%; z-index: 3; width: 11.4%; height: 28%; }
 .cup-station { left: 82%; top: 81%; z-index: 2; width: 15%; height: 10%; cursor: grab; touch-action: none; }
 .cup-station:active { cursor: grabbing; }
-.machine-cup { position: absolute; left: 86.5%; top: 69.4%; z-index: 4; width: 3.5%; height: auto; pointer-events: none; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .23)); }
-.machine-cup.is-filling { animation: tea-cup-fill 650ms ease-in both; }
+.machine-cup { position: absolute; left: 86.5%; top: 69.4%; z-index: 4; width: 3.5%; height: auto; pointer-events: none; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .23)); will-change: transform, opacity; }
+.machine-cup.is-filling { animation: tea-cup-fill 720ms cubic-bezier(.18, .82, .24, 1) both; }
+.drink-machine-station.is-pouring img { animation: drink-machine-pour 720ms cubic-bezier(.18, .82, .24, 1) both; }
 .drink-rack { position: absolute; left: 76%; top: 70%; z-index: 6; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); gap: 7%; width: 6.1%; height: 20.4%; }
 .stored-drink { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 0 rgb(59 39 28 / .22)); }
-@keyframes tea-cup-fill { from { transform: translateY(-4%) scale(.94); opacity: .55; } to { transform: translateY(0) scale(1); opacity: 1; } }
+@keyframes tea-cup-fill { 0% { opacity: .28; transform: translateY(-10%) scale(.78); } 48% { opacity: 1; transform: translateY(2%) scale(1.09); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes drink-machine-pour { 0%, 100% { transform: translateY(0) scale(1); } 42% { transform: translateY(-1.5%) scale(1.015); } 68% { transform: translateY(.8%) scale(.995); } }
+@keyframes rice-bin-scoop { 0%, 100% { transform: translateY(0) scale(1); } 44% { transform: translateY(-2%) scale(1.025); } 70% { transform: translateY(1%) scale(.99); } }
 
 .game-bottom-bar { position: absolute; top: 13.5%; right: 2%; z-index: 20; display: flex; align-items: center; gap: clamp(6px, 1vw, 14px); }
 .game-bottom-bar button { min-width: clamp(62px, 9vw, 130px); padding: clamp(7px, .8vw, 12px) clamp(9px, 1.2vw, 18px); cursor: pointer; border: 3px solid var(--ink); border-radius: 13px; color: var(--ink); background: #f6d293; box-shadow: 0 3px 0 #a96d50; font-size: clamp(10px, 1.05vw, 17px); font-weight: 900; }

@@ -14,6 +14,8 @@ const CUT_SLICE_ORIGINS = [[0.15], [0.4], [0.6, 0.85]];
 const CUSTOMER_WAIT_MS = 75000;
 const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
 const CUSTOMER_EXIT_MS = 1100;
+const COMPLETED_FLIGHT_MS = 820;
+const DRINK_FILL_MS = 760;
 const CUSTOMER_CATALOG = [
   { name: '夏海', avatar: 'customer-summer.png', price: 18 },
   { name: '阿渔', avatar: 'customer-fisher.png', price: 22 },
@@ -71,6 +73,7 @@ let ingredientDrag = null;
 let customerSpawnTimer = null;
 const customerLeaveTimers = new Map();
 const customerExitTimers = new Map();
+const stationMotionTimers = new WeakMap();
 
 stage.addEventListener('dragstart', (event) => event.preventDefault());
 
@@ -80,6 +83,18 @@ function show(element, visible) {
 
 function setMessage(text) {
   message.textContent = text;
+}
+
+function playStationMotion(element, className, duration) {
+  const previousTimer = stationMotionTimers.get(element);
+  if (previousTimer) window.clearTimeout(previousTimer);
+  element.classList.remove(className);
+  void element.offsetWidth;
+  element.classList.add(className);
+  stationMotionTimers.set(element, window.setTimeout(() => {
+    element.classList.remove(className);
+    stationMotionTimers.delete(element);
+  }, duration));
 }
 
 function clearCustomerTimers() {
@@ -387,10 +402,16 @@ function renderSlices() {
 }
 
 function renderStockRack(rack, count, className, src, alt, onPointerDown = null) {
-  rack.replaceChildren();
-  for (let index = 0; index < count; index += 1) {
+  const visibleCount = Math.max(0, count);
+  const existingItems = Array.from(rack.children);
+  existingItems.slice(visibleCount).forEach((item) => item.remove());
+
+  for (let index = 0; index < visibleCount; index += 1) {
+    if (existingItems[index]) continue;
     const item = document.createElement(onPointerDown ? 'button' : 'img');
     item.className = onPointerDown ? `${className} stored-sushi-button` : className;
+    item.classList.add('stock-item-arriving');
+    item.addEventListener('animationend', () => item.classList.remove('stock-item-arriving'), { once: true });
     if (onPointerDown) {
       const image = document.createElement('img');
       item.type = 'button';
@@ -410,11 +431,14 @@ function renderStockRack(rack, count, className, src, alt, onPointerDown = null)
 }
 
 function renderDrinks() {
-  drinkRack.replaceChildren();
-  const displayedDrinks = state.drinksStored - state.incomingDrinks;
+  const displayedDrinks = Math.max(0, state.drinksStored - state.incomingDrinks);
+  const existingDrinks = Array.from(drinkRack.children);
+  existingDrinks.slice(displayedDrinks).forEach((drink) => drink.remove());
   for (let index = 0; index < displayedDrinks; index += 1) {
+    if (existingDrinks[index]) continue;
     const drink = document.createElement('img');
-    drink.className = 'stored-drink';
+    drink.className = 'stored-drink stock-item-arriving';
+    drink.addEventListener('animationend', () => drink.classList.remove('stock-item-arriving'), { once: true });
     drink.src = `${KITCHEN_ASSET_PATH}tea-cup-ready.png`;
     drink.alt = '一杯橙味饮料';
     drink.draggable = false;
@@ -451,6 +475,7 @@ function render() {
     ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
     : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
   machineCup.classList.toggle('is-filling', state.drinkPouring);
+  drinkMachine.classList.toggle('is-pouring', state.drinkPouring);
   renderSlices();
   renderStockRack(riceRack, state.riceStored - state.incomingRice, 'stored-rice', `${KITCHEN_ASSET_PATH}rice-portion.png`, '一团米饭');
   renderStockRack(sushiRack, state.sushiStored - state.incomingSushi, 'stored-sushi', `${KITCHEN_ASSET_PATH}salmon-nigiri.png`, '三文鱼握寿司', prepareSushiServeDrag);
@@ -542,6 +567,7 @@ function takeRice() {
     setMessage('米饭架已经存满 8 团。');
     return;
   }
+  playStationMotion(riceBin, 'is-dispensing', 420);
   state.riceStored += 1;
   state.incomingRice += 1;
   const sourceRect = riceBin.getBoundingClientRect();
@@ -761,7 +787,7 @@ function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex,
   window.setTimeout(() => {
     item.remove();
     if (flightVersion === state.flightVersion) onFinish();
-  }, 620);
+  }, COMPLETED_FLIGHT_MS);
 }
 
 function finishCutLine(index) {
@@ -865,7 +891,7 @@ drinkMachine.addEventListener('click', () => {
         render();
       },
     });
-  }, 650);
+  }, DRINK_FILL_MS);
 });
 
 document.querySelector('#reset-button').addEventListener('click', () => {
