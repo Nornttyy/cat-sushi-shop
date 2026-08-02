@@ -61,7 +61,7 @@ function makeSushi(sourceElement) {
     return;
   }
   if (!state.riceStored) {
-    setMessage('先拖一团米饭到米饭架。');
+    setMessage('先点击饭盒拿一团米饭。');
     return;
   }
   if (state.sushiStored >= MAX_SUSHI) {
@@ -196,19 +196,17 @@ function startIngredientDrag(event, type) {
   preview.className = `ingredient-drag-preview ${type}`;
   preview.src = type === 'salmon'
     ? `${KITCHEN_ASSET_PATH}salmon-loin.png`
-    : type === 'rice'
-      ? `${KITCHEN_ASSET_PATH}rice-portion.png`
-      : type === 'slice'
-        ? `${KITCHEN_ASSET_PATH}salmon-slice.png`
+    : type === 'slice'
+      ? `${KITCHEN_ASSET_PATH}salmon-slice.png`
       : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
   preview.alt = '';
   preview.draggable = false;
   stage.append(preview);
   ingredientDrag = { type, source, pointerId: event.pointerId, preview };
   source.setPointerCapture(event.pointerId);
-  (type === 'salmon' ? boardStation : type === 'rice' ? assemblyStation : type === 'cup' ? drinkMachine : riceRack).classList.add('is-drop-target');
+  (type === 'salmon' ? boardStation : type === 'cup' ? drinkMachine : riceRack).classList.add('is-drop-target');
   moveDragPreview(event);
-  setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板。' : type === 'rice' ? '把米饭拖到寿司制作区。' : type === 'cup' ? '把空杯拖到饮品机。' : '把三文鱼片拖到米饭架。');
+  setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板。' : type === 'cup' ? '把空杯拖到饮品机。' : '把三文鱼片拖到米饭架。');
 }
 
 function prepareSalmonDrag(event) {
@@ -223,12 +221,14 @@ function prepareSalmonDrag(event) {
   startIngredientDrag(event, 'salmon');
 }
 
-function prepareRiceDrag(event) {
+function takeRice() {
   if (state.riceStored >= MAX_RICE) {
     setMessage('米饭架已经存满 8 团。');
     return;
   }
-  startIngredientDrag(event, 'rice');
+  state.riceStored += 1;
+  setMessage('米饭已放进米饭架。拖一片三文鱼到米饭架制作寿司。');
+  render();
 }
 
 function prepareCupDrag(event) {
@@ -249,7 +249,7 @@ function prepareSliceDrag(event) {
     return;
   }
   if (!state.riceStored) {
-    setMessage('先拖一团米饭到米饭架。');
+    setMessage('先点击饭盒拿一团米饭。');
     return;
   }
   if (state.sushiStored >= MAX_SUSHI) {
@@ -260,7 +260,7 @@ function prepareSliceDrag(event) {
 }
 
 displaySalmon.addEventListener('pointerdown', prepareSalmonDrag);
-riceBin.addEventListener('pointerdown', prepareRiceDrag);
+riceBin.addEventListener('click', takeRice);
 cupStation.addEventListener('pointerdown', prepareCupDrag);
 
 window.addEventListener('pointermove', (event) => moveDragPreview(event));
@@ -268,13 +268,13 @@ window.addEventListener('pointercancel', () => clearIngredientDrag());
 window.addEventListener('pointerup', (event) => {
   if (!ingredientDrag || event.pointerId !== ingredientDrag.pointerId) return;
   const { type, source } = ingredientDrag;
-  const destination = type === 'salmon' ? boardStation : type === 'rice' ? assemblyStation : type === 'cup' ? drinkMachine : riceRack;
+  const destination = type === 'salmon' ? boardStation : type === 'cup' ? drinkMachine : riceRack;
   const accepted = pointIsInside(event, destination);
   if (source.hasPointerCapture(event.pointerId)) source.releasePointerCapture(event.pointerId);
   clearIngredientDrag();
 
   if (!accepted) {
-    setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板里。' : type === 'rice' ? '把米饭拖到寿司制作区里。' : type === 'cup' ? '把空杯拖到饮品机里。' : '把三文鱼片拖到米饭架里。');
+    setMessage(type === 'salmon' ? '把大三文鱼拖到切菜板里。' : type === 'cup' ? '把空杯拖到饮品机里。' : '把三文鱼片拖到米饭架里。');
     return;
   }
 
@@ -283,9 +283,6 @@ window.addEventListener('pointerup', (event) => {
     state.cutLines = [false, false, false];
     state.activeCut = null;
     setMessage('大三文鱼已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。');
-  } else if (type === 'rice') {
-    state.riceStored += 1;
-    setMessage('米饭已放进米饭架。拖一片三文鱼到米饭架制作寿司。');
   } else if (type === 'cup') {
     state.cupOnMachine = true;
     setMessage('空杯放好了，点击饮品机接饮料。');
