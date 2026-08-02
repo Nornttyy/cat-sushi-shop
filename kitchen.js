@@ -27,6 +27,7 @@ const state = {
   drinksStored: 0,
   incomingDrinks: 0,
   drinkVersion: 0,
+  shopOpen: false,
 };
 
 const stage = document.querySelector('#kitchen-stage');
@@ -40,6 +41,9 @@ const sliceRack = document.querySelector('#slice-rack');
 const riceRack = document.querySelector('#rice-rack');
 const sushiRack = document.querySelector('#sushi-rack');
 const serveButton = document.querySelector('#serve-button');
+const openShopButton = document.querySelector('#open-shop-button');
+const shopStatus = document.querySelector('#shop-status');
+const shopStatusDetail = document.querySelector('#shop-status-detail');
 const drinkMachine = document.querySelector('#drink-machine');
 const cupStation = document.querySelector('#cup-station');
 const machineCup = document.querySelector('#machine-cup');
@@ -158,7 +162,10 @@ function render() {
     guide.classList.toggle('is-cut', state.cutLines[index]);
     guide.classList.toggle('is-active', state.activeCut === index);
   });
-  serveButton.disabled = !state.sushiStored || state.incomingSushi > 0;
+  serveButton.disabled = !state.shopOpen || !state.sushiStored || state.incomingSushi > 0;
+  show(openShopButton, !state.shopOpen);
+  shopStatus.textContent = state.shopOpen ? '营业中' : '开门前';
+  shopStatusDetail.textContent = state.shopOpen ? '三文鱼握寿司' : '自由备料';
   show(machineCup, state.cupOnMachine);
   machineCup.src = state.drinkPouring
     ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
@@ -526,8 +533,14 @@ document.querySelector('#reset-button').addEventListener('click', () => {
   state.drinkVersion += 1;
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
   document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0 });
-  setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, shopOpen: false });
+  setMessage('开门前：先在后台准备食材，完成后点击开门营业。');
+  render();
+});
+
+openShopButton.addEventListener('click', () => {
+  state.shopOpen = true;
+  setMessage('店门已打开，开始接待客人。');
   render();
 });
 
@@ -537,6 +550,7 @@ serveButton.addEventListener('click', () => {
   render();
 });
 
+setMessage('开门前：先在后台准备食材，完成后点击开门营业。');
 render();
 
 function preloadInteractionAssets() {

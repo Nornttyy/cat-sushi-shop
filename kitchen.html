@@ -13,7 +13,7 @@
       <img class="kitchen-background" src="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" alt="海边寿司厨房" fetchpriority="high" decoding="async" />
       <header class="game-header">
         <div><span>第 1 天</span><b>寿司制作台</b></div>
-        <div class="order-card"><span>今日练习</span><b>三文鱼握寿司</b></div>
+        <div class="order-card"><span id="shop-status">开门前</span><b id="shop-status-detail">自由备料</b></div>
       </header>
 
       <section class="work-counter" aria-label="寿司制作操作台">
@@ -56,6 +56,7 @@
       <div class="game-bottom-bar">
         <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击鱼柜第一格的大三文鱼，把它放到切菜板。</span>
         <button id="reset-button" type="button">重做</button>
+        <button id="open-shop-button" type="button">开门营业</button>
         <button id="serve-button" type="button" disabled>出餐</button>
       </div>
     </main>
