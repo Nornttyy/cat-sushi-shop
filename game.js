@@ -77,7 +77,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=loading-and-sushi-v6-20260802';
+    kitchenScript.src = 'kitchen.js?v=customer-counter-v7-20260802';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
