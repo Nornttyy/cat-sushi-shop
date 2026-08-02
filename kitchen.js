@@ -20,9 +20,11 @@ const state = {
   flightVersion: 0,
   riceStored: 0,
   sushiStored: 0,
+  incomingSushi: 0,
   cupOnMachine: false,
   drinkPouring: false,
   drinksStored: 0,
+  incomingDrinks: 0,
   drinkVersion: 0,
 };
 
@@ -53,7 +55,7 @@ function setMessage(text) {
   message.textContent = text;
 }
 
-function makeSushi() {
+function makeSushi(sourceElement) {
   if (state.incomingSlices) {
     setMessage('等鱼片滑到旁边再制作寿司。');
     return;
@@ -69,8 +71,26 @@ function makeSushi() {
   state.slicesReady -= 1;
   state.riceStored -= 1;
   state.sushiStored += 1;
+  state.incomingSushi += 1;
+  const sourceRect = sourceElement?.getBoundingClientRect() ?? assemblyStation.getBoundingClientRect();
+  const targetRect = sushiRack.getBoundingClientRect();
+  const targetIndex = state.sushiStored - 1;
   setMessage('三文鱼握寿司做好了，已放进寿司架。');
   render();
+  flyCompletedItem({
+    className: 'sushi',
+    src: `${KITCHEN_ASSET_PATH}salmon-nigiri.png`,
+    sourceRect,
+    targetRect,
+    targetIndex,
+    columns: 2,
+    rows: 4,
+    gap: 0.04,
+    onFinish: () => {
+      state.incomingSushi = Math.max(0, state.incomingSushi - 1);
+      render();
+    },
+  });
 }
 
 function renderSlices() {
@@ -85,7 +105,7 @@ function renderSlices() {
     sliceImage.src = `${KITCHEN_ASSET_PATH}salmon-slice.png`;
     sliceImage.alt = '';
     sliceImage.draggable = false;
-    slice.addEventListener('click', makeSushi);
+    slice.addEventListener('click', () => makeSushi(slice));
     slice.append(sliceImage);
     sliceRack.append(slice);
   }
@@ -105,7 +125,8 @@ function renderStockRack(rack, count, className, src, alt) {
 
 function renderDrinks() {
   drinkRack.replaceChildren();
-  for (let index = 0; index < state.drinksStored; index += 1) {
+  const displayedDrinks = state.drinksStored - state.incomingDrinks;
+  for (let index = 0; index < displayedDrinks; index += 1) {
     const drink = document.createElement('img');
     drink.className = 'stored-drink';
     drink.src = `${KITCHEN_ASSET_PATH}tea-cup-ready.png`;
@@ -126,7 +147,7 @@ function render() {
     guide.classList.toggle('is-cut', state.cutLines[index]);
     guide.classList.toggle('is-active', state.activeCut === index);
   });
-  serveButton.disabled = !state.sushiStored;
+  serveButton.disabled = !state.sushiStored || state.incomingSushi > 0;
   show(machineCup, state.cupOnMachine);
   machineCup.src = state.drinkPouring
     ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
@@ -134,7 +155,7 @@ function render() {
   machineCup.classList.toggle('is-filling', state.drinkPouring);
   renderSlices();
   renderStockRack(riceRack, state.riceStored, 'stored-rice', `${KITCHEN_ASSET_PATH}rice-portion.png`, '一团米饭');
-  renderStockRack(sushiRack, state.sushiStored, 'stored-sushi', `${KITCHEN_ASSET_PATH}salmon-nigiri.png`, '三文鱼握寿司');
+  renderStockRack(sushiRack, state.sushiStored - state.incomingSushi, 'stored-sushi', `${KITCHEN_ASSET_PATH}salmon-nigiri.png`, '三文鱼握寿司');
   renderDrinks();
 }
 
@@ -303,6 +324,43 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
   }, 650 + (sliceIndex * 75));
 }
 
+function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex, columns, rows, gap, onFinish }) {
+  const flightVersion = state.flightVersion;
+  const stageRect = stage.getBoundingClientRect();
+  const column = targetIndex % columns;
+  const row = Math.floor(targetIndex / columns);
+  const columnGap = targetRect.width * gap;
+  const rowGap = targetRect.height * gap;
+  const targetWidth = (targetRect.width - (columnGap * (columns - 1))) / columns;
+  const targetHeight = (targetRect.height - (rowGap * (rows - 1))) / rows;
+  const fromX = sourceRect.left + (sourceRect.width / 2) - stageRect.left;
+  const fromY = sourceRect.top + (sourceRect.height / 2) - stageRect.top;
+  const toX = targetRect.left + (column * (targetWidth + columnGap)) + (targetWidth / 2) - stageRect.left;
+  const toY = targetRect.top + (row * (targetHeight + rowGap)) + (targetHeight / 2) - stageRect.top;
+  const item = document.createElement('img');
+
+  item.className = `flying-completed-item ${className}`;
+  item.src = src;
+  item.alt = '';
+  item.draggable = false;
+  item.style.left = `${fromX}px`;
+  item.style.top = `${fromY}px`;
+  item.style.width = `${targetWidth}px`;
+  item.style.height = `${targetHeight}px`;
+  stage.append(item);
+
+  requestAnimationFrame(() => {
+    item.style.left = `${toX}px`;
+    item.style.top = `${toY}px`;
+    item.classList.add('is-flying');
+  });
+
+  window.setTimeout(() => {
+    item.remove();
+    if (flightVersion === state.flightVersion) onFinish();
+  }, 620);
+}
+
 function finishCutLine(index) {
   const sourceRect = boardSalmon.getBoundingClientRect();
   const rackRect = sliceRack.getBoundingClientRect();
@@ -381,11 +439,29 @@ drinkMachine.addEventListener('click', () => {
   render();
   window.setTimeout(() => {
     if (version !== state.drinkVersion) return;
+    const sourceRect = machineCup.getBoundingClientRect();
+    const targetRect = drinkRack.getBoundingClientRect();
+    const targetIndex = state.drinksStored;
     state.cupOnMachine = false;
     state.drinkPouring = false;
     state.drinksStored += 1;
+    state.incomingDrinks += 1;
     setMessage('饮料做好了，已放进饮料架。');
     render();
+    flyCompletedItem({
+      className: 'drink',
+      src: `${KITCHEN_ASSET_PATH}tea-cup-ready.png`,
+      sourceRect,
+      targetRect,
+      targetIndex,
+      columns: 2,
+      rows: 2,
+      gap: 0.1,
+      onFinish: () => {
+        state.incomingDrinks = Math.max(0, state.incomingDrinks - 1);
+        render();
+      },
+    });
   }, 650);
 });
 
@@ -393,7 +469,8 @@ document.querySelector('#reset-button').addEventListener('click', () => {
   state.flightVersion += 1;
   state.drinkVersion += 1;
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, sushiStored: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0 });
+  document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0 });
   setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
   render();
 });
