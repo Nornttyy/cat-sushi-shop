@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=customers-v1-20260802" />
+    <link rel="stylesheet" href="style.css?v=service-counter-v2-20260802" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -18,6 +18,12 @@
       </header>
 
       <section id="customer-queue" class="customer-queue" aria-label="正在等待的客人"></section>
+      <section class="service-counter-area" aria-label="寿司出餐柜台">
+        <img class="service-counter" src="assets/restaurant/service/service-counter.png" alt="木制寿司出餐柜台" draggable="false" decoding="async" />
+        <button id="serving-window" class="serving-window" type="button" aria-label="把做好的寿司拖到这里交给客人">
+          <span>出餐台</span>
+        </button>
+      </section>
 
       <section class="work-counter" aria-label="寿司制作操作台">
         <section class="fish-station" aria-label="三格冰柜">
@@ -65,9 +71,8 @@
         <button id="reset-button" type="button">重新备料</button>
         <button id="pause-shop-button" type="button">暂停营业</button>
         <button id="open-shop-button" class="is-hidden" type="button">继续营业</button>
-        <button id="serve-button" type="button" disabled>出餐</button>
       </div>
     </main>
-    <script src="kitchen.js?v=customers-v1-20260802"></script>
+    <script src="kitchen.js?v=service-counter-v2-20260802"></script>
   </body>
 </html>
