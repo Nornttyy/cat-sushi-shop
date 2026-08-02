@@ -11,7 +11,7 @@ const CUT_LINES = [0.3, 0.5, 0.7];
 const CUT_START_TOLERANCE = 0.18;
 const CUT_SWIPE_DISTANCE = 0.12;
 const CUT_SLICE_ORIGINS = [[0.15], [0.4], [0.6, 0.85]];
-const CUSTOMER_WAIT_MS = 26000;
+const CUSTOMER_WAIT_MS = 75000;
 const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
 const CUSTOMER_CATALOG = [
   { name: '夏海', avatar: 'customer-summer.png', price: 18 },
@@ -111,10 +111,8 @@ function createCustomerCard(customer) {
   const card = document.createElement('article');
   const avatar = document.createElement('img');
   const order = document.createElement('div');
-  const name = document.createElement('span');
   const wait = document.createElement('div');
   const fill = document.createElement('i');
-  const patience = document.createElement('span');
   const receivedSushi = document.createElement('img');
 
   card.className = 'customer is-entering';
@@ -122,31 +120,26 @@ function createCustomerCard(customer) {
   avatar.className = 'customer-avatar';
   avatar.draggable = false;
   order.className = 'customer-order';
-  name.className = 'customer-name';
   wait.className = 'customer-wait';
-  patience.className = 'customer-patience';
-  wait.append(fill, patience);
+  wait.append(fill);
   receivedSushi.className = 'customer-received-sushi is-hidden';
   receivedSushi.src = `${KITCHEN_ASSET_PATH}salmon-nigiri.png`;
   receivedSushi.alt = '顾客拿到的三文鱼寿司';
   receivedSushi.draggable = false;
-  card.append(avatar, order, name, wait, receivedSushi);
+  card.append(avatar, order, wait, receivedSushi);
   return card;
 }
 
 function updateCustomerCard(card, customer) {
   const avatar = card.querySelector('.customer-avatar');
   const order = card.querySelector('.customer-order');
-  const name = card.querySelector('.customer-name');
   const wait = card.querySelector('.customer-wait');
   const fill = wait.querySelector('i');
-  const patience = wait.querySelector('.customer-patience');
   const receivedSushi = card.querySelector('.customer-received-sushi');
 
   const avatarSrc = `${CUSTOMER_ASSET_PATH}${customer.avatar}`;
   if (avatar.getAttribute('src') !== avatarSrc) avatar.src = avatarSrc;
-  avatar.alt = `${customer.name}正在等待点的寿司`;
-  name.textContent = customer.name;
+  avatar.alt = '正在等待点寿司的顾客';
   card.classList.toggle('is-serving', Boolean(customer.served));
   card.classList.toggle('is-leaving', Boolean(customer.leaving));
   receivedSushi.classList.toggle('is-hidden', !customer.served);
@@ -158,19 +151,16 @@ function updateCustomerCard(card, customer) {
     order.append('下次见');
   } else {
     const sushi = document.createElement('img');
-    const count = document.createElement('strong');
     sushi.src = `${KITCHEN_ASSET_PATH}salmon-nigiri.png`;
     sushi.alt = '';
     sushi.draggable = false;
-    count.textContent = '×1';
-    order.append('三文鱼寿司', sushi, count);
+    order.append('三文鱼寿司', sushi);
   }
 
   const patienceValue = getPatience(customer);
   const isWaiting = !customer.served && !customer.leaving;
   wait.classList.toggle('is-hidden', !isWaiting);
   fill.style.transform = `scaleX(${patienceValue / 100})`;
-  patience.textContent = `耐心 ${Math.ceil(patienceValue)}`;
 }
 
 function renderCustomers() {
@@ -192,10 +182,8 @@ function refreshCustomerPatience() {
     if (!card) return;
     const wait = card.querySelector('.customer-wait');
     const fill = wait.querySelector('i');
-    const patience = wait.querySelector('.customer-patience');
     const patienceValue = getPatience(customer);
     fill.style.transform = `scaleX(${patienceValue / 100})`;
-    patience.textContent = `耐心 ${Math.ceil(patienceValue)}`;
   });
 }
 
