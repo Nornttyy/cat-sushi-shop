@@ -185,6 +185,7 @@ function moveDragPreview(event) {
 
 function clearIngredientDrag() {
   if (!ingredientDrag) return;
+  ingredientDrag.source.classList.remove('is-dragging');
   ingredientDrag.preview.remove();
   boardStation.classList.remove('is-drop-target');
   assemblyStation.classList.remove('is-drop-target');
@@ -209,6 +210,7 @@ function startIngredientDrag(event, type) {
   preview.draggable = false;
   stage.append(preview);
   ingredientDrag = { type, source, pointerId: event.pointerId, preview };
+  if (type === 'slice') source.classList.add('is-dragging');
   source.setPointerCapture(event.pointerId);
   (type === 'salmon' ? boardStation : type === 'cup' ? drinkMachine : riceRack).classList.add('is-drop-target');
   moveDragPreview(event);
