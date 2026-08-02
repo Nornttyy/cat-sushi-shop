@@ -19,6 +19,7 @@ const state = {
   incomingSlices: 0,
   flightVersion: 0,
   riceStored: 0,
+  incomingRice: 0,
   sushiStored: 0,
   incomingSushi: 0,
   cupOnMachine: false,
@@ -58,6 +59,10 @@ function setMessage(text) {
 function makeSushi(sourceElement) {
   if (state.incomingSlices) {
     setMessage('等鱼片滑到旁边再制作寿司。');
+    return;
+  }
+  if (state.incomingRice) {
+    setMessage('等米饭滑进米饭架再制作寿司。');
     return;
   }
   if (!state.riceStored) {
@@ -159,7 +164,7 @@ function render() {
     : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
   machineCup.classList.toggle('is-filling', state.drinkPouring);
   renderSlices();
-  renderStockRack(riceRack, state.riceStored, 'stored-rice', `${KITCHEN_ASSET_PATH}rice-portion.png`, '一团米饭');
+  renderStockRack(riceRack, state.riceStored - state.incomingRice, 'stored-rice', `${KITCHEN_ASSET_PATH}rice-portion.png`, '一团米饭');
   renderStockRack(sushiRack, state.sushiStored - state.incomingSushi, 'stored-sushi', `${KITCHEN_ASSET_PATH}salmon-nigiri.png`, '三文鱼握寿司');
   renderDrinks();
 }
@@ -227,8 +232,27 @@ function takeRice() {
     return;
   }
   state.riceStored += 1;
-  setMessage('米饭已放进米饭架。拖一片三文鱼到米饭架制作寿司。');
+  state.incomingRice += 1;
+  const sourceRect = riceBin.getBoundingClientRect();
+  const targetRect = riceRack.getBoundingClientRect();
+  const targetIndex = state.riceStored - 1;
+  setMessage('米饭正在滑进米饭架。');
   render();
+  flyCompletedItem({
+    className: 'rice',
+    src: `${KITCHEN_ASSET_PATH}rice-portion.png`,
+    sourceRect,
+    targetRect,
+    targetIndex,
+    columns: 2,
+    rows: 4,
+    gap: 0.04,
+    onFinish: () => {
+      state.incomingRice = Math.max(0, state.incomingRice - 1);
+      setMessage('米饭已放进米饭架。拖一片三文鱼到米饭架制作寿司。');
+      render();
+    },
+  });
 }
 
 function prepareCupDrag(event) {
@@ -246,6 +270,10 @@ function prepareCupDrag(event) {
 function prepareSliceDrag(event) {
   if (state.incomingSlices) {
     setMessage('等鱼片滑到架子里再制作寿司。');
+    return;
+  }
+  if (state.incomingRice) {
+    setMessage('等米饭滑进米饭架再制作寿司。');
     return;
   }
   if (!state.riceStored) {
@@ -494,7 +522,7 @@ document.querySelector('#reset-button').addEventListener('click', () => {
   state.drinkVersion += 1;
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
   document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0 });
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0 });
   setMessage('重新开始：点击鱼柜第一格的大三文鱼。');
   render();
 });
