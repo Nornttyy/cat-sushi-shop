@@ -13,6 +13,7 @@ const CUT_SWIPE_DISTANCE = 0.12;
 const CUT_SLICE_ORIGINS = [[0.15], [0.4], [0.6, 0.85]];
 const CUSTOMER_WAIT_MS = 75000;
 const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
+const CUSTOMER_EXIT_MS = 1100;
 const CUSTOMER_CATALOG = [
   { name: '夏海', avatar: 'customer-summer.png', price: 18 },
   { name: '阿渔', avatar: 'customer-fisher.png', price: 22 },
@@ -127,6 +128,9 @@ function createCustomerCard(customer) {
   receivedSushi.alt = '顾客拿到的三文鱼寿司';
   receivedSushi.draggable = false;
   card.append(avatar, order, wait, receivedSushi);
+  card.addEventListener('animationend', (event) => {
+    if (event.animationName === 'customer-enter') card.classList.remove('is-entering');
+  });
   return card;
 }
 
@@ -163,7 +167,31 @@ function updateCustomerCard(card, customer) {
   fill.style.transform = `scaleX(${patienceValue / 100})`;
 }
 
+function animateCustomerReflow(beforeRects) {
+  window.requestAnimationFrame(() => {
+    state.customers.forEach((customer) => {
+      const card = customerCardFor(customer.id);
+      const previousRect = beforeRects.get(customer.id);
+      if (!card || !previousRect || card.classList.contains('is-entering') || card.classList.contains('is-leaving')) return;
+
+      const nextRect = card.getBoundingClientRect();
+      const offsetX = previousRect.left - nextRect.left;
+      const offsetY = previousRect.top - nextRect.top;
+      if (Math.abs(offsetX) < 1 && Math.abs(offsetY) < 1) return;
+
+      card.animate([
+        { transform: `translate3d(${offsetX}px, ${offsetY}px, 0)` },
+        { transform: 'translate3d(0, 0, 0)' },
+      ], {
+        duration: 620,
+        easing: 'cubic-bezier(.22, .8, .24, 1)',
+      });
+    });
+  });
+}
+
 function renderCustomers() {
+  const beforeRects = new Map(Array.from(customerQueue.children).map((card) => [card.dataset.customerId, card.getBoundingClientRect()]));
   const desiredIds = new Set(state.customers.map((customer) => customer.id));
   Array.from(customerQueue.children).forEach((card) => {
     if (!desiredIds.has(card.dataset.customerId)) card.remove();
@@ -173,6 +201,7 @@ function renderCustomers() {
     updateCustomerCard(card, customer);
     if (customerQueue.children[index] !== card) customerQueue.append(card);
   });
+  animateCustomerReflow(beforeRects);
 }
 
 function refreshCustomerPatience() {
@@ -198,7 +227,7 @@ function fadeOutCustomer(customer, { holdMs = 0, scheduleNext = true } = {}) {
       if (index !== -1) state.customers.splice(index, 1);
       render();
       if (scheduleNext) scheduleCustomer(950);
-    }, 850));
+    }, CUSTOMER_EXIT_MS));
   };
   customerExitTimers.set(customer.id, window.setTimeout(startFade, holdMs));
 }
