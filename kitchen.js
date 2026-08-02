@@ -27,7 +27,7 @@ const state = {
   drinksStored: 0,
   incomingDrinks: 0,
   drinkVersion: 0,
-  shopOpen: false,
+  shopOpen: true,
 };
 
 const stage = document.querySelector('#kitchen-stage');
@@ -156,7 +156,7 @@ function renderDrinks() {
 function render() {
   sceneBackground.src = `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
   sceneBackground.alt = '海边寿司店后台';
-  stageName.textContent = state.shopOpen ? '后台制作台' : '寿司制作台';
+  stageName.textContent = state.shopOpen ? '营业制作台' : '寿司制作台';
   show(displaySalmon, true);
   show(boardSalmon, state.salmonOnBoard);
   boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
@@ -538,8 +538,8 @@ document.querySelector('#reset-button').addEventListener('click', () => {
   state.drinkVersion += 1;
   document.querySelectorAll('.flying-salmon-slice').forEach((slice) => slice.remove());
   document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
-  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, shopOpen: false });
-  setMessage('开门前：先在后台准备食材，完成后点击开门营业。');
+  Object.assign(state, { salmonOnBoard: false, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, shopOpen: true });
+  setMessage('营业中：准备寿司后即可出餐。');
   render();
 });
 
@@ -555,7 +555,7 @@ serveButton.addEventListener('click', () => {
   render();
 });
 
-setMessage('开门前：先在后台准备食材，完成后点击开门营业。');
+setMessage('营业中：准备寿司后即可出餐。');
 render();
 
 function preloadInteractionAssets() {
