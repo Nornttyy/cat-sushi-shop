@@ -677,7 +677,7 @@ function appendCustomerOrderItem(order, item) {
   const icon = document.createElement('img');
 
   itemWrap.className = 'customer-order-item';
-  itemWrap.style.cssText = 'position:relative;display:inline-grid;place-items:center;width:1.32em;height:1.32em;flex:0 0 auto;';
+  itemWrap.style.cssText = 'position:relative;display:inline-grid;place-items:center;width:1.72em;height:1.72em;flex:0 0 auto;';
   itemWrap.title = `${orderItemName(item)}${item.fulfilled ? '（已交付）' : ''}`;
   icon.src = orderItemAsset(item);
   icon.alt = item.fulfilled ? `${orderItemName(item)}，已交付` : orderItemName(item);
@@ -717,8 +717,8 @@ function updateCustomerCard(card, customer) {
   order.style.flexWrap = 'wrap';
   order.style.alignItems = 'center';
   order.style.justifyContent = 'flex-start';
-  order.style.gap = '3px';
-  order.style.maxWidth = '9em';
+  order.style.gap = '4px';
+  order.style.maxWidth = '11em';
   order.setAttribute('aria-label', `订单：${orderSummary(orderItems)}`);
 
   if (customer.served) {

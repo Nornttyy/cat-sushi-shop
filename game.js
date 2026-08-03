@@ -137,7 +137,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=kitchen-storage-v24-20260803';
+    kitchenScript.src = 'kitchen.js?v=shop-grid-v25-20260803';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
