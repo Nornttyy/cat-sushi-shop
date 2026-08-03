@@ -541,7 +541,7 @@ function stopAnimationLoop() {
 function castHook() {
   if (state.ended || state.phase !== 'aiming') return;
   if (!catchableFish().length || !state.targets.length) {
-    setInstruction('还没有可抓的鱼。先回店里积累口碑、购买一种鱼的钓点，再回来捕鱼。', '玉子烧够用，但鱼要先拿到食材执照。');
+    setInstruction('还没有可抓的鱼。先回店里购买一种鱼的钓点，再回来捕鱼。', '玉子烧够用，但鱼要先开放钓点。');
     renderControls();
     return;
   }
@@ -592,7 +592,7 @@ function initializeFishing() {
   } else if (state.unlockedFish.length) {
     setInstruction('鱼篓已经满了，先回店里把食材用掉吧。', '鱼篓装不下啦，先做点寿司。');
   } else {
-    setInstruction('先回店里积累口碑、购买一种鱼的钓点，再来这里抓鱼。', '玉子烧够用，但鱼要先拿到食材执照。');
+    setInstruction('先回店里购买一种鱼的钓点，再来这里抓鱼。', '玉子烧够用，但鱼要先买钓点。');
   }
   render();
   renderHook();

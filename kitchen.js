@@ -25,22 +25,11 @@ const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
 const SETTINGS_KEY = 'seaside-sushi-shop.settings.v1';
 const INITIAL_UNLOCKED_INGREDIENTS = ['tamago'];
-const MAX_REPUTATION = 9_999;
-const FAME_TIP_THRESHOLD = 120;
-const FAME_TIP_PATIENCE = 65;
-const REPUTATION_TIERS = [
-  { reputation: 0, name: '海边小摊' },
-  { reputation: 8, name: '海风茶摊' },
-  { reputation: 25, name: '鱼市熟客' },
-  { reputation: 50, name: '码头推荐' },
-  { reputation: 82, name: '招牌预备' },
-  { reputation: FAME_TIP_THRESHOLD, name: '海边名店' },
-];
 const SHOP_ITEMS = [
-  { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready.png', price: 120, reputationRequired: 8 },
-  { id: 'salmon', price: 180, reputationRequired: 25 },
-  { id: 'shrimp', price: 260, reputationRequired: 50 },
-  { id: 'tuna', price: 350, reputationRequired: 82 },
+  { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready.png', price: 120 },
+  { id: 'salmon', price: 180 },
+  { id: 'shrimp', price: 260 },
+  { id: 'tuna', price: 350 },
 ];
 const SUSHI_TYPES = {
   salmon: {
@@ -222,36 +211,6 @@ function isShopItemUnlocked(shopItem) {
   return shopItem.id === 'tea' ? isTeaUnlocked() : isIngredientUnlocked(shopItem.id);
 }
 
-function reputationTierFor(value) {
-  return REPUTATION_TIERS.reduce((currentTier, tier) => value >= tier.reputation ? tier : currentTier, REPUTATION_TIERS[0]);
-}
-
-function nextReputationTierFor(value) {
-  return REPUTATION_TIERS.find((tier) => tier.reputation > value) ?? null;
-}
-
-function reputationRequiredFor(shopItem) {
-  return shopItem.reputationRequired ?? 0;
-}
-
-function hasShopItemLicense(shopItem) {
-  return state.reputation >= reputationRequiredFor(shopItem);
-}
-
-function reputationGainForPatience(patience) {
-  if (patience >= 65) return 3;
-  if (patience >= 35) return 2;
-  return 1;
-}
-
-function legacyReputationFor(unlockedIngredients, teaUnlocked) {
-  const unlocked = new Set(unlockedIngredients);
-  return SHOP_ITEMS.reduce((highestRequired, shopItem) => {
-    const owned = shopItem.id === 'tea' ? teaUnlocked : unlocked.has(shopItem.id);
-    return owned ? Math.max(highestRequired, reputationRequiredFor(shopItem)) : highestRequired;
-  }, 0);
-}
-
 function shopItemName(shopItem) {
   return shopItem.name ?? sushiName(shopItem.id);
 }
@@ -287,7 +246,6 @@ const state = {
   shopPanelOpen: false,
   unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS],
   rawFish: { salmon: 0, tuna: 0, shrimp: 0 },
-  reputation: 0,
   teaUnlocked: false,
   shopOpen: true,
   gamePaused: false,
@@ -417,7 +375,6 @@ function buildSaveSnapshot() {
   return {
     version: SAVE_VERSION,
     cash: asStoredCount(state.cash, 9_999_999),
-    reputation: asStoredCount(state.reputation, MAX_REPUTATION),
     unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isKnownSushiId))],
     teaUnlocked: Boolean(state.teaUnlocked),
     shopOpen: Boolean(state.shopOpen),
@@ -472,9 +429,6 @@ function restoreGame() {
     const sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, MAX_SLICES);
     const sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, MAX_SUSHI);
     const teaUnlocked = Boolean(saved.teaUnlocked);
-    const reputation = Object.prototype.hasOwnProperty.call(saved, 'reputation')
-      ? asStoredCount(saved.reputation, MAX_REPUTATION)
-      : legacyReputationFor(unlockedIngredients, teaUnlocked);
     const shopOpen = typeof saved.shopOpen === 'boolean' ? saved.shopOpen : true;
 
     Object.assign(state, {
@@ -508,7 +462,6 @@ function restoreGame() {
       shopPanelOpen: false,
       unlockedIngredients,
       rawFish,
-      reputation,
       teaUnlocked,
       shopOpen,
       gamePaused: false,
@@ -529,9 +482,6 @@ const sceneBackground = document.querySelector('#scene-background');
 const stageName = document.querySelector('#stage-name');
 const customerQueue = document.querySelector('#customer-queue');
 const cashValue = document.querySelector('#cash-value');
-const reputationName = document.querySelector('#reputation-name');
-const reputationValue = document.querySelector('#reputation-value');
-const reputationMeter = document.querySelector('#reputation-meter');
 const freezerButton = document.querySelector('#freezer-button');
 const sashimiPicker = document.querySelector('#sashimi-picker');
 const sashimiChoices = Array.from(document.querySelectorAll('.sashimi-choice'));
@@ -1154,8 +1104,6 @@ function renderIngredientShop() {
     const itemName = shopItemName(shopItem);
     const unlocked = isShopItemUnlocked(shopItem);
     const isFish = needsFishing(shopItem.id);
-    const reputationRequired = reputationRequiredFor(shopItem);
-    const hasLicense = hasShopItemLicense(shopItem);
     const canAfford = state.cash >= shopItem.price;
     const item = document.createElement('article');
     const image = document.createElement('img');
@@ -1164,30 +1112,26 @@ function renderIngredientShop() {
     const price = document.createElement('span');
     const button = document.createElement('button');
 
-    item.className = `ingredient-shop-item${unlocked ? ' is-owned' : ''}${!unlocked && !hasLicense ? ' is-locked' : ''}`;
+    item.className = `ingredient-shop-item${unlocked ? ' is-owned' : ''}`;
     image.src = shopPreviewAsset(shopItem.id);
     image.alt = itemName;
     image.draggable = false;
     name.textContent = itemName;
     price.textContent = unlocked
       ? isFish ? '已解锁 · 去钓鱼' : '已购买'
-      : !hasLicense ? `口碑 ${state.reputation}/${reputationRequired}` : `¥${shopItem.price}`;
+      : `¥${shopItem.price}`;
     detail.append(name, price);
 
     button.type = 'button';
-    button.disabled = unlocked || !hasLicense || !canAfford;
+    button.disabled = unlocked || !canAfford;
     button.textContent = unlocked
       ? isFish ? '钓点已开放' : '已购买'
-      : !hasLicense
-        ? `需要口碑 ${reputationRequired}`
-        : canAfford
-          ? `购买 ¥${shopItem.price}`
-          : `余额不足 ¥${shopItem.price}`;
+      : canAfford
+        ? `购买 ¥${shopItem.price}`
+        : `余额不足 ¥${shopItem.price}`;
     button.title = unlocked
       ? isFish ? '已解锁：暂停营业后可以去钓鱼获得' : '这个项目已经解锁'
-      : !hasLicense
-        ? `海风口碑达到 ${reputationRequired} 后才能购买${itemName}`
-        : canAfford ? `购买${itemName}` : `余额不足，还差 ¥${shopItem.price - state.cash}`;
+      : canAfford ? `购买${itemName}` : `余额不足，还差 ¥${shopItem.price - state.cash}`;
     button.addEventListener('click', () => buyIngredient(shopItem.id));
     item.append(image, detail, button);
     ingredientShopItems.append(item);
@@ -1205,13 +1149,8 @@ function buyIngredient(ingredientId) {
   const shopItem = shopItemFor(ingredientId);
   if (!shopItem || isShopItemUnlocked(shopItem)) return;
   const itemName = shopItemName(shopItem);
-  if (!hasShopItemLicense(shopItem)) {
-    setMessage(`海风口碑达到 ${reputationRequiredFor(shopItem)} 后，才能购买${itemName}。`);
-    render();
-    return;
-  }
   if (state.cash < shopItem.price) {
-    setMessage(`营业额不足，还差 ¥${shopItem.price - state.cash} 才能购买${itemName}。`);
+    setMessage(`余额不足，还差 ¥${shopItem.price - state.cash} 才能购买${itemName}。`);
     render();
     return;
   }
@@ -1228,19 +1167,6 @@ function buyIngredient(ingredientId) {
   // refresh or an interrupted scene change.
   if (!saveGame()) scheduleSave();
   render();
-}
-
-function renderReputationCard() {
-  const tier = reputationTierFor(state.reputation);
-  const nextTier = nextReputationTierFor(state.reputation);
-  reputationName.textContent = `海风口碑 · ${tier.name}`;
-  reputationValue.textContent = nextTier
-    ? `${state.reputation} / ${nextTier.reputation}`
-    : `${state.reputation} · 名店小费`;
-  const progress = nextTier
-    ? (state.reputation - tier.reputation) / (nextTier.reputation - tier.reputation)
-    : 1;
-  reputationMeter.style.transform = `scaleX(${Math.max(0, Math.min(1, progress))})`;
 }
 
 function renderShrimpBatch() {
@@ -1313,7 +1239,6 @@ function render() {
   const boardSushiType = sushiTypeFor(state.boardIngredientId);
   stageName.textContent = state.shopOpen ? '营业制作台' : '暂停营业';
   cashValue.textContent = `¥${state.cash}`;
-  renderReputationCard();
   freezerButton.classList.toggle('is-active', state.sashimiPickerOpen);
   sashimiPicker.classList.remove('is-picked');
   show(sashimiPicker, state.sashimiPickerOpen);
@@ -1624,19 +1549,9 @@ function completeCustomerOrderItem(customer, item) {
   const leaveTimer = customerLeaveTimers.get(customer.id);
   if (leaveTimer) clearGameplayTimeout(leaveTimer);
   customerLeaveTimers.delete(customer.id);
-  const patience = getPatience(customer);
-  const reputationGain = reputationGainForPatience(patience);
-  const previousTier = reputationTierFor(state.reputation);
-  state.reputation = Math.min(MAX_REPUTATION, state.reputation + reputationGain);
-  const currentTier = reputationTierFor(state.reputation);
-  const fameTip = state.reputation >= FAME_TIP_THRESHOLD && patience >= FAME_TIP_PATIENCE
-    ? Math.max(1, Math.round(customer.price * 0.15))
-    : 0;
   customer.served = true;
-  state.cash += customer.price + fameTip;
-  setMessage(previousTier !== currentTier
-    ? `${customer.name}的整单完成，口碑 +${reputationGain}，店铺升级为${currentTier.name}！`
-    : `${customer.name}的整单完成，获得 ¥${customer.price}${fameTip ? ` + ¥${fameTip} 名店小费` : ''}，口碑 +${reputationGain}。`);
+  state.cash += customer.price;
+  setMessage(`${customer.name}的整单完成，获得 ¥${customer.price}。`);
   render();
   scheduleSave();
   fadeOutCustomer(customer, { holdMs: 420 });
