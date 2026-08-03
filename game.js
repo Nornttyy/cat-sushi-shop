@@ -45,6 +45,8 @@ const fishingAssetSources = [
   'assets/fishing-v2/basket.png',
   'assets/fishing-v2/bobber.png',
   'assets/fishing-v2/salmon.png',
+  'assets/fishing-v2/tuna-whole.png',
+  'assets/restaurant/kitchen-layers/optimized/shrimp-whole.png',
 ];
 
 function preloadImage(source) {
@@ -135,7 +137,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=smooth-items-v19-20260803';
+    kitchenScript.src = 'kitchen.js?v=smooth-items-v20-20260803';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -154,6 +156,7 @@ async function enterFishing() {
   try {
     const [fishingMarkup] = await Promise.all([
       fishingMarkupReady,
+      fishingAssetsReady,
       waitForMenuTransition(),
       loadStylesheet('fishing-scene-style', 'fishing.css?v=fishing-tuna-v3-20260803'),
     ]);
@@ -165,7 +168,7 @@ async function enterFishing() {
     document.title = '海边寿司店 · 钓鱼';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'fishing.js?v=fishing-tuna-v2-20260803';
+    fishingScript.src = 'fishing.js?v=fishing-spawn-v3-20260803';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {

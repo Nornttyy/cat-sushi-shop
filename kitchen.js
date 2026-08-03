@@ -1160,7 +1160,10 @@ function buyIngredient(ingredientId) {
     state.unlockedIngredients = [...state.unlockedIngredients, ingredientId];
     setMessage(`${sushiName(ingredientId)}钓点已开放。它不会直接加入冰柜，暂停营业后去钓鱼获得。`);
   }
-  scheduleSave();
+  // Save the unlock immediately. `goFishing()` also saves before navigation,
+  // but this prevents a just-bought fishing spot from disappearing on a fast
+  // refresh or an interrupted scene change.
+  if (!saveGame()) scheduleSave();
   render();
 }
 

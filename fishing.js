@@ -50,7 +50,6 @@ const $ = (selector) => document.querySelector(selector);
 
 const fishingScene = $('#fishing-scene');
 const rodTip = $('#rod-tip');
-const fishingAngler = $('.fishing-angler');
 const hookRig = $('#hook-rig');
 const hookArm = $('#hook-arm');
 const fishingLine = $('#fishing-line');
@@ -356,7 +355,10 @@ function clearTargets() {
 
 function prepareInitialTargets() {
   if (state.targetsPrepared || state.ended) return;
-  if (!fishingAngler.complete || !fishingAngler.naturalWidth || !syncHookAnchor()) {
+  // The rod-tip marker has a stable layout before the fisherman image has
+  // finished decoding. Do not leave a purchased fishing spot empty just
+  // because one decorative image is slow or fails to load.
+  if (!syncHookAnchor()) {
     window.requestAnimationFrame(prepareInitialTargets);
     return;
   }
