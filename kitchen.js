@@ -21,6 +21,7 @@ const SHRIMP_BATCH_SIZE = 4;
 const SHRIMP_HEAD_CUT_X = 0.5;
 const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
+const SETTINGS_KEY = 'seaside-sushi-shop.settings.v1';
 const INITIAL_UNLOCKED_INGREDIENTS = ['tamago'];
 const SHOP_ITEMS = [
   { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready.png', price: 120 },
@@ -192,6 +193,7 @@ const state = {
   teaUnlocked: false,
   shopOpen: true,
   gamePaused: false,
+  pauseSettingsOpen: false,
   cash: 0,
   customers: [],
   customerSerial: 0,
@@ -199,6 +201,7 @@ const state = {
 
 let lastSavedSnapshot = '';
 let saveTimer = null;
+let gameSettings = { reducedMotion: false };
 let accumulatedPausedTime = 0;
 let pauseStartedAt = 0;
 const gameplayTimeouts = new Set();
@@ -252,6 +255,23 @@ function pauseGameplayTimeouts() {
 
 function resumeGameplayTimeouts() {
   [...gameplayTimeouts].forEach((timer) => armGameplayTimeout(timer));
+}
+
+function restoreGameSettings() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(SETTINGS_KEY));
+    if (saved && typeof saved === 'object') gameSettings.reducedMotion = Boolean(saved.reducedMotion);
+  } catch {
+    gameSettings = { reducedMotion: false };
+  }
+}
+
+function saveGameSettings() {
+  try {
+    window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(gameSettings));
+  } catch {
+    // Settings are optional; private browsing can refuse storage without affecting play.
+  }
 }
 
 function asStoredCount(value, max) {
@@ -375,6 +395,7 @@ function restoreGame() {
       teaUnlocked,
       shopOpen: true,
       gamePaused: false,
+      pauseSettingsOpen: false,
       cash: asStoredCount(saved.cash, 9_999_999),
       customers: [],
       customerSerial: 0,
@@ -410,7 +431,13 @@ const riceRack = document.querySelector('#rice-rack');
 const sushiRack = document.querySelector('#sushi-rack');
 const gamePauseButton = document.querySelector('#game-pause-button');
 const gamePauseOverlay = document.querySelector('#game-pause-overlay');
+const gamePauseMenu = document.querySelector('#game-pause-menu');
+const gameSettingsPanel = document.querySelector('#game-settings-panel');
 const resumeGameButton = document.querySelector('#resume-game-button');
+const openGameSettingsButton = document.querySelector('#open-game-settings-button');
+const closeGameSettingsButton = document.querySelector('#close-game-settings-button');
+const motionSettingButton = document.querySelector('#motion-setting-button');
+const exitGameButton = document.querySelector('#exit-game-button');
 const openShopButton = document.querySelector('#open-shop-button');
 const pauseShopButton = document.querySelector('#pause-shop-button');
 const shopStatus = document.querySelector('#shop-status');
@@ -684,6 +711,7 @@ function pauseGame() {
   clearIngredientDrag();
   state.activeCut = null;
   state.activeShrimpCut = null;
+  state.pauseSettingsOpen = false;
   pauseStartedAt = performance.now();
   state.gamePaused = true;
   pauseGameplayTimeouts();
@@ -697,6 +725,7 @@ function resumeGame() {
   accumulatedPausedTime += performance.now() - pauseStartedAt;
   pauseStartedAt = 0;
   state.gamePaused = false;
+  state.pauseSettingsOpen = false;
   resumeGameplayTimeouts();
   setMessage('继续游戏。');
   render();
@@ -706,6 +735,32 @@ function resumeGame() {
 function toggleGamePause() {
   if (state.gamePaused) resumeGame();
   else pauseGame();
+}
+
+function openGameSettings() {
+  if (!state.gamePaused) return;
+  state.pauseSettingsOpen = true;
+  render();
+  window.requestAnimationFrame(() => motionSettingButton.focus());
+}
+
+function closeGameSettings() {
+  if (!state.gamePaused) return;
+  state.pauseSettingsOpen = false;
+  render();
+  window.requestAnimationFrame(() => openGameSettingsButton.focus());
+}
+
+function toggleReducedMotion() {
+  gameSettings.reducedMotion = !gameSettings.reducedMotion;
+  saveGameSettings();
+  render();
+}
+
+function exitGame() {
+  if (!state.gamePaused) return;
+  saveGame();
+  window.location.assign('index.html');
 }
 
 function blockPausedGameInput(event) {
@@ -1063,9 +1118,14 @@ function renderShrimpHeads() {
 
 function render() {
   stage.classList.toggle('is-game-paused', state.gamePaused);
+  stage.classList.toggle('is-reduced-motion', gameSettings.reducedMotion);
   show(gamePauseOverlay, state.gamePaused);
+  show(gamePauseMenu, !state.pauseSettingsOpen);
+  show(gameSettingsPanel, state.pauseSettingsOpen);
   gamePauseButton.textContent = state.gamePaused ? '继续游戏' : '暂停';
   gamePauseButton.setAttribute('aria-pressed', String(state.gamePaused));
+  motionSettingButton.textContent = gameSettings.reducedMotion ? '已关闭' : '已开启';
+  motionSettingButton.setAttribute('aria-pressed', String(!gameSettings.reducedMotion));
   sceneBackground.src = `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
   sceneBackground.alt = '海边寿司店后台';
   const firstCustomer = getActiveCustomer();
@@ -1805,9 +1865,14 @@ drinkMachine.addEventListener('click', () => {
 
 gamePauseButton.addEventListener('click', toggleGamePause);
 resumeGameButton.addEventListener('click', resumeGame);
+openGameSettingsButton.addEventListener('click', openGameSettings);
+closeGameSettingsButton.addEventListener('click', closeGameSettings);
+motionSettingButton.addEventListener('click', toggleReducedMotion);
+exitGameButton.addEventListener('click', exitGame);
 pauseShopButton.addEventListener('click', pauseShop);
 openShopButton.addEventListener('click', resumeShop);
 
+restoreGameSettings();
 restoreGame();
 setMessage('营业中：第一位客人马上就到。');
 render();

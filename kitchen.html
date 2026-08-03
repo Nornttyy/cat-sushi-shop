@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=smooth-items-v16-20260803" />
+    <link rel="stylesheet" href="style.css?v=smooth-items-v17-20260803" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -94,16 +94,32 @@
         <button id="pause-shop-button" type="button">暂停营业</button>
         <button id="open-shop-button" class="is-hidden" type="button">继续营业</button>
       </div>
-      <section id="game-pause-overlay" class="game-pause-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="game-pause-title">
+      <section id="game-pause-overlay" class="game-pause-overlay is-hidden" role="dialog" aria-modal="true" aria-label="暂停菜单">
         <div class="game-pause-card">
-          <span>海边寿司店</span>
-          <b id="game-pause-title">游戏暂停</b>
-          <p>客人和制作进度都已暂停。</p>
-          <button id="resume-game-button" type="button">继续游戏</button>
-          <small>按 Esc 也能继续</small>
+          <section id="game-pause-menu" class="game-pause-view" aria-labelledby="game-pause-title">
+            <span>海边寿司店</span>
+            <b id="game-pause-title">游戏暂停</b>
+            <p>客人和制作进度都已暂停。</p>
+            <div class="game-pause-actions">
+              <button id="resume-game-button" type="button">继续游戏</button>
+              <button id="open-game-settings-button" class="pause-secondary-button" type="button">设置</button>
+              <button id="exit-game-button" class="pause-exit-button" type="button">退出游戏</button>
+            </div>
+            <small>按 Esc 也能继续</small>
+          </section>
+          <section id="game-settings-panel" class="game-pause-view is-hidden" aria-labelledby="game-settings-title">
+            <span>设置</span>
+            <b id="game-settings-title">游戏设置</b>
+            <p>按你的习惯调整画面效果。</p>
+            <div class="game-setting-row">
+              <span>动态效果</span>
+              <button id="motion-setting-button" type="button" aria-pressed="true">已开启</button>
+            </div>
+            <button id="close-game-settings-button" class="pause-secondary-button" type="button">返回</button>
+          </section>
         </div>
       </section>
     </main>
-    <script src="kitchen.js?v=smooth-items-v16-20260803"></script>
+    <script src="kitchen.js?v=smooth-items-v17-20260803"></script>
   </body>
 </html>
