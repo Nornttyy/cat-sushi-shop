@@ -8,8 +8,11 @@ const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/salmon-loin.png',
   'assets/restaurant/kitchen-layers/optimized/tuna-loin.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-loin.png',
+  'assets/restaurant/kitchen-layers/optimized/shrimp-whole.png',
+  'assets/restaurant/kitchen-layers/optimized/shrimp-head.png',
   'assets/restaurant/kitchen-layers/optimized/tamago-loin.png',
   'assets/restaurant/kitchen-layers/optimized/cutting-board.png',
+  'assets/restaurant/kitchen-layers/optimized/trash-bin.png',
   'assets/restaurant/kitchen-layers/optimized/rice-bin.png',
   'assets/restaurant/kitchen-layers/optimized/rice-portion.png',
   'assets/restaurant/kitchen-layers/optimized/salmon-slice.png',
@@ -86,7 +89,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=smooth-items-v11-20260802';
+    kitchenScript.src = 'kitchen.js?v=smooth-items-v13-20260803';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {

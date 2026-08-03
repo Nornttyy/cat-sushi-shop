@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=smooth-items-v11-20260802" />
+    <link rel="stylesheet" href="style.css?v=smooth-items-v13-20260803" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -19,6 +19,14 @@
 
       <section id="customer-queue" class="customer-queue" aria-label="正在等待的客人"></section>
       <div class="customer-counter-front" aria-hidden="true"></div>
+
+      <section class="ingredient-shop" aria-label="食材商店">
+        <button id="ingredient-shop-toggle" class="ingredient-shop-toggle" type="button" aria-expanded="false">食材商店</button>
+        <div id="ingredient-shop-panel" class="ingredient-shop-panel is-hidden">
+          <div class="ingredient-shop-heading"><b>食材商店</b><span>用营业额解锁新食材</span></div>
+          <div id="ingredient-shop-items" class="ingredient-shop-items"></div>
+        </div>
+      </section>
 
       <section class="work-counter" aria-label="寿司制作操作台">
         <section class="fish-station" aria-label="三格冰柜">
@@ -34,7 +42,7 @@
               <span>金枪鱼刺身</span>
             </button>
             <button id="select-shrimp" class="sashimi-choice" type="button" data-ingredient-id="shrimp" aria-label="选择甜虾">
-              <img src="assets/restaurant/kitchen-layers/optimized/shrimp-loin.png" alt="" draggable="false" decoding="async" />
+              <img src="assets/restaurant/kitchen-layers/optimized/shrimp-whole.png" alt="" draggable="false" decoding="async" />
               <span>甜虾</span>
             </button>
             <button id="select-tamago" class="sashimi-choice" type="button" data-ingredient-id="tamago" aria-label="选择玉子烧">
@@ -51,8 +59,16 @@
             <span class="cut-guide guide-one" aria-hidden="true"></span>
             <span class="cut-guide guide-two" aria-hidden="true"></span>
             <span class="cut-guide guide-three" aria-hidden="true"></span>
+            <span class="shrimp-cut-guide" aria-hidden="true"></span>
+          </button>
+          <button id="shrimp-head" class="shrimp-head is-hidden" type="button" aria-label="待处理的虾头，拖到垃圾桶">
+            <img src="assets/restaurant/kitchen-layers/optimized/shrimp-head.png" alt="待处理的虾头" draggable="false" decoding="async" />
           </button>
         </section>
+
+        <button id="trash-bin" class="station trash-bin" type="button" aria-label="垃圾桶，拖虾头到这里丢弃">
+          <img src="assets/restaurant/kitchen-layers/optimized/trash-bin.png" alt="垃圾桶" draggable="false" decoding="async" />
+        </button>
 
         <section class="assembly-station" aria-label="寿司制作区，在切菜板旁边">
           <div id="slice-rack" class="slice-rack" aria-label="切好的寿司配料"></div>
@@ -80,6 +96,6 @@
         <button id="open-shop-button" class="is-hidden" type="button">继续营业</button>
       </div>
     </main>
-    <script src="kitchen.js?v=smooth-items-v11-20260802"></script>
+    <script src="kitchen.js?v=smooth-items-v13-20260803"></script>
   </body>
 </html>
