@@ -60,6 +60,9 @@ button { font: inherit; }
 .game-header b { font-size: clamp(13px, 1.35vw, 21px); }
 .order-card { text-align: right; }
 .cash-card { min-width: 8ch; text-align: center; }
+.reputation-card { min-width: clamp(118px, 12vw, 178px); }
+.reputation-track { width: 100%; height: clamp(4px, .4vw, 6px); overflow: hidden; border: 1px solid rgb(90 57 45 / .35); border-radius: 999px; background: #e6d3b5; }
+.reputation-track > i { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #78b98a, #f3bb58); transform: scaleX(0); transform-origin: left; transition: transform 420ms cubic-bezier(.16, .84, .22, 1); }
 
 .customer-queue { position: absolute; top: 14%; left: 12%; z-index: 1; display: flex; align-items: end; justify-content: flex-start; gap: clamp(24px, 7vw, 100px); width: 52%; height: 50%; pointer-events: none; }
 .customer-counter-front { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; background-color: #b46f3c; background-image: url('assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg'); background-position: center; background-size: 100% 100%; background-repeat: no-repeat; -webkit-clip-path: inset(46.5% 0 0); clip-path: inset(46.5% 0 0); }
@@ -210,6 +213,7 @@ button { font: inherit; }
 .ingredient-shop-items { display: grid; gap: 4px; }
 .ingredient-shop-item { display: grid; grid-template-columns: clamp(27px, 2.2vw, 39px) 1fr; align-items: center; gap: 3px 6px; padding: 4px; border: 2px solid rgb(112 67 49 / .28); border-radius: 10px; background: #fff8e6; }
 .ingredient-shop-item.is-owned { background: #e4f1d3; }
+.ingredient-shop-item.is-locked { filter: saturate(.58); background: #eee0c7; }
 .ingredient-shop-item > img { grid-row: span 2; display: block; width: 100%; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 1px 0 rgb(90 57 45 / .2)); }
 .ingredient-shop-item > div { display: grid; gap: 1px; min-width: 0; color: #704331; }
 .ingredient-shop-item b { overflow: hidden; font-size: clamp(10px, .86vw, 14px); text-overflow: ellipsis; white-space: nowrap; }

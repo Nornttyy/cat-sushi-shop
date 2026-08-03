@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=smooth-items-v19-20260803" />
+    <link rel="stylesheet" href="style.css?v=progression-v20-20260803" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -14,7 +14,8 @@
       <header class="game-header">
         <div><span>海边寿司店</span><b id="stage-name">营业制作台</b></div>
         <div class="order-card"><span id="shop-status">开门前</span><b id="shop-status-detail">自由备料</b></div>
-        <div class="cash-card"><span>营业额</span><b id="cash-value">¥0</b></div>
+        <div class="reputation-card"><span id="reputation-name">海风口碑 · 海边小摊</span><b id="reputation-value">0 / 8</b><div class="reputation-track" aria-hidden="true"><i id="reputation-meter"></i></div></div>
+        <div class="cash-card"><span>余额</span><b id="cash-value">¥0</b></div>
       </header>
 
       <section id="customer-queue" class="customer-queue" aria-label="正在等待的客人"></section>
@@ -23,7 +24,7 @@
       <section class="ingredient-shop" aria-label="食材商店">
         <button id="ingredient-shop-toggle" class="ingredient-shop-toggle" type="button" aria-expanded="false">食材商店</button>
         <div id="ingredient-shop-panel" class="ingredient-shop-panel is-hidden">
-          <div class="ingredient-shop-heading"><b>食材商店</b><span>购买鱼种后，去钓鱼获得食材</span></div>
+          <div class="ingredient-shop-heading"><b>食材商店</b><span>口碑达标后购买鱼种，再去钓鱼获得食材</span></div>
           <div id="ingredient-shop-items" class="ingredient-shop-items"></div>
         </div>
       </section>
@@ -125,6 +126,6 @@
         </div>
       </section>
     </main>
-    <script src="kitchen.js?v=smooth-items-v20-20260803"></script>
+    <script src="kitchen.js?v=progression-v21-20260803"></script>
   </body>
 </html>

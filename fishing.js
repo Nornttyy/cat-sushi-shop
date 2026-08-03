@@ -1,6 +1,8 @@
 const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
 const MAX_RAW_FISH = 99;
+const FISH_BASKET_CAPACITY = 12;
+const MAX_CATCHES_PER_TRIP = 5;
 const SWING_MIN_ANGLE = 4;
 const SWING_MAX_ANGLE = 70;
 const SWING_SPEED = 54;
@@ -151,7 +153,7 @@ function setInstruction(text, speechText = text) {
 }
 
 function catchableFish() {
-  return state.unlockedFish.filter((id) => state.rawFish[id] < MAX_RAW_FISH);
+  return state.unlockedFish.filter((id) => state.rawFish[id] < FISH_BASKET_CAPACITY);
 }
 
 function weightedFish(pool = catchableFish()) {
@@ -223,20 +225,21 @@ function renderFishStocks() {
     item.classList.toggle('is-locked', !unlocked);
     $(`#${id}-count`).textContent = count;
     $(`#${id}-status`).textContent = unlocked
-      ? count >= MAX_RAW_FISH ? '鱼篓已满' : '海里可抓'
+      ? count >= FISH_BASKET_CAPACITY ? '鱼篓已满' : '海里可抓'
       : '未解锁';
   });
-  sessionCatchCount.textContent = `${state.totalCaught} 份`;
+  sessionCatchCount.textContent = `${state.totalCaught} / ${MAX_CATCHES_PER_TRIP} 份`;
 }
 
 function renderControls() {
-  const canCast = state.phase === 'aiming' && !state.ended && catchableFish().length > 0 && state.targets.length > 0;
+  const tripFull = state.totalCaught >= MAX_CATCHES_PER_TRIP;
+  const canCast = state.phase === 'aiming' && !state.ended && !tripFull && catchableFish().length > 0 && state.targets.length > 0;
   fishingButton.disabled = !canCast;
   fishingButton.textContent = state.phase === 'extending'
     ? '钩子出发中'
     : state.phase === 'retracting'
       ? state.activeTarget ? '正在拉回' : '正在收线'
-      : catchableFish().length ? '发射钩子' : '没有可抓的鱼';
+      : tripFull ? '本趟收获已满' : catchableFish().length ? '发射钩子' : '没有可抓的鱼';
   finishFishingButton.disabled = state.ended || state.phase !== 'aiming';
   finishFishingButton.title = state.phase === 'aiming' ? '带着今天的收获回店里' : '先等钩子收回来';
 }
@@ -438,7 +441,7 @@ function awardCaughtFish(target) {
   if (!target || target.captureToken !== state.hookToken || state.awardedToken === target.captureToken) return false;
   state.awardedToken = target.captureToken;
   const type = target.type;
-  if (state.rawFish[type] >= MAX_RAW_FISH) return false;
+  if (state.rawFish[type] >= FISH_BASKET_CAPACITY) return false;
 
   const nextRawFish = { ...state.rawFish, [type]: state.rawFish[type] + 1 };
   if (!persistRawFish(nextRawFish)) {
@@ -463,7 +466,12 @@ function finishRetraction() {
   if (caughtTarget) {
     caughtTarget.element.remove();
     state.targets = state.targets.filter((target) => target !== caughtTarget);
-    awardCaughtFish(caughtTarget);
+    const awarded = awardCaughtFish(caughtTarget);
+    if (awarded && (state.totalCaught >= MAX_CATCHES_PER_TRIP || !catchableFish().length)) {
+      render();
+      finishFishing({ auto: true });
+      return;
+    }
   } else {
     setInstruction('钩子收回来了，继续瞄准水里的鱼。', '再试一次，这次一定能抓到。');
   }
@@ -533,7 +541,7 @@ function stopAnimationLoop() {
 function castHook() {
   if (state.ended || state.phase !== 'aiming') return;
   if (!catchableFish().length || !state.targets.length) {
-    setInstruction('还没有可抓的鱼。先回店里购买一种鱼的钓点，再回来捕鱼。', '玉子烧够用，但鱼要先开放钓点。');
+    setInstruction('还没有可抓的鱼。先回店里积累口碑、购买一种鱼的钓点，再回来捕鱼。', '玉子烧够用，但鱼要先拿到食材执照。');
     renderControls();
     return;
   }
@@ -544,7 +552,7 @@ function castHook() {
   renderControls();
 }
 
-function finishFishing() {
+function finishFishing({ auto = false } = {}) {
   if (state.ended) return;
   if (state.phase !== 'aiming') {
     setInstruction('钩子还在水里，收回来后才能回店里。', '先把钩子收回来吧。');
@@ -554,7 +562,9 @@ function finishFishing() {
   stopAnimationLoop();
   const total = state.totalCaught;
   resultCatchCount.textContent = total;
-  resultTitle.textContent = total ? '这次钓得不错！' : '下次一定会抓到！';
+  resultTitle.textContent = auto
+    ? '这一趟收获装满啦！'
+    : total ? '这次钓得不错！' : '下次一定会抓到！';
   resultOverlay.classList.remove('is-hidden');
   window.requestAnimationFrame(() => backToKitchenButton.focus());
 }
@@ -582,7 +592,7 @@ function initializeFishing() {
   } else if (state.unlockedFish.length) {
     setInstruction('鱼篓已经满了，先回店里把食材用掉吧。', '鱼篓装不下啦，先做点寿司。');
   } else {
-    setInstruction('先回店里购买一种鱼的钓点，再来这里抓鱼。', '玉子烧够用，但鱼要先买钓点。');
+    setInstruction('先回店里积累口碑、购买一种鱼的钓点，再来这里抓鱼。', '玉子烧够用，但鱼要先拿到食材执照。');
   }
   render();
   renderHook();
