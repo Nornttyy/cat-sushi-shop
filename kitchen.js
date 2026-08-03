@@ -8,8 +8,11 @@ const CUT_SWIPE_DISTANCE = 0.12;
 const CUT_SLICE_ORIGINS = [[0.15], [0.4], [0.6, 0.85]];
 const CUSTOMER_WAIT_MS = 75000;
 const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
-const CUSTOMER_EXIT_MS = 1100;
+const CUSTOMER_EXIT_MS = 820;
 const COMPLETED_FLIGHT_MS = 820;
+const SLICE_FLIGHT_MS = 600;
+const SLICE_FLIGHT_STAGGER_MS = 70;
+const SHRIMP_HEAD_FLIGHT_MS = 620;
 const DRINK_FILL_MS = 760;
 const TEA_PRICE = 14;
 const SHRIMP_BATCH_SIZE = 4;
@@ -594,6 +597,8 @@ const cupStation = document.querySelector('#cup-station');
 const machineCup = document.querySelector('#machine-cup');
 const drinkRack = document.querySelector('#drink-rack');
 let ingredientDrag = null;
+let customerPatienceFrame = null;
+let shopRenderSignature = '';
 let customerSpawnTimer = null;
 const customerLeaveTimers = new Map();
 const customerExitTimers = new Map();
@@ -607,6 +612,10 @@ function show(element, visible) {
 
 function setMessage(text) {
   message.textContent = text;
+}
+
+function motionDuration(duration) {
+  return gameSettings.reducedMotion ? 1 : duration;
 }
 
 function playStationMotion(element, className, duration) {
@@ -647,8 +656,38 @@ function getPatience(customer) {
   return Math.max(0, Math.min(100, ((CUSTOMER_WAIT_MS - (gameplayNow() - customer.arrivedAt)) / CUSTOMER_WAIT_MS) * 100));
 }
 
+function stopCustomerPatienceLoop() {
+  if (customerPatienceFrame === null) return;
+  window.cancelAnimationFrame(customerPatienceFrame);
+  customerPatienceFrame = null;
+}
+
+function refreshCustomerPatience() {
+  customerPatienceFrame = null;
+  if (state.gamePaused) return;
+
+  let hasWaitingCustomer = false;
+  state.customers.forEach((customer) => {
+    if (customer.served || customer.leaving) return;
+    const card = customerCardFor(customer.id);
+    const fill = card?._patienceFill;
+    if (!fill) return;
+    hasWaitingCustomer = true;
+    fill.style.transform = `scaleX(${getPatience(customer) / 100})`;
+  });
+
+  if (hasWaitingCustomer) customerPatienceFrame = window.requestAnimationFrame(refreshCustomerPatience);
+}
+
+function ensureCustomerPatienceLoop() {
+  if (state.gamePaused || customerPatienceFrame !== null) return;
+  if (!state.customers.some((customer) => !customer.served && !customer.leaving)) return;
+  customerPatienceFrame = window.requestAnimationFrame(refreshCustomerPatience);
+}
+
 function createCustomerCard(customer) {
   const card = document.createElement('article');
+  const motion = document.createElement('div');
   const avatar = document.createElement('img');
   const order = document.createElement('div');
   const wait = document.createElement('div');
@@ -657,15 +696,18 @@ function createCustomerCard(customer) {
 
   card.className = 'customer is-entering';
   card.dataset.customerId = customer.id;
+  motion.className = 'customer-motion';
   avatar.className = 'customer-avatar';
   avatar.draggable = false;
   order.className = 'customer-order';
   wait.className = 'customer-wait';
   wait.append(fill);
+  card._patienceFill = fill;
   receivedSushi.className = 'customer-received-sushi is-hidden';
   receivedSushi.alt = '顾客拿到的寿司';
   receivedSushi.draggable = false;
-  card.append(avatar, order, wait, receivedSushi);
+  motion.append(avatar, order, wait, receivedSushi);
+  card.append(motion);
   card.addEventListener('animationend', (event) => {
     if (event.animationName === 'customer-enter') card.classList.remove('is-entering');
   });
@@ -697,6 +739,12 @@ function appendCustomerOrderItem(order, item) {
   order.append(itemWrap);
 }
 
+function customerOrderSignature(customer) {
+  const status = customer.served ? 'served' : customer.leaving ? 'leaving' : 'waiting';
+  const items = (customer.orderItems ?? []).map((item) => `${item.type}:${item.id ?? 'tea'}:${item.fulfilled ? 1 : 0}`);
+  return `${status}|${items.join('|')}`;
+}
+
 function updateCustomerCard(card, customer) {
   const avatar = card.querySelector('.customer-avatar');
   const order = card.querySelector('.customer-order');
@@ -711,22 +759,19 @@ function updateCustomerCard(card, customer) {
   card.classList.toggle('is-serving', Boolean(customer.served));
   card.classList.toggle('is-leaving', Boolean(customer.leaving));
   receivedSushi.classList.add('is-hidden');
-  order.replaceChildren();
-  order.style.display = 'flex';
-  order.style.gridTemplateColumns = 'none';
-  order.style.flexWrap = 'wrap';
-  order.style.alignItems = 'center';
-  order.style.justifyContent = 'flex-start';
-  order.style.gap = '4px';
-  order.style.maxWidth = '11em';
-  order.setAttribute('aria-label', `订单：${orderSummary(orderItems)}`);
+  const signature = customerOrderSignature(customer);
+  if (order.dataset.signature !== signature) {
+    order.replaceChildren();
+    order.dataset.signature = signature;
+    order.setAttribute('aria-label', `订单：${orderSummary(orderItems)}`);
 
-  if (customer.served) {
-    order.append('谢谢！');
-  } else if (customer.leaving) {
-    order.append('下次见');
-  } else {
-    orderItems.forEach((item) => appendCustomerOrderItem(order, item));
+    if (customer.served) {
+      order.append('谢谢！');
+    } else if (customer.leaving) {
+      order.append('下次见');
+    } else {
+      orderItems.forEach((item) => appendCustomerOrderItem(order, item));
+    }
   }
 
   const patienceValue = getPatience(customer);
@@ -759,8 +804,15 @@ function animateCustomerReflow(beforeRects) {
 }
 
 function renderCustomers() {
-  const beforeRects = new Map(Array.from(customerQueue.children).map((card) => [card.dataset.customerId, card.getBoundingClientRect()]));
-  const desiredIds = new Set(state.customers.map((customer) => customer.id));
+  const currentCards = Array.from(customerQueue.children);
+  const currentIds = currentCards.map((card) => card.dataset.customerId);
+  const desiredIdList = state.customers.map((customer) => customer.id);
+  const desiredIds = new Set(desiredIdList);
+  const layoutChanged = currentIds.length !== desiredIdList.length
+    || currentIds.some((id, index) => id !== desiredIdList[index]);
+  const beforeRects = layoutChanged
+    ? new Map(currentCards.map((card) => [card.dataset.customerId, card.getBoundingClientRect()]))
+    : null;
   Array.from(customerQueue.children).forEach((card) => {
     if (!desiredIds.has(card.dataset.customerId)) card.remove();
   });
@@ -769,19 +821,8 @@ function renderCustomers() {
     updateCustomerCard(card, customer);
     if (customerQueue.children[index] !== card) customerQueue.append(card);
   });
-  animateCustomerReflow(beforeRects);
-}
-
-function refreshCustomerPatience() {
-  state.customers.forEach((customer) => {
-    if (customer.served || customer.leaving) return;
-    const card = customerCardFor(customer.id);
-    if (!card) return;
-    const wait = card.querySelector('.customer-wait');
-    const fill = wait.querySelector('i');
-    const patienceValue = getPatience(customer);
-    fill.style.transform = `scaleX(${patienceValue / 100})`;
-  });
+  if (beforeRects) animateCustomerReflow(beforeRects);
+  ensureCustomerPatienceLoop();
 }
 
 function fadeOutCustomer(customer, { holdMs = 0, scheduleNext = true } = {}) {
@@ -875,6 +916,7 @@ function goFishing() {
 function pauseGame() {
   if (state.gamePaused) return;
   clearIngredientDrag();
+  stopCustomerPatienceLoop();
   state.activeCut = null;
   state.activeShrimpCut = null;
   state.pauseSettingsOpen = false;
@@ -895,6 +937,7 @@ function resumeGame() {
   resumeGameplayTimeouts();
   setMessage('继续游戏。');
   render();
+  ensureCustomerPatienceLoop();
   window.requestAnimationFrame(() => gamePauseButton.focus());
 }
 
@@ -1041,31 +1084,39 @@ function makeSushi(ingredientId = 'salmon') {
         if (!state.incomingSushi) scheduleSave();
       },
     });
-  }, 420);
+  }, motionDuration(420));
 }
 
 function renderSlices() {
-  sliceRack.replaceChildren();
   const displayedTypes = state.sliceTypes.slice(0, Math.max(0, state.sliceTypes.length - state.incomingSlices));
+  const existingItems = Array.from(sliceRack.children);
+  existingItems.slice(displayedTypes.length).forEach((item) => item.remove());
+
   displayedTypes.forEach((ingredientId, index) => {
     const sushiType = sushiTypeFor(ingredientId);
-    const slice = document.createElement('button');
-    const sliceImage = document.createElement('img');
-    slice.type = 'button';
-    slice.className = 'sushi-slice-crop';
+    let slice = existingItems[index];
+    if (!slice) {
+      slice = document.createElement('button');
+      const sliceImage = document.createElement('img');
+      slice.type = 'button';
+      slice.className = 'sushi-slice-crop';
+      sliceImage.alt = '';
+      sliceImage.draggable = false;
+      slice.addEventListener('pointerdown', prepareSliceDrag);
+      slice.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        makeSushi(slice.dataset.ingredientId);
+      });
+      slice.append(sliceImage);
+      sliceRack.append(slice);
+    }
+
+    const sliceImage = slice.querySelector('img');
     slice.dataset.ingredientId = sushiType.id;
     slice.setAttribute('aria-label', `第 ${index + 1} 片${sushiType.name}，拖到米饭上制作寿司`);
-    sliceImage.src = sushiAsset(sushiType.id, 'slice');
-    sliceImage.alt = '';
-    sliceImage.draggable = false;
-    slice.addEventListener('pointerdown', prepareSliceDrag);
-    slice.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault();
-      makeSushi(sushiType.id);
-    });
-    slice.append(sliceImage);
-    sliceRack.append(slice);
+    const nextSource = sushiAsset(sushiType.id, 'slice');
+    if (sliceImage.getAttribute('src') !== nextSource) sliceImage.src = nextSource;
   });
 }
 
@@ -1089,7 +1140,8 @@ function renderSushiRack() {
     const image = item.querySelector('img');
     item.dataset.ingredientId = sushiType.id;
     item.setAttribute('aria-label', `第 ${index + 1} 份${sushiType.name}寿司，拖给顾客`);
-    image.src = sushiAsset(sushiType.id, 'nigiri');
+    const nextSource = sushiAsset(sushiType.id, 'nigiri');
+    if (image.getAttribute('src') !== nextSource) image.src = nextSource;
     image.alt = `${sushiType.name}寿司`;
     image.draggable = false;
   });
@@ -1231,6 +1283,19 @@ function renderIngredientShop() {
   show(ingredientShopPanel, isOpen);
   ingredientShopToggle.setAttribute('aria-expanded', String(isOpen));
   ingredientShopToggle.textContent = isOpen ? '收起商店' : '食材商店';
+  if (!isOpen) {
+    shopRenderSignature = '';
+    return;
+  }
+
+  const nextSignature = [
+    state.cash,
+    state.teaUnlocked ? 1 : 0,
+    state.unlockedIngredients.join(','),
+    ...STORAGE_UPGRADES.map((upgrade) => storageLevelFor(upgrade.id)),
+  ].join('|');
+  if (nextSignature === shopRenderSignature) return;
+  shopRenderSignature = nextSignature;
   ingredientShopItems.replaceChildren();
 
   SHOP_ITEMS.forEach((shopItem) => {
@@ -1344,54 +1409,70 @@ function renderStorageLayouts() {
 function renderShrimpBatch() {
   const remainingShrimp = state.shrimpBatch.filter((shrimp) => !shrimp.cut);
   show(shrimpBatch, state.shrimpOnBoard && remainingShrimp.length > 0);
-  shrimpBatch.replaceChildren();
+  const remainingIds = new Set(remainingShrimp.map((shrimp) => shrimp.id));
+  const existingItems = new Map(Array.from(shrimpBatch.children).map((item) => [item.dataset.shrimpId, item]));
+  existingItems.forEach((item, shrimpId) => {
+    if (!remainingIds.has(shrimpId)) item.remove();
+  });
 
   remainingShrimp.forEach((shrimp, index) => {
-    const item = document.createElement('button');
-    const image = document.createElement('img');
-    const guide = document.createElement('span');
+    let item = existingItems.get(shrimp.id);
+    if (!item) {
+      item = document.createElement('button');
+      const image = document.createElement('img');
+      const guide = document.createElement('span');
+      item.type = 'button';
+      item.className = 'shrimp-batch-item';
+      image.src = `${KITCHEN_ASSET_PATH}shrimp-whole.png`;
+      image.alt = '带头甜虾';
+      image.draggable = false;
+      guide.className = 'shrimp-head-cut-guide';
+      guide.setAttribute('aria-hidden', 'true');
+      item.append(image, guide);
+      item.addEventListener('pointerdown', startShrimpCut);
+      item.addEventListener('pointermove', moveShrimpCut);
+      item.addEventListener('pointerup', cancelShrimpCut);
+      item.addEventListener('pointercancel', cancelShrimpCut);
+      item.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        if (hasRoomForShrimp()) finishShrimpPrep(item.dataset.shrimpId, item);
+        else setMessage('配料架空间不够，先做几份寿司再处理甜虾。');
+      });
+    }
 
-    item.type = 'button';
-    item.className = 'shrimp-batch-item';
     item.dataset.shrimpId = shrimp.id;
     item.setAttribute('aria-label', `第 ${index + 1} 只甜虾，在竖向虚线附近按住后向下滑动去头`);
-    image.src = `${KITCHEN_ASSET_PATH}shrimp-whole.png`;
-    image.alt = '带头甜虾';
-    image.draggable = false;
-    guide.className = 'shrimp-head-cut-guide';
-    guide.setAttribute('aria-hidden', 'true');
-    item.append(image, guide);
-    item.addEventListener('pointerdown', startShrimpCut);
-    item.addEventListener('pointermove', moveShrimpCut);
-    item.addEventListener('pointerup', cancelShrimpCut);
-    item.addEventListener('pointercancel', cancelShrimpCut);
-    item.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault();
-      if (hasRoomForShrimp()) finishShrimpPrep(shrimp.id, item);
-      else setMessage('配料架空间不够，先做几份寿司再处理甜虾。');
-    });
-    shrimpBatch.append(item);
+    item.classList.toggle('is-cutting', state.activeShrimpCut === shrimp.id);
+    if (shrimpBatch.children[index] !== item) shrimpBatch.append(item);
   });
 }
 
 function renderShrimpHeads() {
   show(shrimpHeadRack, state.shrimpHeads.length > 0);
-  shrimpHeadRack.replaceChildren();
-  state.shrimpHeads.forEach((head, index) => {
-    const item = document.createElement('button');
-    const image = document.createElement('img');
+  const headIds = new Set(state.shrimpHeads.map((head) => head.id));
+  const existingItems = new Map(Array.from(shrimpHeadRack.children).map((item) => [item.dataset.shrimpHeadId, item]));
+  existingItems.forEach((item, headId) => {
+    if (!headIds.has(headId)) item.remove();
+  });
 
-    item.type = 'button';
-    item.className = 'shrimp-head';
+  state.shrimpHeads.forEach((head, index) => {
+    let item = existingItems.get(head.id);
+    if (!item) {
+      item = document.createElement('button');
+      const image = document.createElement('img');
+      item.type = 'button';
+      item.className = 'shrimp-head';
+      image.src = `${KITCHEN_ASSET_PATH}shrimp-head.png`;
+      image.alt = '待丢弃的虾头';
+      image.draggable = false;
+      item.append(image);
+      item.addEventListener('pointerdown', prepareShrimpHeadDrag);
+    }
+
     item.dataset.shrimpHeadId = head.id;
     item.setAttribute('aria-label', `第 ${index + 1} 个虾头，拖到垃圾桶`);
-    image.src = `${KITCHEN_ASSET_PATH}shrimp-head.png`;
-    image.alt = '待丢弃的虾头';
-    image.draggable = false;
-    item.append(image);
-    item.addEventListener('pointerdown', prepareShrimpHeadDrag);
-    shrimpHeadRack.append(item);
+    if (shrimpHeadRack.children[index] !== item) shrimpHeadRack.append(item);
   });
 }
 
@@ -1405,7 +1486,8 @@ function render() {
   gamePauseButton.setAttribute('aria-pressed', String(state.gamePaused));
   motionSettingButton.textContent = gameSettings.reducedMotion ? '已关闭' : '已开启';
   motionSettingButton.setAttribute('aria-pressed', String(!gameSettings.reducedMotion));
-  sceneBackground.src = `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
+  const backgroundSource = `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
+  if (sceneBackground.getAttribute('src') !== backgroundSource) sceneBackground.src = backgroundSource;
   sceneBackground.alt = '海边寿司店后台';
   const firstCustomer = getActiveCustomer();
   const boardSushiType = sushiTypeFor(state.boardIngredientId);
@@ -1418,7 +1500,8 @@ function render() {
   renderSashimiChoices();
   renderIngredientShop();
   show(boardSalmon, state.salmonOnBoard);
-  boardIngredientImage.src = sushiAsset(boardSushiType.id, 'loin');
+  const boardIngredientSource = sushiAsset(boardSushiType.id, 'loin');
+  if (boardIngredientImage.getAttribute('src') !== boardIngredientSource) boardIngredientImage.src = boardIngredientSource;
   boardIngredientImage.alt = `待切${boardSushiType.name}`;
   boardSalmon.setAttribute('aria-label', `${boardSushiType.boardName}，在虚线附近按住并向下滑动切片`);
   boardSalmon.classList.toggle('is-cutting', state.activeCut !== null);
@@ -1441,9 +1524,10 @@ function render() {
     ? firstCustomer ? `${firstCustomer.name}：${orderSummary(pendingOrderItems(firstCustomer))}` : '等待第一位客人'
     : '可捕鱼或补货';
   show(machineCup, state.cupOnMachine);
-  machineCup.src = state.drinkPouring
+  const machineCupSource = state.drinkPouring
     ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
     : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
+  if (machineCup.getAttribute('src') !== machineCupSource) machineCup.src = machineCupSource;
   machineCup.classList.toggle('is-filling', state.drinkPouring);
   drinkMachine.classList.toggle('is-pouring', state.drinkPouring);
   const teaUnlocked = isTeaUnlocked();
@@ -1468,13 +1552,22 @@ function pointIsInside(event, element) {
 
 function moveDragPreview(event) {
   if (!ingredientDrag) return;
-  const bounds = stage.getBoundingClientRect();
-  ingredientDrag.preview.style.left = `${event.clientX - bounds.left}px`;
-  ingredientDrag.preview.style.top = `${event.clientY - bounds.top}px`;
+  ingredientDrag.pointerX = event.clientX;
+  ingredientDrag.pointerY = event.clientY;
+  if (ingredientDrag.previewFrame !== null) return;
+  ingredientDrag.previewFrame = window.requestAnimationFrame(() => {
+    if (!ingredientDrag) return;
+    ingredientDrag.previewFrame = null;
+    const x = ingredientDrag.pointerX - ingredientDrag.stageRect.left;
+    const y = ingredientDrag.pointerY - ingredientDrag.stageRect.top;
+    ingredientDrag.preview.style.setProperty('--drag-x', `${x}px`);
+    ingredientDrag.preview.style.setProperty('--drag-y', `${y}px`);
+  });
 }
 
 function clearIngredientDrag() {
   if (!ingredientDrag) return;
+  if (ingredientDrag.previewFrame !== null) window.cancelAnimationFrame(ingredientDrag.previewFrame);
   if (ingredientDrag.source.hasPointerCapture?.(ingredientDrag.pointerId)) {
     ingredientDrag.source.releasePointerCapture(ingredientDrag.pointerId);
   }
@@ -1516,6 +1609,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
   preview.alt = '';
   preview.draggable = false;
   stage.append(preview);
+  const stageRect = stage.getBoundingClientRect();
   const targetCustomer = isCustomerDelivery ? getActiveCustomer() : null;
   const target = targetCustomer ? customerCardFor(targetCustomer.id)?.querySelector('.customer-avatar') : null;
   ingredientDrag = {
@@ -1527,7 +1621,13 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
     targetCustomerId: targetCustomer?.id ?? null,
     ingredientId: sushiType.id,
     shrimpHeadId: source.dataset.shrimpHeadId ?? null,
+    stageRect,
+    pointerX: event.clientX,
+    pointerY: event.clientY,
+    previewFrame: null,
   };
+  preview.style.setProperty('--drag-x', `${event.clientX - stageRect.left}px`);
+  preview.style.setProperty('--drag-y', `${event.clientY - stageRect.top}px`);
   if (type === 'slice' || type === 'ingredient' || type === 'shrimp-head' || isCustomerDelivery) source.classList.add('is-dragging');
   source.setPointerCapture(event.pointerId);
   const dropTarget = type === 'ingredient' ? boardStation : type === 'cup' ? drinkMachine : type === 'shrimp-head' ? trashBin : isCustomerDelivery ? target?.closest('.customer') : riceRack;
@@ -1604,7 +1704,7 @@ function takeRice() {
     setMessage('米饭架已经存满 8 团。');
     return;
   }
-  playStationMotion(riceBin, 'is-dispensing', 420);
+  playStationMotion(riceBin, 'is-dispensing', motionDuration(420));
   state.riceStored += 1;
   state.incomingRice += 1;
   const sourceRect = riceBin.getBoundingClientRect();
@@ -1709,6 +1809,39 @@ function prepareDrinkServeDrag(event) {
   startIngredientDrag(event, 'serve-drink');
 }
 
+function playCustomerDeliveryFlight({ src, fromClientX, fromClientY, targetRect, isDrink }) {
+  if (!targetRect) return;
+  const stageRect = stage.getBoundingClientRect();
+  if (!stageRect.width || !stageRect.height) return;
+  const fromX = fromClientX - stageRect.left;
+  const fromY = fromClientY - stageRect.top;
+  const toX = targetRect.left + (targetRect.width * 0.52) - stageRect.left;
+  const toY = targetRect.top + (targetRect.height * 0.55) - stageRect.top;
+  const item = document.createElement('img');
+  const size = Math.max(
+    isDrink ? 22 : 36,
+    Math.min(isDrink ? 46 : 76, Math.min(targetRect.width, targetRect.height) * (isDrink ? 0.22 : 0.38)),
+  );
+
+  item.className = `customer-delivery-flight${isDrink ? ' is-drink' : ''}`;
+  item.src = src;
+  item.alt = '';
+  item.draggable = false;
+  item.style.left = `${fromX}px`;
+  item.style.top = `${fromY}px`;
+  item.style.width = `${size}px`;
+  item.style.height = `${size}px`;
+  item.style.setProperty('--flight-x', `${toX - fromX}px`);
+  item.style.setProperty('--flight-y', `${toY - fromY}px`);
+  item.style.setProperty('--flight-mid-x', `${(toX - fromX) * 0.58}px`);
+  item.style.setProperty('--flight-mid-y', `${(toY - fromY) * 0.58}px`);
+  stage.append(item);
+  window.requestAnimationFrame(() => {
+    item.classList.add('is-flying');
+    setGameplayTimeout(() => item.remove(), motionDuration(280));
+  });
+}
+
 function completeCustomerOrderItem(customer, item) {
   item.fulfilled = true;
   const remaining = pendingOrderItems(customer);
@@ -1732,39 +1865,41 @@ function completeCustomerOrderItem(customer, item) {
 
 function deliverSushiToCustomer(ingredientId, customerId) {
   const customer = state.customers.find((waitingCustomer) => waitingCustomer.id === customerId && !waitingCustomer.served && !waitingCustomer.leaving);
-  if (!customer || !state.sushiStored) return;
+  if (!customer || !state.sushiStored) return false;
   const sushiType = sushiTypeFor(ingredientId);
   const matchingOrderItem = pendingOrderItems(customer).find((item) => item.type === 'sushi' && item.id === sushiType.id);
   if (!matchingOrderItem) {
     const remaining = pendingOrderItems(customer);
     setMessage(`${customer.name}现在需要${orderSummary(remaining)}，这份${sushiType.name}寿司不能交给他。`);
     render();
-    return;
+    return false;
   }
   const storedIndex = state.sushiTypes.indexOf(sushiType.id);
   if (storedIndex === -1) {
     setMessage('这份寿司已经不在寿司架里了。');
     render();
-    return;
+    return false;
   }
   state.sushiTypes.splice(storedIndex, 1);
   state.sushiStored = state.sushiTypes.length;
   completeCustomerOrderItem(customer, matchingOrderItem);
+  return true;
 }
 
 function deliverDrinkToCustomer(customerId) {
   const customer = state.customers.find((waitingCustomer) => waitingCustomer.id === customerId && !waitingCustomer.served && !waitingCustomer.leaving);
-  if (!customer || !state.drinksStored) return;
+  if (!customer || !state.drinksStored) return false;
   const matchingOrderItem = pendingOrderItems(customer).find((item) => item.type === 'tea');
   if (!matchingOrderItem) {
     const remaining = pendingOrderItems(customer);
     setMessage(`${customer.name}现在需要${orderSummary(remaining)}，这杯茶不能交给他。`);
     render();
-    return;
+    return false;
   }
 
   state.drinksStored = Math.max(0, state.drinksStored - 1);
   completeCustomerOrderItem(customer, matchingOrderItem);
+  return true;
 }
 
 freezerButton.addEventListener('click', openSashimiPicker);
@@ -1773,14 +1908,23 @@ ingredientShopToggle.addEventListener('click', toggleIngredientShop);
 riceBin.addEventListener('click', takeRice);
 cupStation.addEventListener('pointerdown', prepareCupDrag);
 
-window.addEventListener('pointermove', (event) => moveDragPreview(event));
+window.addEventListener('pointermove', (event) => moveDragPreview(event), { passive: true });
 window.addEventListener('pointercancel', () => clearIngredientDrag());
 window.addEventListener('pointerup', (event) => {
   if (!ingredientDrag || event.pointerId !== ingredientDrag.pointerId) return;
-  const { type, source, target, targetCustomerId, ingredientId, shrimpHeadId } = ingredientDrag;
+  const { type, source, target, targetCustomerId, ingredientId, shrimpHeadId, preview } = ingredientDrag;
   const sushiType = sushiTypeFor(ingredientId);
   const isCustomerDelivery = type === 'serve' || type === 'serve-drink';
   const shrimpHeadSourceRect = type === 'shrimp-head' ? source.getBoundingClientRect() : null;
+  const deliveryFlight = isCustomerDelivery && target
+    ? {
+      src: preview.currentSrc || preview.src,
+      fromClientX: event.clientX,
+      fromClientY: event.clientY,
+      targetRect: target.getBoundingClientRect(),
+      isDrink: type === 'serve-drink',
+    }
+    : null;
   const destination = type === 'ingredient' ? boardStation : type === 'cup' ? drinkMachine : type === 'shrimp-head' ? trashBin : isCustomerDelivery ? target : riceRack;
   const accepted = Boolean(destination && pointIsInside(event, destination));
   if (source.hasPointerCapture(event.pointerId)) source.releasePointerCapture(event.pointerId);
@@ -1799,12 +1943,12 @@ window.addEventListener('pointerup', (event) => {
   }
 
   if (type === 'serve') {
-    deliverSushiToCustomer(sushiType.id, targetCustomerId);
+    if (deliverSushiToCustomer(sushiType.id, targetCustomerId)) playCustomerDeliveryFlight(deliveryFlight);
     return;
   }
 
   if (type === 'serve-drink') {
-    deliverDrinkToCustomer(targetCustomerId);
+    if (deliverDrinkToCustomer(targetCustomerId)) playCustomerDeliveryFlight(deliveryFlight);
     return;
   }
 
@@ -1856,7 +2000,7 @@ function hasRoomForCut(index) {
   return storageCapacityFor('slices') - state.slicesReady >= CUT_SLICE_ORIGINS[index].length;
 }
 
-function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersion, ingredientId) {
+function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersion, ingredientId, staggerMs = 0) {
   const stageRect = stage.getBoundingClientRect();
   const flyingSlice = document.createElement('img');
   const fromX = sourceRect.left + (sourceRect.width * sourceFraction) - stageRect.left;
@@ -1879,21 +2023,24 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
   flyingSlice.style.top = `${fromY}px`;
   flyingSlice.style.width = `${targetWidth}px`;
   flyingSlice.style.height = `${targetHeight}px`;
+  flyingSlice.style.setProperty('--flight-x', `${toX - fromX}px`);
+  flyingSlice.style.setProperty('--flight-y', `${toY - fromY}px`);
+  flyingSlice.style.setProperty('--flight-mid-x', `${(toX - fromX) * 0.58}px`);
+  flyingSlice.style.setProperty('--flight-mid-y', `${(toY - fromY) * 0.58}px`);
+  const animationStagger = gameSettings.reducedMotion ? 0 : staggerMs;
+  flyingSlice.style.animationDelay = `${animationStagger}ms`;
   stage.append(flyingSlice);
 
   requestAnimationFrame(() => {
-    flyingSlice.style.left = `${toX}px`;
-    flyingSlice.style.top = `${toY}px`;
     flyingSlice.classList.add('is-flying');
+    setGameplayTimeout(() => {
+      flyingSlice.remove();
+      if (flightVersion !== state.flightVersion) return;
+      state.incomingSlices = Math.max(0, state.incomingSlices - 1);
+      render();
+      if (!state.incomingSlices) scheduleSave();
+    }, motionDuration(SLICE_FLIGHT_MS + animationStagger + 40));
   });
-
-  setGameplayTimeout(() => {
-    flyingSlice.remove();
-    if (flightVersion !== state.flightVersion) return;
-    state.incomingSlices = Math.max(0, state.incomingSlices - 1);
-    render();
-    if (!state.incomingSlices) scheduleSave();
-  }, 650 + (sliceIndex * 75));
 }
 
 function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex, columns, rows, gap, displayScale = 1, onFinish }) {
@@ -1919,18 +2066,21 @@ function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex,
   item.style.top = `${fromY}px`;
   item.style.width = `${targetWidth * displayScale}px`;
   item.style.height = `${targetHeight * displayScale}px`;
+  item.style.setProperty('--flight-x', `${toX - fromX}px`);
+  item.style.setProperty('--flight-y', `${toY - fromY}px`);
+  item.style.setProperty('--flight-mid-x', `${(toX - fromX) * 0.52}px`);
+  item.style.setProperty('--flight-mid-y', `${(toY - fromY) * 0.52}px`);
+  item.style.setProperty('--flight-near-x', `${(toX - fromX) * 0.78}px`);
+  item.style.setProperty('--flight-near-y', `${(toY - fromY) * 0.78}px`);
   stage.append(item);
 
   requestAnimationFrame(() => {
-    item.style.left = `${toX}px`;
-    item.style.top = `${toY}px`;
     item.classList.add('is-flying');
+    setGameplayTimeout(() => {
+      item.remove();
+      if (flightVersion === state.flightVersion) onFinish();
+    }, motionDuration(COMPLETED_FLIGHT_MS));
   });
-
-  setGameplayTimeout(() => {
-    item.remove();
-    if (flightVersion === state.flightVersion) onFinish();
-  }, COMPLETED_FLIGHT_MS);
 }
 
 function discardShrimpHead(sourceRect, headId) {
@@ -1945,10 +2095,18 @@ function discardShrimpHead(sourceRect, headId) {
   head.src = `${KITCHEN_ASSET_PATH}shrimp-head.png`;
   head.alt = '';
   head.draggable = false;
-  head.style.left = `${sourceRect.left + (sourceRect.width / 2) - stageRect.left}px`;
-  head.style.top = `${sourceRect.top + (sourceRect.height / 2) - stageRect.top}px`;
+  const fromX = sourceRect.left + (sourceRect.width / 2) - stageRect.left;
+  const fromY = sourceRect.top + (sourceRect.height / 2) - stageRect.top;
+  const toX = trashRect.left + (trashRect.width / 2) - stageRect.left;
+  const toY = trashRect.top + (trashRect.height * 0.44) - stageRect.top;
+  head.style.left = `${fromX}px`;
+  head.style.top = `${fromY}px`;
   head.style.width = `${headSize}px`;
   head.style.height = `${headSize}px`;
+  head.style.setProperty('--flight-x', `${toX - fromX}px`);
+  head.style.setProperty('--flight-y', `${toY - fromY}px`);
+  head.style.setProperty('--flight-mid-x', `${(toX - fromX) * 0.64}px`);
+  head.style.setProperty('--flight-mid-y', `${(toY - fromY) * 0.64}px`);
 
   state.shrimpHeads = state.shrimpHeads.filter((shrimpHead) => shrimpHead.id !== headId);
   state.shrimpHeadDiscarding = true;
@@ -1957,19 +2115,16 @@ function discardShrimpHead(sourceRect, headId) {
   stage.append(head);
 
   requestAnimationFrame(() => {
-    head.style.left = `${trashRect.left + (trashRect.width / 2) - stageRect.left}px`;
-    head.style.top = `${trashRect.top + (trashRect.height * 0.44) - stageRect.top}px`;
     head.classList.add('is-flying');
+    setGameplayTimeout(() => {
+      head.remove();
+      if (animationVersion !== state.flightVersion) return;
+      state.shrimpHeadDiscarding = false;
+      setMessage(state.shrimpHeads.length ? '这个虾头已经处理好，剩下的也要丢进垃圾桶。' : '所有虾头都处理好了，可以再拿一批甜虾。');
+      render();
+      if (!state.shrimpHeads.length && !state.incomingSlices) scheduleSave();
+    }, motionDuration(SHRIMP_HEAD_FLIGHT_MS + 40));
   });
-
-  setGameplayTimeout(() => {
-    head.remove();
-    if (animationVersion !== state.flightVersion) return;
-    state.shrimpHeadDiscarding = false;
-    setMessage(state.shrimpHeads.length ? '这个虾头已经处理好，剩下的也要丢进垃圾桶。' : '所有虾头都处理好了，可以再拿一批甜虾。');
-    render();
-    if (!state.shrimpHeads.length && !state.incomingSlices) scheduleSave();
-  }, 620);
 }
 
 function finishCutLine(index) {
@@ -1992,7 +2147,15 @@ function finishCutLine(index) {
   setMessage(completed < CUT_LINES.length ? `切好一片${sushiType.name}，继续切下一条虚线。` : `最后两片${sushiType.name}切好了！`);
   render();
   sliceOrigins.forEach((origin, offset) => {
-    flySlice(sourceRect, rackRect, origin, firstSliceIndex + offset, flightVersion, ingredientId);
+    flySlice(
+      sourceRect,
+      rackRect,
+      origin,
+      firstSliceIndex + offset,
+      flightVersion,
+      ingredientId,
+      offset * SLICE_FLIGHT_STAGGER_MS,
+    );
   });
 }
 
@@ -2154,7 +2317,7 @@ drinkMachine.addEventListener('click', () => {
         if (!state.incomingDrinks) scheduleSave();
       },
     });
-  }, DRINK_FILL_MS);
+  }, motionDuration(DRINK_FILL_MS));
 });
 
 gamePauseButton.addEventListener('click', toggleGamePause);
@@ -2172,7 +2335,6 @@ restoreGame();
 setMessage(state.shopOpen ? '营业中：第一位客人马上就到。' : '暂停营业中：可以去钓鱼补货，准备好后再继续营业。');
 render();
 scheduleCustomer(700);
-window.setInterval(refreshCustomerPatience, 120);
 window.addEventListener('pagehide', () => {
   if (!hasUnsettledSaveState()) saveGame();
 });
@@ -2184,9 +2346,15 @@ function preloadInteractionAssets() {
     assetNames.add(sushiType.slice);
     assetNames.add(sushiType.nigiri);
   });
-  assetNames.forEach((name) => {
+  const assetUrls = [
+    ...Array.from(assetNames, (name) => `${KITCHEN_ASSET_PATH}${name}`),
+    ...CUSTOMER_CATALOG.map((customer) => `${CUSTOMER_ASSET_PATH}${customer.avatar}`),
+  ];
+  assetUrls.forEach((src) => {
     const image = new Image();
-    image.src = `${KITCHEN_ASSET_PATH}${name}`;
+    image.decoding = 'async';
+    image.src = src;
+    image.decode?.().catch(() => {});
   });
 }
 

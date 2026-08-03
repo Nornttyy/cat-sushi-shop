@@ -64,29 +64,31 @@ button { font: inherit; }
 .customer-queue { position: absolute; top: 14%; left: 12%; z-index: 1; display: flex; align-items: end; justify-content: flex-start; gap: clamp(24px, 7vw, 100px); width: 52%; height: 50%; pointer-events: none; }
 .customer-counter-front { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; background-color: #b46f3c; background-image: url('assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg'); background-position: center; background-size: 100% 100%; background-repeat: no-repeat; -webkit-clip-path: inset(46.5% 0 0); clip-path: inset(46.5% 0 0); }
 .customer-counter-front::after { content: ''; position: absolute; top: 46.5%; right: 0; left: 0; height: 3.2%; background: linear-gradient(#744124, #9b5b34 55%, rgb(202 132 75 / .3)); box-shadow: 0 3px 7px rgb(54 27 14 / .28); }
-.customer { position: relative; flex: 0 1 clamp(135px, 15vw, 220px); height: 100%; opacity: 1; will-change: transform, opacity; }
-.customer.is-entering { animation: customer-enter 1150ms cubic-bezier(.16, .86, .23, 1) both; }
+.customer { position: relative; flex: 0 1 clamp(135px, 15vw, 220px); height: 100%; opacity: 1; will-change: transform; }
+.customer-motion { position: absolute; inset: 0; will-change: transform, opacity; }
+.customer.is-entering .customer-motion { animation: customer-enter 850ms cubic-bezier(.22, 1, .36, 1) both; }
 .customer + .customer { z-index: 0; margin-bottom: 1%; margin-left: 5%; opacity: .92; }
-.customer.is-serving { animation: customer-thank 420ms cubic-bezier(.2, .8, .25, 1) both; }
-.customer.is-leaving { animation: customer-leave 1100ms cubic-bezier(.48, 0, .78, .18) both; }
+.customer.is-serving .customer-motion { animation: customer-thank 360ms cubic-bezier(.22, .8, .28, 1) both; }
+.customer.is-leaving .customer-motion { animation: customer-leave 780ms cubic-bezier(.45, 0, .74, .22) both; }
 .customer.is-drop-target .customer-avatar { filter: brightness(1.1) drop-shadow(0 0 9px rgb(255 233 141 / .95)); }
 .customer-avatar { position: absolute; bottom: -4%; left: 50%; z-index: 1; display: block; width: 100%; height: 90%; object-fit: contain; transform: translateX(-50%); filter: drop-shadow(0 5px 2px rgb(76 47 34 / .2)); animation: customer-idle 3.4s ease-in-out infinite; will-change: transform; }
-.customer-order { position: absolute; top: 2%; right: -16%; z-index: 2; display: grid; grid-template-columns: auto 1.1em; align-items: center; gap: 4px; min-width: max-content; padding: 6px 9px 8px; border: 2px solid var(--ink); border-radius: 12px; color: var(--ink); background: #fff4d8; box-shadow: 0 3px 0 rgb(90 57 45 / .22); font-size: clamp(14px, 1.2vw, 18px); font-weight: 900; }
+.customer-order { position: absolute; top: 2%; right: -16%; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 4px; min-width: max-content; max-width: 11em; padding: 6px 9px 8px; border: 2px solid var(--ink); border-radius: 12px; color: var(--ink); background: #fff4d8; box-shadow: 0 3px 0 rgb(90 57 45 / .22); font-size: clamp(14px, 1.2vw, 18px); font-weight: 900; }
 .customer-order::after { content: ''; position: absolute; right: 18%; bottom: -7px; width: 12px; height: 12px; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); background: #fff4d8; transform: rotate(45deg); }
 .customer-order img { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; }
 .customer-order strong { position: relative; z-index: 1; font-size: .88em; white-space: nowrap; }
 .customer-wait { position: absolute; right: 8%; bottom: 39%; left: 8%; z-index: 3; height: 7px; overflow: visible; border: 1px solid rgb(90 57 45 / .45); border-radius: 999px; background: #ffdba3; }
-.customer-wait > i { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7fce93, #f7bf60 65%, #e96d58); transform-origin: left; transition: transform 150ms linear; }
+.customer-wait > i { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7fce93, #f7bf60 65%, #e96d58); transform-origin: left; will-change: transform; }
 .customer-received-sushi { position: absolute; bottom: 43%; left: 50%; z-index: 4; width: 31%; height: auto; object-fit: contain; transform: translateX(-50%) rotate(-4deg); filter: drop-shadow(0 3px 2px rgb(59 39 28 / .25)); }
-@keyframes customer-enter { 0% { opacity: 0; transform: translate3d(115px, 14px, 0) scale(.86); } 68% { opacity: 1; transform: translate3d(-5px, 0, 0) scale(1.015); } 100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
+@keyframes customer-enter { 0% { opacity: 0; transform: translate3d(82px, 10px, 0) scale(.9); } 68% { opacity: 1; transform: translate3d(-4px, 0, 0) scale(1.012); } 100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 @keyframes customer-thank { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(0, -4px, 0) scale(1.025); } }
-@keyframes customer-leave { 0% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } 100% { opacity: 0; transform: translate3d(-130px, 12px, 0) scale(.92); } }
+@keyframes customer-leave { 0% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } 100% { opacity: 0; transform: translate3d(-94px, 9px, 0) scale(.94); } }
 @keyframes customer-idle { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-4px); } }
-@media (prefers-reduced-motion: reduce) { .customer, .customer-avatar { animation-duration: 1ms !important; } }
+@media (prefers-reduced-motion: reduce) { .customer-motion, .customer-avatar { animation-duration: 1ms !important; } }
 
 .work-counter { position: absolute; inset: 0; z-index: 3; }
 .station, .board-station, .fish-station, .assembly-station { position: absolute; display: block; margin: 0; padding: 0; border: 0; background: transparent; }
 .station { cursor: pointer; }
+.station, .freezer-button, .sashimi-choice, .ingredient-shop-toggle, .ingredient-shop-item button, .game-bottom-bar button, .sushi-slice-crop, .stored-sushi-button, .cup-station { transition: transform 140ms cubic-bezier(.2, .8, .25, 1), filter 140ms ease, box-shadow 140ms ease, opacity 90ms ease; }
 .station img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .station:hover { filter: brightness(1.08); transform: translateY(-1.2%); }
 .station:active { transform: translateY(1.5%) scale(.98); }
@@ -135,23 +137,29 @@ button { font: inherit; }
 .shrimp-head-rack .shrimp-head.is-dragging { opacity: 0; }
 .shrimp-head-rack .shrimp-head img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .25)); }
 .board-station.is-drop-target, .assembly-station.is-drop-target, .drink-machine-station.is-drop-target, .rice-rack.is-drop-target, .trash-bin.is-drop-target { filter: brightness(1.13) drop-shadow(0 0 7px rgb(255 232 150 / .9)); }
-.ingredient-drag-preview { position: absolute; z-index: 90; pointer-events: none; filter: drop-shadow(0 6px 3px rgb(59 39 28 / .28)); transform: translate(-50%, -58%) rotate(-6deg) scale(1.05); }
+.ingredient-drag-preview { --drag-x: 0px; --drag-y: 0px; position: absolute; top: 0; left: 0; z-index: 90; pointer-events: none; filter: drop-shadow(0 6px 3px rgb(59 39 28 / .28)); transform: translate3d(calc(-50% + var(--drag-x)), calc(-58% + var(--drag-y)), 0) rotate(-6deg) scale(1.05); will-change: transform, opacity; }
 .ingredient-drag-preview.ingredient { width: 14%; }
 .ingredient-drag-preview.slice { width: 7%; }
 .ingredient-drag-preview.shrimp-head { width: 5.4%; height: auto; aspect-ratio: 1 / 1; object-fit: contain; }
 .ingredient-drag-preview.cup { width: 3.5%; }
 .ingredient-drag-preview.serve { width: 6.2%; }
 .ingredient-drag-preview.serve-drink { width: 3.7%; height: auto; }
-.flying-sushi-slice { position: absolute; z-index: 60; pointer-events: none; object-fit: contain; filter: drop-shadow(0 5px 5px rgb(59 39 28 / .2)); transform: translate(-50%, -50%) rotate(-8deg); opacity: 1; transition: left 540ms cubic-bezier(.2, .8, .2, 1), top 540ms cubic-bezier(.2, .8, .2, 1), transform 540ms cubic-bezier(.2, .8, .2, 1); }
-.flying-sushi-slice.is-flying { transform: translate(-50%, -50%) rotate(4deg); }
-.flying-shrimp-head { position: absolute; z-index: 64; pointer-events: none; object-fit: contain; opacity: 1; filter: drop-shadow(0 5px 4px rgb(59 39 28 / .25)); transform: translate(-50%, -50%) rotate(-12deg) scale(1); transition: left 560ms cubic-bezier(.18, .82, .24, 1), top 560ms cubic-bezier(.18, .82, .24, 1), transform 560ms cubic-bezier(.18, .82, .24, 1), opacity 560ms ease; }
-.flying-shrimp-head.is-flying { opacity: .18; transform: translate(-50%, -50%) rotate(100deg) scale(.3); }
-.flying-completed-item { --flight-lift: 22px; --flight-turn: 4deg; position: absolute; z-index: 61; pointer-events: none; object-fit: contain; opacity: .16; filter: drop-shadow(0 4px 4px rgb(59 39 28 / .2)); transform: translate(-50%, -50%) rotate(-7deg) scale(.76); transition: left 780ms cubic-bezier(.16, .84, .22, 1), top 780ms cubic-bezier(.16, .84, .22, 1); will-change: left, top, transform, opacity; }
+.flying-sushi-slice { --flight-x: 0px; --flight-y: 0px; --flight-mid-x: 0px; --flight-mid-y: 0px; position: absolute; z-index: 60; pointer-events: none; object-fit: contain; filter: drop-shadow(0 5px 5px rgb(59 39 28 / .2)); opacity: .32; transform: translate3d(-50%, -50%, 0) rotate(-8deg) scale(.88); will-change: transform, opacity; }
+.flying-sushi-slice.is-flying { animation: sushi-slice-flight 600ms cubic-bezier(.18, .82, .24, 1) both; }
+.flying-shrimp-head { --flight-x: 0px; --flight-y: 0px; --flight-mid-x: 0px; --flight-mid-y: 0px; position: absolute; z-index: 64; pointer-events: none; object-fit: contain; opacity: 1; filter: drop-shadow(0 5px 4px rgb(59 39 28 / .25)); transform: translate3d(-50%, -50%, 0) rotate(-12deg) scale(1); will-change: transform, opacity; }
+.flying-shrimp-head.is-flying { animation: shrimp-head-flight 620ms cubic-bezier(.18, .82, .24, 1) both; }
+.flying-completed-item { --flight-lift: 22px; --flight-turn: 4deg; --flight-x: 0px; --flight-y: 0px; --flight-mid-x: 0px; --flight-mid-y: 0px; --flight-near-x: 0px; --flight-near-y: 0px; position: absolute; z-index: 61; pointer-events: none; object-fit: contain; opacity: .16; filter: drop-shadow(0 4px 4px rgb(59 39 28 / .2)); transform: translate3d(-50%, -50%, 0) rotate(-7deg) scale(.76); will-change: transform, opacity; }
 .flying-completed-item.rice { --flight-lift: 18px; --flight-turn: 3deg; }
 .flying-completed-item.sushi { --flight-lift: 26px; --flight-turn: 5deg; }
 .flying-completed-item.drink { --flight-lift: 15px; --flight-turn: -3deg; }
 .flying-completed-item.is-flying { animation: completed-item-flight 780ms cubic-bezier(.16, .84, .22, 1) both; }
-@keyframes completed-item-flight { 0% { opacity: .16; transform: translate(-50%, -50%) rotate(-7deg) scale(.76); } 52% { opacity: 1; transform: translate(-50%, calc(-50% - var(--flight-lift))) rotate(var(--flight-turn)) scale(1.1); } 78% { opacity: 1; transform: translate(-50%, calc(-50% + 2px)) rotate(0) scale(.96); } 100% { opacity: 1; transform: translate(-50%, -50%) rotate(0) scale(1); } }
+.customer-delivery-flight { --flight-x: 0px; --flight-y: 0px; --flight-mid-x: 0px; --flight-mid-y: 0px; position: absolute; z-index: 70; pointer-events: none; object-fit: contain; opacity: .9; filter: drop-shadow(0 4px 3px rgb(59 39 28 / .28)); transform: translate3d(-50%, -50%, 0) rotate(-7deg) scale(1); will-change: transform, opacity; }
+.customer-delivery-flight.is-flying { animation: customer-delivery-flight 240ms cubic-bezier(.2, .9, .26, 1) both; }
+.customer-delivery-flight.is-drink { filter: drop-shadow(0 3px 2px rgb(59 39 28 / .25)); }
+@keyframes completed-item-flight { 0% { opacity: .16; transform: translate3d(-50%, -50%, 0) rotate(-7deg) scale(.76); } 52% { opacity: 1; transform: translate3d(calc(-50% + var(--flight-mid-x)), calc(-50% + var(--flight-mid-y) - var(--flight-lift)), 0) rotate(var(--flight-turn)) scale(1.1); } 78% { opacity: 1; transform: translate3d(calc(-50% + var(--flight-near-x)), calc(-50% + var(--flight-near-y) + 2px), 0) rotate(0) scale(.96); } 100% { opacity: 1; transform: translate3d(calc(-50% + var(--flight-x)), calc(-50% + var(--flight-y)), 0) rotate(0) scale(1); } }
+@keyframes sushi-slice-flight { 0% { opacity: .32; transform: translate3d(-50%, -50%, 0) rotate(-8deg) scale(.88); } 58% { opacity: 1; transform: translate3d(calc(-50% + var(--flight-mid-x)), calc(-50% + var(--flight-mid-y) - 12px), 0) rotate(-1deg) scale(1.08); } 100% { opacity: 1; transform: translate3d(calc(-50% + var(--flight-x)), calc(-50% + var(--flight-y)), 0) rotate(4deg) scale(1); } }
+@keyframes shrimp-head-flight { 0% { opacity: 1; transform: translate3d(-50%, -50%, 0) rotate(-12deg) scale(1); } 62% { opacity: .92; transform: translate3d(calc(-50% + var(--flight-mid-x)), calc(-50% + var(--flight-mid-y) - 16px), 0) rotate(44deg) scale(.8); } 100% { opacity: .18; transform: translate3d(calc(-50% + var(--flight-x)), calc(-50% + var(--flight-y)), 0) rotate(100deg) scale(.3); } }
+@keyframes customer-delivery-flight { 0% { opacity: .9; transform: translate3d(-50%, -50%, 0) rotate(-7deg) scale(1); } 62% { opacity: 1; transform: translate3d(calc(-50% + var(--flight-mid-x)), calc(-50% + var(--flight-mid-y) - 12px), 0) rotate(4deg) scale(.92); } 100% { opacity: 0; transform: translate3d(calc(-50% + var(--flight-x)), calc(-50% + var(--flight-y)), 0) rotate(7deg) scale(.6); } }
 .sushi-making-animation { position: absolute; z-index: 62; pointer-events: none; transform: translate(-50%, -50%); filter: drop-shadow(0 4px 3px rgb(59 39 28 / .2)); }
 .sushi-making-animation img { position: absolute; object-fit: contain; }
 .sushi-making-rice { bottom: 0; left: 3%; width: 94%; height: 76%; opacity: 0; transform: translateY(18%) scale(.78); }
@@ -181,6 +189,10 @@ button { font: inherit; }
 .stored-sushi-button:active { cursor: grabbing; }
 .stored-sushi-button.is-dragging { opacity: 0; }
 .stored-sushi-button img { display: block; width: 100%; height: 100%; object-fit: contain; transform: scale(1.12); filter: drop-shadow(0 1px 0 rgb(90 57 45 / .28)); }
+
+@media (hover: hover) and (pointer: fine) {
+  .sushi-slice-crop:hover, .stored-sushi-button:hover, .cup-station:hover { transform: translateY(-2%) scale(1.025); filter: brightness(1.06); }
+}
 
 .rice-station { left: 65.9%; top: 60%; width: 10.6%; height: 30%; cursor: pointer; }
 .trash-bin { left: 13.2%; top: 62%; z-index: 7; width: 11.2%; height: 27%; }
