@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#2caed1" />
     <title>海边寿司店 · 钓鱼</title>
-    <link rel="stylesheet" href="fishing.css?v=fishing-stock-v1-20260803" />
+    <link rel="stylesheet" href="fishing.css?v=fishing-gold-miner-v1-20260803" />
     <link rel="preload" as="image" href="assets/fishing-v2/sea-background.png" fetchpriority="high" />
   </head>
   <body>
@@ -24,12 +24,43 @@
         </div>
       </header>
 
-      <section class="fishing-scene" aria-label="木码头和海面">
+      <section id="fishing-scene" class="fishing-scene" aria-label="木码头和海面">
         <img class="fishing-pier" src="assets/fishing-v2/pier.png" alt="木码头" decoding="async" />
         <img class="fishing-basket" src="assets/fishing-v2/basket.png" alt="鱼篓" decoding="async" />
-        <img class="fishing-angler" src="assets/fishing-v2/fisherman.png" alt="站在码头上钓鱼的寿司店主" decoding="async" />
-        <div id="fishing-line" class="fishing-line" aria-hidden="true"></div>
-        <button id="bobber" class="fishing-bobber" type="button" aria-label="收线">
+
+        <!--
+          黄金矿工式钩子：钩组固定在鱼竿尖，而不是按屏幕的固定坐标摆放。
+          逻辑可直接修改 #hook-rig 的 --hook-angle / --hook-length，或切换状态类。
+        -->
+        <div id="angler-rig" class="angler-rig">
+          <img class="fishing-angler" src="assets/fishing-v2/fisherman.png" alt="站在码头上钓鱼的寿司店主" decoding="async" />
+          <span id="rod-tip" class="rod-tip" aria-hidden="true"></span>
+        </div>
+        <div id="hook-rig" class="gold-hook-rig" aria-hidden="true">
+          <div id="hook-arm" class="gold-hook-arm">
+            <div id="fishing-line" class="fishing-line"></div>
+            <div id="fishing-hook" class="fishing-hook">
+              <span class="fishing-hook-art">
+                <span class="fishing-hook-eye"></span>
+                <span class="fishing-hook-shank"></span>
+                <span class="fishing-hook-curve"></span>
+                <span class="fishing-hook-point"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- JS 将已解锁的鱼生成在这个水域里；每个目标使用 .fishing-target。 -->
+        <div id="fishing-targets" class="fishing-targets" aria-live="polite" aria-label="水中的鱼群"></div>
+        <template id="fishing-target-template">
+          <button class="fishing-target" type="button" data-fish-id="">
+            <span class="fishing-target-ripple" aria-hidden="true"></span>
+            <span class="fishing-target-body"><img src="" alt="" /></span>
+          </button>
+        </template>
+
+        <!-- 旧版浮标节点保留，避免已缓存的旧脚本报错；黄金矿工玩法不显示它。 -->
+        <button id="bobber" class="fishing-bobber" type="button" aria-label="收线" tabindex="-1" aria-hidden="true">
           <img src="assets/fishing-v2/bobber.png" alt="" decoding="async" />
         </button>
 
@@ -59,9 +90,9 @@
       </section>
 
       <footer class="fishing-controls">
-        <p id="fishing-instruction" aria-live="polite">点击放线，等浮标剧烈晃动时收线。</p>
+        <p id="fishing-instruction" aria-live="polite">钩子会来回摆动，瞄准鱼后点击发射。</p>
         <div>
-          <button id="fishing-button" class="fishing-primary-button" type="button">放线</button>
+          <button id="fishing-button" class="fishing-primary-button" type="button">发射钩子</button>
           <button id="finish-fishing-button" class="fishing-secondary-button" type="button">回店里</button>
         </div>
       </footer>
@@ -75,6 +106,6 @@
         </div>
       </section>
     </main>
-    <script src="fishing.js?v=fishing-stock-v1-20260803"></script>
+    <script src="fishing.js?v=fishing-gold-miner-v1-20260803"></script>
   </body>
 </html>

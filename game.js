@@ -150,7 +150,7 @@ async function enterFishing() {
       fishingMarkupReady,
       fishingAssetsReady,
       waitForMenuTransition(),
-      loadStylesheet('fishing-scene-style', 'fishing.css?v=fishing-stock-v1-20260803'),
+      loadStylesheet('fishing-scene-style', 'fishing.css?v=fishing-gold-miner-v1-20260803'),
     ]);
     const fishingDocument = new DOMParser().parseFromString(fishingMarkup, 'text/html');
     const fishingStage = fishingDocument.querySelector('main');
@@ -160,7 +160,7 @@ async function enterFishing() {
     document.title = '海边寿司店 · 钓鱼';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'fishing.js?v=fishing-stock-v1-20260803';
+    fishingScript.src = 'fishing.js?v=fishing-gold-miner-v1-20260803';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {
