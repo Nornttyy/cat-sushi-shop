@@ -1,17 +1,15 @@
 const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
-const MAX_RAW_FISH = 99;
-const FISH_BASKET_CAPACITY = 12;
-const MAX_CATCHES_PER_TRIP = 5;
+const MAX_RAW_FISH = Number.MAX_SAFE_INTEGER;
 const SWING_MIN_ANGLE = 4;
 const SWING_MAX_ANGLE = 70;
 const SWING_SPEED = 54;
 const TARGET_COUNT = 4;
 const FISH_SPAWN_SLOTS = [
-  { angle: 64, distance: 0.58 },
-  { angle: 52, distance: 0.74 },
-  { angle: 67, distance: 0.8 },
-  { angle: 58, distance: 0.9 },
+  { angle: 67, distance: 0.7 },
+  { angle: 57, distance: 0.73 },
+  { angle: 67, distance: 0.84 },
+  { angle: 62, distance: 0.93 },
 ];
 
 const FISH_CATALOG = {
@@ -51,6 +49,7 @@ const FISH_IDS = Object.keys(FISH_CATALOG);
 const $ = (selector) => document.querySelector(selector);
 
 const fishingScene = $('#fishing-scene');
+const fishingPier = $('.fishing-pier');
 const rodTip = $('#rod-tip');
 const hookRig = $('#hook-rig');
 const hookArm = $('#hook-arm');
@@ -153,7 +152,7 @@ function setInstruction(text, speechText = text) {
 }
 
 function catchableFish() {
-  return state.unlockedFish.filter((id) => state.rawFish[id] < FISH_BASKET_CAPACITY);
+  return state.unlockedFish;
 }
 
 function weightedFish(pool = catchableFish()) {
@@ -172,6 +171,56 @@ function getSceneRect() {
 
 function getWaterRect() {
   return fishingTargets.getBoundingClientRect();
+}
+
+function waterPointInScene(x, y) {
+  const sceneRect = getSceneRect();
+  const waterRect = getWaterRect();
+  return {
+    x: waterRect.left - sceneRect.left + (x * waterRect.width),
+    y: waterRect.top - sceneRect.top + (y * waterRect.height),
+  };
+}
+
+function getSafeWaterBounds() {
+  const sceneRect = getSceneRect();
+  const waterRect = getWaterRect();
+  if (!sceneRect.width || !sceneRect.height || !waterRect.width || !waterRect.height) {
+    return { minX: 0.56, maxX: 0.88, minY: 0.17, maxY: 0.9 };
+  }
+
+  // The target layer covers the usable sea, but the dock overlaps its lower
+  // left edge. Use the dock's real rendered rect plus a fish-sized clearance
+  // so a swimming fish never crosses onto the pier or shoreline.
+  const pierRect = fishingPier?.getBoundingClientRect();
+  const waterLeft = waterRect.left - sceneRect.left;
+  const pierRight = pierRect ? pierRect.right - sceneRect.left : 0;
+  const fishClearance = Math.max(34, Math.min(sceneRect.width * 0.085, waterRect.width * 0.16));
+  const minX = clamp(
+    Math.max(0.1, (pierRight + fishClearance - waterLeft) / waterRect.width),
+    0.1,
+    0.7,
+  );
+
+  return { minX, maxX: 0.88, minY: 0.17, maxY: 0.9 };
+}
+
+function isInsideSafeWater(x, y, bounds = getSafeWaterBounds()) {
+  return x >= bounds.minX && x <= bounds.maxX && y >= bounds.minY && y <= bounds.maxY;
+}
+
+function isWithinHookSweep(x, y) {
+  const point = waterPointInScene(x, y);
+  const deltaX = point.x - state.anchor.x;
+  const deltaY = point.y - state.anchor.y;
+  const distance = Math.hypot(deltaX, deltaY);
+  const angle = Math.atan2(deltaX, deltaY) * (180 / Math.PI);
+  return deltaX > 0
+    && deltaY > 0
+    && angle >= SWING_MIN_ANGLE + 1
+    && angle <= SWING_MAX_ANGLE - 1
+    && distance >= idleRopeLength() + 24
+    && distance <= maxRopeLength() * 0.99;
 }
 
 function idleRopeLength() {
@@ -224,22 +273,19 @@ function renderFishStocks() {
     const count = state.rawFish[id];
     item.classList.toggle('is-locked', !unlocked);
     $(`#${id}-count`).textContent = count;
-    $(`#${id}-status`).textContent = unlocked
-      ? count >= FISH_BASKET_CAPACITY ? '鱼篓已满' : '海里可抓'
-      : '未解锁';
+    $(`#${id}-status`).textContent = unlocked ? '海里可抓' : '未解锁';
   });
-  sessionCatchCount.textContent = `${state.totalCaught} / ${MAX_CATCHES_PER_TRIP} 份`;
+  sessionCatchCount.textContent = `${state.totalCaught} 份`;
 }
 
 function renderControls() {
-  const tripFull = state.totalCaught >= MAX_CATCHES_PER_TRIP;
-  const canCast = state.phase === 'aiming' && !state.ended && !tripFull && catchableFish().length > 0 && state.targets.length > 0;
+  const canCast = state.phase === 'aiming' && !state.ended && catchableFish().length > 0 && state.targets.length > 0;
   fishingButton.disabled = !canCast;
   fishingButton.textContent = state.phase === 'extending'
     ? '钩子出发中'
     : state.phase === 'retracting'
       ? state.activeTarget ? '正在拉回' : '正在收线'
-      : tripFull ? '本趟收获已满' : catchableFish().length ? '发射钩子' : '没有可抓的鱼';
+      : catchableFish().length ? '发射钩子' : '没有可抓的鱼';
   finishFishingButton.disabled = state.ended || state.phase !== 'aiming';
   finishFishingButton.title = state.phase === 'aiming' ? '带着今天的收获回店里' : '先等钩子收回来';
 }
@@ -268,7 +314,7 @@ function targetsAreTooClose(x, y) {
   return state.targets.some((target) => {
     if (target === state.activeTarget) return false;
     const distance = Math.hypot(target.x - x, target.baseY - y);
-    return distance < 0.14;
+    return distance < 0.115;
   });
 }
 
@@ -280,6 +326,7 @@ function createTarget(type) {
   const waterRect = getWaterRect();
   const waterLeft = waterRect.left - sceneRect.left;
   const waterTop = waterRect.top - sceneRect.top;
+  const bounds = getSafeWaterBounds();
   let x = 0.5;
   let y = 0.62;
   let slotIndex = -1;
@@ -288,9 +335,9 @@ function createTarget(type) {
     .map((slot, index) => ({ slot, index }))
     .filter(({ index }) => !occupiedSlots.has(index));
 
-  // Spawn fish inside the actual sweep cone rather than across the whole
-  // screen. Every target starts in reachable open water, not in the pier or
-  // behind the stock card.
+  // Spawn fish inside the hook's sweep cone and the real open-water part of
+  // the target layer. This keeps every fish reachable without letting it
+  // start on the dock.
   for (const candidate of availableSlots) {
     const angle = (candidate.slot.angle + randomBetween(-1.7, 1.7)) * (Math.PI / 180);
     const length = maxRopeLength() * (candidate.slot.distance + randomBetween(-0.018, 0.018));
@@ -298,14 +345,29 @@ function createTarget(type) {
     const pointY = state.anchor.y + (Math.cos(angle) * length);
     const nextX = (pointX - waterLeft) / waterRect.width;
     const nextY = (pointY - waterTop) / waterRect.height;
-    const safelyBeyondPier = pointX > sceneRect.width * 0.53 && pointY > state.anchor.y + 66;
-    if (nextX < 0.08 || nextX > 0.92 || nextY < 0.12 || nextY > 0.95 || !safelyBeyondPier) continue;
+    if (!isInsideSafeWater(nextX, nextY, bounds) || !isWithinHookSweep(nextX, nextY)) continue;
     if (targetsAreTooClose(nextX, nextY)) continue;
     x = nextX;
     y = nextY;
     slotIndex = candidate.index;
     break;
   }
+
+  // A responsive layout can make one of the preset slots unavailable. Fill
+  // it with another point that is both in the water and inside the hook arc,
+  // rather than falling back to a coordinate that may sit on the pier.
+  if (slotIndex < 0) {
+    for (let attempt = 0; attempt < 48; attempt += 1) {
+      const nextX = randomBetween(bounds.minX, bounds.maxX);
+      const nextY = randomBetween(bounds.minY, bounds.maxY);
+      if (!isWithinHookSweep(nextX, nextY) || targetsAreTooClose(nextX, nextY)) continue;
+      x = nextX;
+      y = nextY;
+      break;
+    }
+  }
+
+  if (!isInsideSafeWater(x, y, bounds) || !isWithinHookSweep(x, y) || targetsAreTooClose(x, y)) return null;
 
   const element = fishingTargetTemplate.content.firstElementChild.cloneNode(true);
   const image = element.querySelector('img');
@@ -379,25 +441,26 @@ function applyTargetPosition(target) {
 }
 
 function updateTargets(deltaSeconds) {
+  const bounds = getSafeWaterBounds();
   state.targets.forEach((target) => {
     if (target === state.activeTarget) return;
+    target.baseY = clamp(target.baseY, bounds.minY, bounds.maxY);
     target.x += target.direction * target.speed * deltaSeconds;
-    if (target.x < 0.06 || target.x > 0.94) {
-      target.x = clamp(target.x, 0.06, 0.94);
+    if (target.x < bounds.minX || target.x > bounds.maxX) {
+      target.x = clamp(target.x, bounds.minX, bounds.maxX);
       target.direction *= -1;
     }
     target.wobblePhase += target.wobbleSpeed * deltaSeconds;
-    target.y = clamp(target.baseY + (Math.sin(target.wobblePhase) * target.wobble), 0.12, 0.9);
+    target.y = clamp(target.baseY + (Math.sin(target.wobblePhase) * target.wobble), bounds.minY, bounds.maxY);
     applyTargetPosition(target);
   });
 }
 
 function targetPositionInScene(target) {
-  const sceneRect = getSceneRect();
+  const point = waterPointInScene(target.x, target.y);
   const waterRect = getWaterRect();
   return {
-    x: waterRect.left - sceneRect.left + (target.x * waterRect.width),
-    y: waterRect.top - sceneRect.top + (target.y * waterRect.height),
+    ...point,
     radius: Math.max(22, Math.min(waterRect.width, waterRect.height) * FISH_CATALOG[target.type].hitRadius),
   };
 }
@@ -441,7 +504,6 @@ function awardCaughtFish(target) {
   if (!target || target.captureToken !== state.hookToken || state.awardedToken === target.captureToken) return false;
   state.awardedToken = target.captureToken;
   const type = target.type;
-  if (state.rawFish[type] >= FISH_BASKET_CAPACITY) return false;
 
   const nextRawFish = { ...state.rawFish, [type]: state.rawFish[type] + 1 };
   if (!persistRawFish(nextRawFish)) {
@@ -466,12 +528,7 @@ function finishRetraction() {
   if (caughtTarget) {
     caughtTarget.element.remove();
     state.targets = state.targets.filter((target) => target !== caughtTarget);
-    const awarded = awardCaughtFish(caughtTarget);
-    if (awarded && (state.totalCaught >= MAX_CATCHES_PER_TRIP || !catchableFish().length)) {
-      render();
-      finishFishing({ auto: true });
-      return;
-    }
+    awardCaughtFish(caughtTarget);
   } else {
     setInstruction('钩子收回来了，继续瞄准水里的鱼。', '再试一次，这次一定能抓到。');
   }
@@ -552,7 +609,7 @@ function castHook() {
   renderControls();
 }
 
-function finishFishing({ auto = false } = {}) {
+function finishFishing() {
   if (state.ended) return;
   if (state.phase !== 'aiming') {
     setInstruction('钩子还在水里，收回来后才能回店里。', '先把钩子收回来吧。');
@@ -562,9 +619,7 @@ function finishFishing({ auto = false } = {}) {
   stopAnimationLoop();
   const total = state.totalCaught;
   resultCatchCount.textContent = total;
-  resultTitle.textContent = auto
-    ? '这一趟收获装满啦！'
-    : total ? '这次钓得不错！' : '下次一定会抓到！';
+  resultTitle.textContent = total ? '这次钓得不错！' : '下次一定会抓到！';
   resultOverlay.classList.remove('is-hidden');
   window.requestAnimationFrame(() => backToKitchenButton.focus());
 }
@@ -587,10 +642,8 @@ function initializeFishing() {
   state.ropeLength = idleRopeLength();
   syncHookAnchor();
 
-  if (state.unlockedFish.length && catchableFish().length) {
+  if (state.unlockedFish.length) {
     setInstruction('钩子会来回摆动，瞄准水里的鱼后点击发射。', '看准时机，把新鲜食材抓回来！');
-  } else if (state.unlockedFish.length) {
-    setInstruction('鱼篓已经满了，先回店里把食材用掉吧。', '鱼篓装不下啦，先做点寿司。');
   } else {
     setInstruction('先回店里购买一种鱼的钓点，再来这里抓鱼。', '玉子烧够用，但鱼要先买钓点。');
   }
@@ -617,6 +670,7 @@ window.addEventListener('resize', () => {
   if (!state.ended) {
     syncHookAnchor();
     state.ropeLength = Math.min(state.ropeLength, maxRopeLength());
+    updateTargets(0);
     renderHook();
   }
 });

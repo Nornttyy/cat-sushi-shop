@@ -1,10 +1,5 @@
-const MAX_SLICES = 12;
 const MAX_RICE = 8;
-const MAX_SUSHI = 8;
-const MAX_DRINKS = 6;
 const MAX_WAITING_CUSTOMERS = 2;
-const SLICE_COLUMNS = 4;
-const SLICE_ROWS = 3;
 const KITCHEN_ASSET_PATH = 'assets/restaurant/kitchen-layers/optimized/';
 const CUSTOMER_ASSET_PATH = 'assets/restaurant/customers/';
 const CUT_LINES = [0.3, 0.5, 0.7];
@@ -20,7 +15,7 @@ const TEA_PRICE = 14;
 const SHRIMP_BATCH_SIZE = 4;
 const SHRIMP_HEAD_CUT_X = 0.5;
 const RAW_FISH_IDS = ['salmon', 'tuna', 'shrimp'];
-const MAX_RAW_FISH = 99;
+const MAX_RAW_FISH = Number.MAX_SAFE_INTEGER;
 const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
 const SETTINGS_KEY = 'seaside-sushi-shop.settings.v1';
@@ -30,6 +25,33 @@ const SHOP_ITEMS = [
   { id: 'salmon', price: 180 },
   { id: 'shrimp', price: 260 },
   { id: 'tuna', price: 350 },
+];
+const STORAGE_UPGRADES = [
+  {
+    id: 'slices',
+    name: '鱼片架扩容',
+    asset: 'salmon-slice.png',
+    price: 180,
+    capacities: [12, 16],
+    grids: [{ columns: 4, rows: 3 }, { columns: 4, rows: 4 }],
+  },
+  {
+    id: 'sushi',
+    name: '寿司架扩容',
+    asset: 'tamago-nigiri.png',
+    price: 220,
+    capacities: [8, 12],
+    grids: [{ columns: 2, rows: 4 }, { columns: 3, rows: 4 }],
+  },
+  {
+    id: 'drinks',
+    name: '茶水架扩容',
+    asset: 'tea-cup-ready.png',
+    price: 140,
+    requiresTea: true,
+    capacities: [6, 8],
+    grids: [{ columns: 2, rows: 3 }, { columns: 2, rows: 4 }],
+  },
 ];
 const SUSHI_TYPES = {
   salmon: {
@@ -215,6 +237,40 @@ function shopItemName(shopItem) {
   return shopItem.name ?? sushiName(shopItem.id);
 }
 
+function storageUpgradeFor(id) {
+  return STORAGE_UPGRADES.find((upgrade) => upgrade.id === id) ?? null;
+}
+
+function normalizeStorageLevels(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  return Object.fromEntries(STORAGE_UPGRADES.map((upgrade) => [
+    upgrade.id,
+    asStoredCount(source[upgrade.id], upgrade.capacities.length - 1),
+  ]));
+}
+
+function storageLevelFor(id, levels = state.storageLevels) {
+  const upgrade = storageUpgradeFor(id);
+  if (!upgrade) return 0;
+  return asStoredCount(levels?.[id], upgrade.capacities.length - 1);
+}
+
+function storageCapacityFor(id, levels = state.storageLevels) {
+  const upgrade = storageUpgradeFor(id);
+  if (!upgrade) return 0;
+  return upgrade.capacities[storageLevelFor(id, levels)] ?? upgrade.capacities[0];
+}
+
+function storageGridFor(id, levels = state.storageLevels) {
+  const upgrade = storageUpgradeFor(id);
+  if (!upgrade) return { columns: 1, rows: 1 };
+  return upgrade.grids[storageLevelFor(id, levels)] ?? upgrade.grids[0];
+}
+
+function storageUpgradeIsMaxed(upgrade) {
+  return storageLevelFor(upgrade.id) >= upgrade.capacities.length - 1;
+}
+
 const state = {
   salmonOnBoard: false,
   shrimpOnBoard: false,
@@ -246,6 +302,7 @@ const state = {
   shopPanelOpen: false,
   unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS],
   rawFish: { salmon: 0, tuna: 0, shrimp: 0 },
+  storageLevels: { slices: 0, sushi: 0, drinks: 0 },
   teaUnlocked: false,
   shopOpen: true,
   gamePaused: false,
@@ -376,6 +433,7 @@ function buildSaveSnapshot() {
     version: SAVE_VERSION,
     cash: asStoredCount(state.cash, 9_999_999),
     unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isKnownSushiId))],
+    storageLevels: normalizeStorageLevels(state.storageLevels),
     teaUnlocked: Boolean(state.teaUnlocked),
     shopOpen: Boolean(state.shopOpen),
     inventory: {
@@ -425,9 +483,10 @@ function restoreGame() {
       : [];
     const unlockedIngredients = [...new Set([...INITIAL_UNLOCKED_INGREDIENTS, ...savedUnlocks])];
     const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
+    const storageLevels = normalizeStorageLevels(saved.storageLevels);
     const rawFish = normalizeRawFish(inventory.rawFish);
-    const sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, MAX_SLICES);
-    const sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, MAX_SUSHI);
+    const sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, storageCapacityFor('slices', storageLevels));
+    const sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, storageCapacityFor('sushi', storageLevels));
     const teaUnlocked = Boolean(saved.teaUnlocked);
     const shopOpen = typeof saved.shopOpen === 'boolean' ? saved.shopOpen : true;
 
@@ -455,13 +514,14 @@ function restoreGame() {
       sushiTypes,
       cupOnMachine: false,
       drinkPouring: false,
-      drinksStored: teaUnlocked ? asStoredCount(inventory.tea, MAX_DRINKS) : 0,
+      drinksStored: teaUnlocked ? asStoredCount(inventory.tea, storageCapacityFor('drinks', storageLevels)) : 0,
       incomingDrinks: 0,
       drinkVersion: 0,
       sashimiPickerOpen: false,
       shopPanelOpen: false,
       unlockedIngredients,
       rawFish,
+      storageLevels,
       teaUnlocked,
       shopOpen,
       gamePaused: false,
@@ -488,6 +548,7 @@ const sashimiChoices = Array.from(document.querySelectorAll('.sashimi-choice'));
 const ingredientShopToggle = document.querySelector('#ingredient-shop-toggle');
 const ingredientShopPanel = document.querySelector('#ingredient-shop-panel');
 const ingredientShopItems = document.querySelector('#ingredient-shop-items');
+const storageUpgradeItems = document.querySelector('#storage-upgrade-items');
 const riceBin = document.querySelector('#rice-bin');
 const boardStation = document.querySelector('.board-station');
 const assemblyStation = document.querySelector('.assembly-station');
@@ -923,7 +984,7 @@ function makeSushi(ingredientId = 'salmon') {
     setMessage('先点击饭盒拿一团米饭。');
     return;
   }
-  if (state.sushiStored >= MAX_SUSHI) {
+  if (state.sushiStored >= storageCapacityFor('sushi')) {
     setMessage('寿司架满了，先出餐再继续制作。');
     return;
   }
@@ -941,6 +1002,7 @@ function makeSushi(ingredientId = 'salmon') {
   const targetRect = sushiRack.getBoundingClientRect();
   const targetIndex = state.sushiStored - 1;
   const animationVersion = state.flightVersion;
+  const sushiGrid = storageGridFor('sushi');
   const makingSushi = playSushiMakingAnimation(sushiType.id);
   setMessage(`正在捏制${sushiType.name}寿司。`);
   render();
@@ -953,8 +1015,8 @@ function makeSushi(ingredientId = 'salmon') {
       sourceRect: makingSushi.sourceRect,
       targetRect,
       targetIndex,
-      columns: 2,
-      rows: 4,
+      columns: sushiGrid.columns,
+      rows: sushiGrid.rows,
       gap: 0.04,
       displayScale: 1.12,
       onFinish: () => {
@@ -1093,6 +1155,61 @@ function shopPreviewAsset(ingredientId) {
     : sushiAsset(ingredientId, 'loin');
 }
 
+function storageUpgradePreviewAsset(upgrade) {
+  return `${KITCHEN_ASSET_PATH}${upgrade.asset}`;
+}
+
+function renderStorageUpgrades() {
+  storageUpgradeItems.replaceChildren();
+
+  STORAGE_UPGRADES.forEach((upgrade) => {
+    const level = storageLevelFor(upgrade.id);
+    const currentCapacity = storageCapacityFor(upgrade.id);
+    const maxed = storageUpgradeIsMaxed(upgrade);
+    const nextCapacity = maxed ? currentCapacity : upgrade.capacities[level + 1];
+    const needsTea = Boolean(upgrade.requiresTea && !isTeaUnlocked());
+    const canAfford = state.cash >= upgrade.price;
+    const item = document.createElement('article');
+    const image = document.createElement('img');
+    const detail = document.createElement('div');
+    const name = document.createElement('b');
+    const price = document.createElement('span');
+    const button = document.createElement('button');
+
+    item.className = `ingredient-shop-item storage-upgrade-item${level ? ' is-owned' : ''}${maxed ? ' is-maxed' : ''}`;
+    image.src = storageUpgradePreviewAsset(upgrade);
+    image.alt = upgrade.name;
+    image.draggable = false;
+    name.textContent = upgrade.name;
+    price.textContent = maxed
+      ? `已扩至 ${currentCapacity} 格`
+      : needsTea
+        ? '先购买茶饮配方'
+        : `${currentCapacity} → ${nextCapacity} 格 · ¥${upgrade.price}`;
+    detail.append(name, price);
+
+    button.type = 'button';
+    button.disabled = maxed || needsTea || !canAfford;
+    button.textContent = maxed
+      ? '已扩到最大'
+      : needsTea
+        ? '先买茶饮配方'
+        : canAfford
+          ? `扩容 ¥${upgrade.price}`
+          : `余额不足 ¥${upgrade.price}`;
+    button.title = maxed
+      ? `${upgrade.name}已扩到最大`
+      : needsTea
+        ? '先购买茶饮配方，才能扩容茶水架'
+        : canAfford
+          ? `把${upgrade.name}从 ${currentCapacity} 格扩到 ${nextCapacity} 格`
+          : `余额不足，还差 ¥${upgrade.price - state.cash}`;
+    button.addEventListener('click', () => buyStorageUpgrade(upgrade.id));
+    item.append(image, detail, button);
+    storageUpgradeItems.append(item);
+  });
+}
+
 function renderIngredientShop() {
   const isOpen = state.shopPanelOpen;
   show(ingredientShopPanel, isOpen);
@@ -1136,6 +1253,8 @@ function renderIngredientShop() {
     item.append(image, detail, button);
     ingredientShopItems.append(item);
   });
+
+  renderStorageUpgrades();
 }
 
 function toggleIngredientShop() {
@@ -1167,6 +1286,42 @@ function buyIngredient(ingredientId) {
   // refresh or an interrupted scene change.
   if (!saveGame()) scheduleSave();
   render();
+}
+
+function buyStorageUpgrade(storageId) {
+  if (state.gamePaused) return;
+  const upgrade = storageUpgradeFor(storageId);
+  if (!upgrade || storageUpgradeIsMaxed(upgrade)) return;
+  if (upgrade.requiresTea && !isTeaUnlocked()) {
+    setMessage('先购买茶饮配方，才能扩容茶水架。');
+    render();
+    return;
+  }
+  if (state.cash < upgrade.price) {
+    setMessage(`余额不足，还差 ¥${upgrade.price - state.cash} 才能扩容${upgrade.name}。`);
+    render();
+    return;
+  }
+
+  const previousCapacity = storageCapacityFor(storageId);
+  const nextLevel = storageLevelFor(storageId) + 1;
+  state.cash -= upgrade.price;
+  state.storageLevels = { ...state.storageLevels, [storageId]: nextLevel };
+  setMessage(`${upgrade.name}已扩容：${previousCapacity} → ${storageCapacityFor(storageId)} 格。`);
+  if (!saveGame()) scheduleSave();
+  render();
+}
+
+function renderStorageLayouts() {
+  const sliceGrid = storageGridFor('slices');
+  const sushiGrid = storageGridFor('sushi');
+  const drinkGrid = storageGridFor('drinks');
+  sliceRack.style.setProperty('--slice-columns', String(sliceGrid.columns));
+  sliceRack.style.setProperty('--slice-rows', String(sliceGrid.rows));
+  sushiRack.style.setProperty('--stock-columns', String(sushiGrid.columns));
+  sushiRack.style.setProperty('--stock-rows', String(sushiGrid.rows));
+  drinkRack.style.setProperty('--drink-columns', String(drinkGrid.columns));
+  drinkRack.style.setProperty('--drink-rows', String(drinkGrid.rows));
 }
 
 function renderShrimpBatch() {
@@ -1239,6 +1394,7 @@ function render() {
   const boardSushiType = sushiTypeFor(state.boardIngredientId);
   stageName.textContent = state.shopOpen ? '营业制作台' : '暂停营业';
   cashValue.textContent = `¥${state.cash}`;
+  renderStorageLayouts();
   freezerButton.classList.toggle('is-active', state.sashimiPickerOpen);
   sashimiPicker.classList.remove('is-picked');
   show(sashimiPicker, state.sashimiPickerOpen);
@@ -1467,7 +1623,7 @@ function prepareCupDrag(event) {
     setMessage('饮品机里已经有一只杯子。');
     return;
   }
-  if (state.drinksStored >= MAX_DRINKS) {
+  if (state.drinksStored >= storageCapacityFor('drinks')) {
     setMessage('饮料架满了，先等待出餐。');
     return;
   }
@@ -1487,7 +1643,7 @@ function prepareSliceDrag(event) {
     setMessage('先点击饭盒拿一团米饭。');
     return;
   }
-  if (state.sushiStored >= MAX_SUSHI) {
+  if (state.sushiStored >= storageCapacityFor('sushi')) {
     setMessage('寿司架满了，先出餐再继续制作。');
     return;
   }
@@ -1680,7 +1836,7 @@ function findCutLine(x, tolerance = 0.09) {
 }
 
 function hasRoomForCut(index) {
-  return MAX_SLICES - state.slicesReady >= CUT_SLICE_ORIGINS[index].length;
+  return storageCapacityFor('slices') - state.slicesReady >= CUT_SLICE_ORIGINS[index].length;
 }
 
 function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersion, ingredientId) {
@@ -1688,12 +1844,13 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
   const flyingSlice = document.createElement('img');
   const fromX = sourceRect.left + (sourceRect.width * sourceFraction) - stageRect.left;
   const fromY = sourceRect.top + (sourceRect.height * 0.54) - stageRect.top;
-  const column = sliceIndex % SLICE_COLUMNS;
-  const row = Math.floor(sliceIndex / SLICE_COLUMNS);
+  const sliceGrid = storageGridFor('slices');
+  const column = sliceIndex % sliceGrid.columns;
+  const row = Math.floor(sliceIndex / sliceGrid.columns);
   const columnGap = rackRect.width * 0.02;
   const rowGap = rackRect.height * 0.07;
-  const targetWidth = (rackRect.width - (columnGap * (SLICE_COLUMNS - 1))) / SLICE_COLUMNS;
-  const targetHeight = (rackRect.height - (rowGap * (SLICE_ROWS - 1))) / SLICE_ROWS;
+  const targetWidth = (rackRect.width - (columnGap * (sliceGrid.columns - 1))) / sliceGrid.columns;
+  const targetHeight = (rackRect.height - (rowGap * (sliceGrid.rows - 1))) / sliceGrid.rows;
   const toX = rackRect.left + (column * (targetWidth + columnGap)) + (targetWidth / 2) - stageRect.left;
   const toY = rackRect.top + (row * (targetHeight + rowGap)) + (targetHeight / 2) - stageRect.top;
 
@@ -1809,7 +1966,7 @@ function finishCutLine(index) {
   const sushiType = sushiTypeFor(ingredientId);
 
   state.cutLines[index] = true;
-  state.slicesReady = Math.min(MAX_SLICES, state.slicesReady + sliceOrigins.length);
+  state.slicesReady = Math.min(storageCapacityFor('slices'), state.slicesReady + sliceOrigins.length);
   state.sliceTypes.push(...Array(sliceOrigins.length).fill(ingredientId));
   state.incomingSlices += sliceOrigins.length;
   const completed = state.cutLines.filter(Boolean).length;
@@ -1823,7 +1980,7 @@ function finishCutLine(index) {
 }
 
 function hasRoomForShrimp() {
-  return MAX_SLICES - state.slicesReady >= 1;
+  return storageCapacityFor('slices') - state.slicesReady >= 1;
 }
 
 function finishShrimpPrep(shrimpId, sourceElement) {
@@ -1964,14 +2121,15 @@ drinkMachine.addEventListener('click', () => {
     state.incomingDrinks += 1;
     setMessage('茶做好了，已放进饮料架。');
     render();
+    const drinkGrid = storageGridFor('drinks');
     flyCompletedItem({
       className: 'drink',
       src: `${KITCHEN_ASSET_PATH}tea-cup-ready.png`,
       sourceRect,
       targetRect,
       targetIndex,
-      columns: 2,
-      rows: 3,
+      columns: drinkGrid.columns,
+      rows: drinkGrid.rows,
       gap: 0.1,
       onFinish: () => {
         state.incomingDrinks = Math.max(0, state.incomingDrinks - 1);
