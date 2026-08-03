@@ -71,7 +71,7 @@ button { font: inherit; }
 .customer.is-leaving { animation: customer-leave 1100ms cubic-bezier(.48, 0, .78, .18) both; }
 .customer.is-drop-target .customer-avatar { filter: brightness(1.1) drop-shadow(0 0 9px rgb(255 233 141 / .95)); }
 .customer-avatar { position: absolute; bottom: -4%; left: 50%; z-index: 1; display: block; width: 100%; height: 90%; object-fit: contain; transform: translateX(-50%); filter: drop-shadow(0 5px 2px rgb(76 47 34 / .2)); animation: customer-idle 3.4s ease-in-out infinite; will-change: transform; }
-.customer-order { position: absolute; top: 2%; right: -16%; z-index: 2; display: grid; grid-template-columns: auto 1.1em; align-items: center; gap: 3px; min-width: max-content; padding: 5px 8px 7px; border: 2px solid var(--ink); border-radius: 12px; color: var(--ink); background: #fff4d8; box-shadow: 0 3px 0 rgb(90 57 45 / .22); font-size: clamp(10px, .86vw, 14px); font-weight: 900; }
+.customer-order { position: absolute; top: 2%; right: -16%; z-index: 2; display: grid; grid-template-columns: auto 1.1em; align-items: center; gap: 3px; min-width: max-content; padding: 5px 8px 7px; border: 2px solid var(--ink); border-radius: 12px; color: var(--ink); background: #fff4d8; box-shadow: 0 3px 0 rgb(90 57 45 / .22); font-size: clamp(12px, 1vw, 16px); font-weight: 900; }
 .customer-order::after { content: ''; position: absolute; right: 18%; bottom: -7px; width: 12px; height: 12px; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); background: #fff4d8; transform: rotate(45deg); }
 .customer-order img { position: relative; z-index: 1; width: 1.25em; height: 1.25em; object-fit: contain; }
 .customer-order strong { position: relative; z-index: 1; font-size: .88em; white-space: nowrap; }
@@ -90,7 +90,7 @@ button { font: inherit; }
 .station img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .station:hover { filter: brightness(1.08); transform: translateY(-1.2%); }
 .station:active { transform: translateY(1.5%) scale(.98); }
-.station:focus-visible, .freezer-button:focus-visible, .board-salmon:focus-visible, .rice-portion:focus-visible, .sushi-slice-crop:focus-visible, .shrimp-head:focus-visible, .ingredient-shop-toggle:focus-visible { outline: 4px dashed var(--cream); outline-offset: 5px; }
+.station:focus-visible, .freezer-button:focus-visible, .board-salmon:focus-visible, .rice-portion:focus-visible, .sushi-slice-crop:focus-visible, .shrimp-head:focus-visible, .shrimp-batch-item:focus-visible, .ingredient-shop-toggle:focus-visible { outline: 4px dashed var(--cream); outline-offset: 5px; }
 
 .fish-station { left: 2.8%; top: 57%; width: 10.5%; height: 29%; }
 .fish-station > img { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; object-fit: fill; opacity: 1; }
@@ -114,22 +114,26 @@ button { font: inherit; }
 .guide-three { left: 70%; }
 .cut-guide.is-active { border-color: #ffcc63; filter: drop-shadow(0 0 3px #e26d48); }
 .cut-guide.is-cut { opacity: .2; border-color: #8d5b49; }
-.shrimp-cut-guide { position: absolute; top: 23%; right: 19%; left: 19%; display: none; border-top: 3px dashed #fff4d6; filter: drop-shadow(1px 1px 0 rgb(90 57 45 / .72)); }
-.board-salmon.is-shrimp .cut-guide { display: none; }
-.board-salmon.is-shrimp { left: 4%; top: -3%; width: 92%; height: 68%; }
-.board-salmon.is-shrimp .shrimp-cut-guide { display: block; }
-.board-salmon.is-shrimp-cutting img { filter: brightness(1.1) drop-shadow(0 0 4px rgb(255 210 108 / .75)); }
-.shrimp-head { position: absolute; top: 0; left: 19%; z-index: 4; width: 60%; height: 64%; padding: 0; cursor: grab; border: 0; background: transparent; touch-action: none; }
-.shrimp-head:active { cursor: grabbing; }
-.shrimp-head.is-dragging { opacity: 0; }
-.shrimp-head img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .25)); }
+.shrimp-cut-guide { display: none; }
+.shrimp-batch { position: absolute; top: -20%; left: -8%; z-index: 4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 1.5%; width: 116%; height: 88%; }
+.shrimp-batch-item { position: relative; min-width: 0; min-height: 0; padding: 0; cursor: ns-resize; border: 0; background: transparent; touch-action: none; user-select: none; }
+.shrimp-batch-item img { display: block; width: 100%; height: 100%; object-fit: contain; transform: scale(1.13); filter: drop-shadow(0 2px 1px rgb(59 39 28 / .24)); }
+.shrimp-head-cut-guide { position: absolute; top: 18%; bottom: 17%; left: 50%; pointer-events: none; border-left: 3px dashed #fff4d6; filter: drop-shadow(1px 1px 0 rgb(90 57 45 / .76)); }
+.shrimp-batch-item.is-cutting img { filter: brightness(1.12) drop-shadow(0 0 5px rgb(255 210 108 / .88)); }
+.shrimp-batch-item.is-cutting .shrimp-head-cut-guide { border-color: #ffcc63; filter: drop-shadow(0 0 3px #e26d48); }
+.shrimp-head-rack { position: absolute; bottom: -2%; left: 6%; z-index: 6; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2%; width: 88%; height: 30%; }
+.shrimp-head-rack .shrimp-head { display: block; width: 100%; height: 100%; padding: 0; cursor: grab; border: 0; background: transparent; touch-action: none; }
+.shrimp-head-rack .shrimp-head:active { cursor: grabbing; }
+.shrimp-head-rack .shrimp-head.is-dragging { opacity: 0; }
+.shrimp-head-rack .shrimp-head img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .25)); }
 .board-station.is-drop-target, .assembly-station.is-drop-target, .drink-machine-station.is-drop-target, .rice-rack.is-drop-target, .trash-bin.is-drop-target { filter: brightness(1.13) drop-shadow(0 0 7px rgb(255 232 150 / .9)); }
 .ingredient-drag-preview { position: absolute; z-index: 90; pointer-events: none; filter: drop-shadow(0 6px 3px rgb(59 39 28 / .28)); transform: translate(-50%, -58%) rotate(-6deg) scale(1.05); }
 .ingredient-drag-preview.ingredient { width: 14%; }
 .ingredient-drag-preview.slice { width: 7%; }
-.ingredient-drag-preview.shrimp-head { width: 5.4%; }
+.ingredient-drag-preview.shrimp-head { width: 5.4%; height: auto; aspect-ratio: 1 / 1; object-fit: contain; }
 .ingredient-drag-preview.cup { width: 3.5%; }
 .ingredient-drag-preview.serve { width: 6.2%; }
+.ingredient-drag-preview.serve-drink { width: 3.7%; height: auto; }
 .flying-sushi-slice { position: absolute; z-index: 60; pointer-events: none; object-fit: contain; filter: drop-shadow(0 5px 5px rgb(59 39 28 / .2)); transform: translate(-50%, -50%) rotate(-8deg); opacity: 1; transition: left 540ms cubic-bezier(.2, .8, .2, 1), top 540ms cubic-bezier(.2, .8, .2, 1), transform 540ms cubic-bezier(.2, .8, .2, 1); }
 .flying-sushi-slice.is-flying { transform: translate(-50%, -50%) rotate(4deg); }
 .flying-shrimp-head { position: absolute; z-index: 64; pointer-events: none; object-fit: contain; opacity: 1; filter: drop-shadow(0 5px 4px rgb(59 39 28 / .25)); transform: translate(-50%, -50%) rotate(-12deg) scale(1); transition: left 560ms cubic-bezier(.18, .82, .24, 1), top 560ms cubic-bezier(.18, .82, .24, 1), transform 560ms cubic-bezier(.18, .82, .24, 1), opacity 560ms ease; }
@@ -171,7 +175,8 @@ button { font: inherit; }
 .stored-sushi-button img { display: block; width: 100%; height: 100%; object-fit: contain; transform: scale(1.12); filter: drop-shadow(0 1px 0 rgb(90 57 45 / .28)); }
 
 .rice-station { left: 65.9%; top: 60%; width: 10.6%; height: 30%; cursor: pointer; }
-.trash-bin { left: 15.1%; top: 73%; z-index: 4; width: 8%; height: 17%; }
+.trash-bin { left: 13.2%; top: 62%; z-index: 7; width: 11.2%; height: 27%; }
+.trash-bin img { transform: scale(1.28); transform-origin: center; }
 .trash-bin.is-discarding img { animation: trash-bin-toss 620ms cubic-bezier(.18, .82, .24, 1) both; }
 .rice-station.is-dispensing img { animation: rice-bin-scoop 420ms cubic-bezier(.16, .84, .22, 1) both; }
 .drink-machine-station { left: 84%; top: 51%; z-index: 3; width: 11.4%; height: 28%; }

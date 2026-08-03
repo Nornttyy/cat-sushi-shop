@@ -89,7 +89,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=smooth-items-v13-20260803';
+    kitchenScript.src = 'kitchen.js?v=smooth-items-v14-20260803';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
