@@ -9,10 +9,7 @@ const CUT_SLICE_ORIGINS = [[0.15], [0.4], [0.6, 0.85]];
 const CUSTOMER_WAIT_MS = 75000;
 const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
 const CUSTOMER_EXIT_MS = 820;
-const COMPLETED_FLIGHT_MS = 820;
-const SLICE_FLIGHT_MS = 600;
 const SLICE_FLIGHT_STAGGER_MS = 70;
-const SHRIMP_HEAD_FLIGHT_MS = 620;
 const DRINK_FILL_MS = 760;
 const TEA_PRICE = 14;
 const SHRIMP_BATCH_SIZE = 4;
@@ -603,6 +600,7 @@ let customerSpawnTimer = null;
 const customerLeaveTimers = new Map();
 const customerExitTimers = new Map();
 const stationMotionTimers = new WeakMap();
+const stationMotionFrames = new WeakMap();
 
 stage.addEventListener('dragstart', (event) => event.preventDefault());
 
@@ -618,16 +616,42 @@ function motionDuration(duration) {
   return gameSettings.reducedMotion ? 1 : duration;
 }
 
+function finishFlightOnAnimationEnd(element, animationName, onFinish) {
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    element.removeEventListener('animationend', handleAnimationEnd);
+    element.remove();
+    onFinish?.();
+  };
+  const handleAnimationEnd = (event) => {
+    if (event.target !== element || event.animationName !== animationName) return;
+    finish();
+  };
+
+  element.addEventListener('animationend', handleAnimationEnd);
+  window.requestAnimationFrame(() => {
+    if (element.isConnected) element.classList.add('is-flying');
+  });
+}
+
 function playStationMotion(element, className, duration) {
   const previousTimer = stationMotionTimers.get(element);
+  const previousFrame = stationMotionFrames.get(element);
   if (previousTimer) clearGameplayTimeout(previousTimer);
+  if (previousFrame) window.cancelAnimationFrame(previousFrame);
   element.classList.remove(className);
-  void element.offsetWidth;
-  element.classList.add(className);
-  stationMotionTimers.set(element, setGameplayTimeout(() => {
-    element.classList.remove(className);
-    stationMotionTimers.delete(element);
-  }, duration));
+  const frame = window.requestAnimationFrame(() => {
+    stationMotionFrames.delete(element);
+    if (!element.isConnected) return;
+    element.classList.add(className);
+    stationMotionTimers.set(element, setGameplayTimeout(() => {
+      element.classList.remove(className);
+      stationMotionTimers.delete(element);
+    }, duration));
+  });
+  stationMotionFrames.set(element, frame);
 }
 
 function clearCustomerTimers() {
@@ -1131,8 +1155,7 @@ function renderSushiRack() {
     if (!item) {
       item = document.createElement('button');
       item.type = 'button';
-      item.className = 'stored-sushi stored-sushi-button stock-item-arriving';
-      item.addEventListener('animationend', () => item.classList.remove('stock-item-arriving'), { once: true });
+      item.className = 'stored-sushi stored-sushi-button';
       item.addEventListener('pointerdown', prepareSushiServeDrag);
       item.append(document.createElement('img'));
       sushiRack.append(item);
@@ -1156,8 +1179,6 @@ function renderStockRack(rack, count, className, src, alt, onPointerDown = null)
     if (existingItems[index]) continue;
     const item = document.createElement(onPointerDown ? 'button' : 'img');
     item.className = onPointerDown ? `${className} stored-sushi-button` : className;
-    item.classList.add('stock-item-arriving');
-    item.addEventListener('animationend', () => item.classList.remove('stock-item-arriving'), { once: true });
     if (onPointerDown) {
       const image = document.createElement('img');
       item.type = 'button';
@@ -1185,9 +1206,8 @@ function renderDrinks() {
     const drink = document.createElement('button');
     const image = document.createElement('img');
     drink.type = 'button';
-    drink.className = 'stored-drink stored-sushi-button stock-item-arriving';
+    drink.className = 'stored-drink stored-sushi-button';
     drink.setAttribute('aria-label', `第 ${index + 1} 杯茶，拖给顾客`);
-    drink.addEventListener('animationend', () => drink.classList.remove('stock-item-arriving'), { once: true });
     drink.addEventListener('pointerdown', prepareDrinkServeDrag);
     image.src = `${KITCHEN_ASSET_PATH}tea-cup-ready.png`;
     image.alt = '一杯茶';
@@ -1833,13 +1853,8 @@ function playCustomerDeliveryFlight({ src, fromClientX, fromClientY, targetRect,
   item.style.height = `${size}px`;
   item.style.setProperty('--flight-x', `${toX - fromX}px`);
   item.style.setProperty('--flight-y', `${toY - fromY}px`);
-  item.style.setProperty('--flight-mid-x', `${(toX - fromX) * 0.58}px`);
-  item.style.setProperty('--flight-mid-y', `${(toY - fromY) * 0.58}px`);
   stage.append(item);
-  window.requestAnimationFrame(() => {
-    item.classList.add('is-flying');
-    setGameplayTimeout(() => item.remove(), motionDuration(280));
-  });
+  finishFlightOnAnimationEnd(item, 'customer-delivery-flight');
 }
 
 function completeCustomerOrderItem(customer, item) {
@@ -2025,21 +2040,15 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
   flyingSlice.style.height = `${targetHeight}px`;
   flyingSlice.style.setProperty('--flight-x', `${toX - fromX}px`);
   flyingSlice.style.setProperty('--flight-y', `${toY - fromY}px`);
-  flyingSlice.style.setProperty('--flight-mid-x', `${(toX - fromX) * 0.58}px`);
-  flyingSlice.style.setProperty('--flight-mid-y', `${(toY - fromY) * 0.58}px`);
   const animationStagger = gameSettings.reducedMotion ? 0 : staggerMs;
   flyingSlice.style.animationDelay = `${animationStagger}ms`;
   stage.append(flyingSlice);
 
-  requestAnimationFrame(() => {
-    flyingSlice.classList.add('is-flying');
-    setGameplayTimeout(() => {
-      flyingSlice.remove();
-      if (flightVersion !== state.flightVersion) return;
-      state.incomingSlices = Math.max(0, state.incomingSlices - 1);
-      render();
-      if (!state.incomingSlices) scheduleSave();
-    }, motionDuration(SLICE_FLIGHT_MS + animationStagger + 40));
+  finishFlightOnAnimationEnd(flyingSlice, 'sushi-slice-flight', () => {
+    if (flightVersion !== state.flightVersion) return;
+    state.incomingSlices = Math.max(0, state.incomingSlices - 1);
+    render();
+    if (!state.incomingSlices) scheduleSave();
   });
 }
 
@@ -2068,18 +2077,21 @@ function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex,
   item.style.height = `${targetHeight * displayScale}px`;
   item.style.setProperty('--flight-x', `${toX - fromX}px`);
   item.style.setProperty('--flight-y', `${toY - fromY}px`);
-  item.style.setProperty('--flight-mid-x', `${(toX - fromX) * 0.52}px`);
-  item.style.setProperty('--flight-mid-y', `${(toY - fromY) * 0.52}px`);
-  item.style.setProperty('--flight-near-x', `${(toX - fromX) * 0.78}px`);
-  item.style.setProperty('--flight-near-y', `${(toY - fromY) * 0.78}px`);
+  if (className === 'rice') {
+    const distance = Math.hypot(toX - fromX, toY - fromY);
+    const lift = Math.min(Math.max(52, distance * 0.33), stageRect.height * 0.28);
+    for (let point = 1; point < 8; point += 1) {
+      const progress = point / 8;
+      const arcX = (toX - fromX) * progress;
+      const arcY = ((toY - fromY) * progress) - (lift * 4 * progress * (1 - progress));
+      item.style.setProperty(`--rice-flight-x-${point}`, `${arcX}px`);
+      item.style.setProperty(`--rice-flight-y-${point}`, `${arcY}px`);
+    }
+  }
   stage.append(item);
 
-  requestAnimationFrame(() => {
-    item.classList.add('is-flying');
-    setGameplayTimeout(() => {
-      item.remove();
-      if (flightVersion === state.flightVersion) onFinish();
-    }, motionDuration(COMPLETED_FLIGHT_MS));
+  finishFlightOnAnimationEnd(item, className === 'rice' ? 'rice-completed-flight' : 'completed-item-flight', () => {
+    if (flightVersion === state.flightVersion) onFinish();
   });
 }
 
@@ -2105,8 +2117,6 @@ function discardShrimpHead(sourceRect, headId) {
   head.style.height = `${headSize}px`;
   head.style.setProperty('--flight-x', `${toX - fromX}px`);
   head.style.setProperty('--flight-y', `${toY - fromY}px`);
-  head.style.setProperty('--flight-mid-x', `${(toX - fromX) * 0.64}px`);
-  head.style.setProperty('--flight-mid-y', `${(toY - fromY) * 0.64}px`);
 
   state.shrimpHeads = state.shrimpHeads.filter((shrimpHead) => shrimpHead.id !== headId);
   state.shrimpHeadDiscarding = true;
@@ -2114,16 +2124,12 @@ function discardShrimpHead(sourceRect, headId) {
   render();
   stage.append(head);
 
-  requestAnimationFrame(() => {
-    head.classList.add('is-flying');
-    setGameplayTimeout(() => {
-      head.remove();
-      if (animationVersion !== state.flightVersion) return;
-      state.shrimpHeadDiscarding = false;
-      setMessage(state.shrimpHeads.length ? '这个虾头已经处理好，剩下的也要丢进垃圾桶。' : '所有虾头都处理好了，可以再拿一批甜虾。');
-      render();
-      if (!state.shrimpHeads.length && !state.incomingSlices) scheduleSave();
-    }, motionDuration(SHRIMP_HEAD_FLIGHT_MS + 40));
+  finishFlightOnAnimationEnd(head, 'shrimp-head-flight', () => {
+    if (animationVersion !== state.flightVersion) return;
+    state.shrimpHeadDiscarding = false;
+    setMessage(state.shrimpHeads.length ? '这个虾头已经处理好，剩下的也要丢进垃圾桶。' : '所有虾头都处理好了，可以再拿一批甜虾。');
+    render();
+    if (!state.shrimpHeads.length && !state.incomingSlices) scheduleSave();
   });
 }
 
