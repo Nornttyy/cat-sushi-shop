@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=smooth-items-v15-20260803" />
+    <link rel="stylesheet" href="style.css?v=smooth-items-v16-20260803" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -90,11 +90,20 @@
 
       <div class="game-bottom-bar">
         <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击冰柜选择食材，把它放到切菜板。</span>
-        <button id="reset-button" type="button">重新备料</button>
+        <button id="game-pause-button" type="button" aria-pressed="false">暂停</button>
         <button id="pause-shop-button" type="button">暂停营业</button>
         <button id="open-shop-button" class="is-hidden" type="button">继续营业</button>
       </div>
+      <section id="game-pause-overlay" class="game-pause-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="game-pause-title">
+        <div class="game-pause-card">
+          <span>海边寿司店</span>
+          <b id="game-pause-title">游戏暂停</b>
+          <p>客人和制作进度都已暂停。</p>
+          <button id="resume-game-button" type="button">继续游戏</button>
+          <small>按 Esc 也能继续</small>
+        </div>
+      </section>
     </main>
-    <script src="kitchen.js?v=smooth-items-v15-20260803"></script>
+    <script src="kitchen.js?v=smooth-items-v16-20260803"></script>
   </body>
 </html>

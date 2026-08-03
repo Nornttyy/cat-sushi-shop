@@ -191,6 +191,7 @@ const state = {
   unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS],
   teaUnlocked: false,
   shopOpen: true,
+  gamePaused: false,
   cash: 0,
   customers: [],
   customerSerial: 0,
@@ -198,6 +199,60 @@ const state = {
 
 let lastSavedSnapshot = '';
 let saveTimer = null;
+let accumulatedPausedTime = 0;
+let pauseStartedAt = 0;
+const gameplayTimeouts = new Set();
+
+function gameplayNow() {
+  const now = performance.now();
+  const activePauseDuration = state.gamePaused ? now - pauseStartedAt : 0;
+  return now - accumulatedPausedTime - activePauseDuration;
+}
+
+function armGameplayTimeout(timer) {
+  if (timer.cleared || state.gamePaused || timer.handle !== null) return;
+  timer.startedAt = performance.now();
+  timer.handle = window.setTimeout(() => {
+    timer.handle = null;
+    gameplayTimeouts.delete(timer);
+    if (!timer.cleared) timer.callback();
+  }, timer.remaining);
+}
+
+function setGameplayTimeout(callback, delay) {
+  const timer = {
+    callback,
+    remaining: Math.max(0, delay),
+    startedAt: 0,
+    handle: null,
+    cleared: false,
+  };
+  gameplayTimeouts.add(timer);
+  armGameplayTimeout(timer);
+  return timer;
+}
+
+function clearGameplayTimeout(timer) {
+  if (!timer || timer.cleared) return;
+  timer.cleared = true;
+  if (timer.handle !== null) window.clearTimeout(timer.handle);
+  timer.handle = null;
+  gameplayTimeouts.delete(timer);
+}
+
+function pauseGameplayTimeouts() {
+  const now = performance.now();
+  gameplayTimeouts.forEach((timer) => {
+    if (timer.cleared || timer.handle === null) return;
+    window.clearTimeout(timer.handle);
+    timer.remaining = Math.max(0, timer.remaining - (now - timer.startedAt));
+    timer.handle = null;
+  });
+}
+
+function resumeGameplayTimeouts() {
+  [...gameplayTimeouts].forEach((timer) => armGameplayTimeout(timer));
+}
 
 function asStoredCount(value, max) {
   const parsed = Number(value);
@@ -271,17 +326,6 @@ function scheduleSave(delay = 180) {
   }, delay);
 }
 
-function clearGameSave() {
-  if (saveTimer) window.clearTimeout(saveTimer);
-  saveTimer = null;
-  lastSavedSnapshot = '';
-  try {
-    window.localStorage.removeItem(SAVE_KEY);
-  } catch {
-    // Storage can be unavailable in private browsing; the game still works normally.
-  }
-}
-
 function restoreGame() {
   try {
     const raw = window.localStorage.getItem(SAVE_KEY);
@@ -330,6 +374,7 @@ function restoreGame() {
       unlockedIngredients,
       teaUnlocked,
       shopOpen: true,
+      gamePaused: false,
       cash: asStoredCount(saved.cash, 9_999_999),
       customers: [],
       customerSerial: 0,
@@ -363,6 +408,9 @@ const trashBin = document.querySelector('#trash-bin');
 const sliceRack = document.querySelector('#slice-rack');
 const riceRack = document.querySelector('#rice-rack');
 const sushiRack = document.querySelector('#sushi-rack');
+const gamePauseButton = document.querySelector('#game-pause-button');
+const gamePauseOverlay = document.querySelector('#game-pause-overlay');
+const resumeGameButton = document.querySelector('#resume-game-button');
 const openShopButton = document.querySelector('#open-shop-button');
 const pauseShopButton = document.querySelector('#pause-shop-button');
 const shopStatus = document.querySelector('#shop-status');
@@ -389,22 +437,22 @@ function setMessage(text) {
 
 function playStationMotion(element, className, duration) {
   const previousTimer = stationMotionTimers.get(element);
-  if (previousTimer) window.clearTimeout(previousTimer);
+  if (previousTimer) clearGameplayTimeout(previousTimer);
   element.classList.remove(className);
   void element.offsetWidth;
   element.classList.add(className);
-  stationMotionTimers.set(element, window.setTimeout(() => {
+  stationMotionTimers.set(element, setGameplayTimeout(() => {
     element.classList.remove(className);
     stationMotionTimers.delete(element);
   }, duration));
 }
 
 function clearCustomerTimers() {
-  if (customerSpawnTimer) window.clearTimeout(customerSpawnTimer);
+  if (customerSpawnTimer) clearGameplayTimeout(customerSpawnTimer);
   customerSpawnTimer = null;
-  customerLeaveTimers.forEach((timer) => window.clearTimeout(timer));
+  customerLeaveTimers.forEach((timer) => clearGameplayTimeout(timer));
   customerLeaveTimers.clear();
-  customerExitTimers.forEach((timer) => window.clearTimeout(timer));
+  customerExitTimers.forEach((timer) => clearGameplayTimeout(timer));
   customerExitTimers.clear();
 }
 
@@ -422,7 +470,7 @@ function activeCustomerAvatar() {
 }
 
 function getPatience(customer) {
-  return Math.max(0, Math.min(100, ((CUSTOMER_WAIT_MS - (performance.now() - customer.arrivedAt)) / CUSTOMER_WAIT_MS) * 100));
+  return Math.max(0, Math.min(100, ((CUSTOMER_WAIT_MS - (gameplayNow() - customer.arrivedAt)) / CUSTOMER_WAIT_MS) * 100));
 }
 
 function createCustomerCard(customer) {
@@ -567,7 +615,7 @@ function fadeOutCustomer(customer, { holdMs = 0, scheduleNext = true } = {}) {
   const startFade = () => {
     customer.leaving = true;
     renderCustomers();
-    customerExitTimers.set(customer.id, window.setTimeout(() => {
+    customerExitTimers.set(customer.id, setGameplayTimeout(() => {
       customerExitTimers.delete(customer.id);
       const index = state.customers.findIndex((waitingCustomer) => waitingCustomer.id === customer.id);
       if (index !== -1) state.customers.splice(index, 1);
@@ -576,16 +624,16 @@ function fadeOutCustomer(customer, { holdMs = 0, scheduleNext = true } = {}) {
       if (scheduleNext) scheduleCustomer(950);
     }, CUSTOMER_EXIT_MS));
   };
-  customerExitTimers.set(customer.id, window.setTimeout(startFade, holdMs));
+  customerExitTimers.set(customer.id, setGameplayTimeout(startFade, holdMs));
 }
 
 function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
-  if (customerSpawnTimer) window.clearTimeout(customerSpawnTimer);
+  if (customerSpawnTimer) clearGameplayTimeout(customerSpawnTimer);
   customerSpawnTimer = null;
-  if (!state.shopOpen || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
-  customerSpawnTimer = window.setTimeout(() => {
+  if (!state.shopOpen || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
+  customerSpawnTimer = setGameplayTimeout(() => {
     customerSpawnTimer = null;
-    if (!state.shopOpen || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
+    if (!state.shopOpen || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
     const template = CUSTOMER_CATALOG[state.customerSerial % CUSTOMER_CATALOG.length];
     const orderItems = createCustomerOrder();
     const customer = {
@@ -593,13 +641,13 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
       id: `${state.customerSerial}-${Date.now()}`,
       orderItems,
       price: orderItems.reduce((total, item) => total + item.price, 0),
-      arrivedAt: performance.now(),
+      arrivedAt: gameplayNow(),
       served: false,
       leaving: false,
     };
     state.customerSerial += 1;
     state.customers.push(customer);
-    customerLeaveTimers.set(customer.id, window.setTimeout(() => customerLeaves(customer.id), CUSTOMER_WAIT_MS));
+    customerLeaveTimers.set(customer.id, setGameplayTimeout(() => customerLeaves(customer.id), CUSTOMER_WAIT_MS));
     setMessage(`${customer.name}来了，想要${orderSummary(orderItems)}。`);
     render();
     scheduleCustomer();
@@ -609,7 +657,7 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
 function customerLeaves(customerId) {
   const customer = state.customers.find((waitingCustomer) => waitingCustomer.id === customerId);
   customerLeaveTimers.delete(customerId);
-  if (!customer || customer.served || customer.leaving) return;
+  if (!customer || customer.served || customer.leaving || state.gamePaused) return;
   setMessage(`${customer.name}等太久离开了。`);
   fadeOutCustomer(customer);
 }
@@ -630,6 +678,51 @@ function resumeShop() {
   render();
   scheduleCustomer(550);
 }
+
+function pauseGame() {
+  if (state.gamePaused) return;
+  clearIngredientDrag();
+  state.activeCut = null;
+  state.activeShrimpCut = null;
+  pauseStartedAt = performance.now();
+  state.gamePaused = true;
+  pauseGameplayTimeouts();
+  setMessage('游戏已暂停。');
+  render();
+  window.requestAnimationFrame(() => resumeGameButton.focus());
+}
+
+function resumeGame() {
+  if (!state.gamePaused) return;
+  accumulatedPausedTime += performance.now() - pauseStartedAt;
+  pauseStartedAt = 0;
+  state.gamePaused = false;
+  resumeGameplayTimeouts();
+  setMessage('继续游戏。');
+  render();
+  window.requestAnimationFrame(() => gamePauseButton.focus());
+}
+
+function toggleGamePause() {
+  if (state.gamePaused) resumeGame();
+  else pauseGame();
+}
+
+function blockPausedGameInput(event) {
+  if (!state.gamePaused || event.target.closest?.('#game-pause-overlay')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}
+
+stage.addEventListener('pointerdown', blockPausedGameInput, true);
+stage.addEventListener('click', blockPausedGameInput, true);
+stage.addEventListener('keydown', blockPausedGameInput, true);
+
+window.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  toggleGamePause();
+}, true);
 
 function playSushiMakingAnimation(ingredientId) {
   const stageRect = stage.getBoundingClientRect();
@@ -671,6 +764,7 @@ function playSushiMakingAnimation(ingredientId) {
 }
 
 function makeSushi(ingredientId = 'salmon') {
+  if (state.gamePaused) return;
   const sushiType = sushiTypeFor(ingredientId);
   if (state.incomingSlices) {
     setMessage('等鱼片滑到旁边再制作寿司。');
@@ -705,7 +799,7 @@ function makeSushi(ingredientId = 'salmon') {
   const makingSushi = playSushiMakingAnimation(sushiType.id);
   setMessage(`正在捏制${sushiType.name}寿司。`);
   render();
-  window.setTimeout(() => {
+  setGameplayTimeout(() => {
     makingSushi.maker.remove();
     if (animationVersion !== state.flightVersion) return;
     flyCompletedItem({
@@ -886,11 +980,13 @@ function renderIngredientShop() {
 }
 
 function toggleIngredientShop() {
+  if (state.gamePaused) return;
   state.shopPanelOpen = !state.shopPanelOpen;
   render();
 }
 
 function buyIngredient(ingredientId) {
+  if (state.gamePaused) return;
   const shopItem = shopItemFor(ingredientId);
   if (!shopItem || isShopItemUnlocked(shopItem)) return;
   const itemName = shopItemName(shopItem);
@@ -966,6 +1062,10 @@ function renderShrimpHeads() {
 }
 
 function render() {
+  stage.classList.toggle('is-game-paused', state.gamePaused);
+  show(gamePauseOverlay, state.gamePaused);
+  gamePauseButton.textContent = state.gamePaused ? '继续游戏' : '暂停';
+  gamePauseButton.setAttribute('aria-pressed', String(state.gamePaused));
   sceneBackground.src = `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
   sceneBackground.alt = '海边寿司店后台';
   const firstCustomer = getActiveCustomer();
@@ -1034,6 +1134,9 @@ function moveDragPreview(event) {
 
 function clearIngredientDrag() {
   if (!ingredientDrag) return;
+  if (ingredientDrag.source.hasPointerCapture?.(ingredientDrag.pointerId)) {
+    ingredientDrag.source.releasePointerCapture(ingredientDrag.pointerId);
+  }
   ingredientDrag.source.classList.remove('is-dragging');
   ingredientDrag.preview.remove();
   boardStation.classList.remove('is-drop-target');
@@ -1046,6 +1149,7 @@ function clearIngredientDrag() {
 }
 
 function startIngredientDrag(event, type, requestedIngredientId = null) {
+  if (state.gamePaused) return;
   const source = event.currentTarget;
   event.preventDefault();
   if (ingredientDrag) return;
@@ -1127,6 +1231,7 @@ function canSelectSashimi(ingredientId = null) {
 }
 
 function openSashimiPicker() {
+  if (state.gamePaused) return;
   if (!canSelectSashimi()) return;
   state.sashimiPickerOpen = !state.sashimiPickerOpen;
   setMessage(state.sashimiPickerOpen ? '选择一种食材。' : '已收起食材选择。');
@@ -1148,6 +1253,7 @@ function dragSashimiFromPicker(event) {
 }
 
 function takeRice() {
+  if (state.gamePaused) return;
   if (state.riceStored >= MAX_RICE) {
     setMessage('米饭架已经存满 8 团。');
     return;
@@ -1268,7 +1374,7 @@ function completeCustomerOrderItem(customer, item) {
   }
 
   const leaveTimer = customerLeaveTimers.get(customer.id);
-  if (leaveTimer) window.clearTimeout(leaveTimer);
+  if (leaveTimer) clearGameplayTimeout(leaveTimer);
   customerLeaveTimers.delete(customer.id);
   customer.served = true;
   state.cash += customer.price;
@@ -1429,7 +1535,7 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
     flyingSlice.classList.add('is-flying');
   });
 
-  window.setTimeout(() => {
+  setGameplayTimeout(() => {
     flyingSlice.remove();
     if (flightVersion !== state.flightVersion) return;
     state.incomingSlices = Math.max(0, state.incomingSlices - 1);
@@ -1469,7 +1575,7 @@ function flyCompletedItem({ className, src, sourceRect, targetRect, targetIndex,
     item.classList.add('is-flying');
   });
 
-  window.setTimeout(() => {
+  setGameplayTimeout(() => {
     item.remove();
     if (flightVersion === state.flightVersion) onFinish();
   }, COMPLETED_FLIGHT_MS);
@@ -1504,7 +1610,7 @@ function discardShrimpHead(sourceRect, headId) {
     head.classList.add('is-flying');
   });
 
-  window.setTimeout(() => {
+  setGameplayTimeout(() => {
     head.remove();
     if (animationVersion !== state.flightVersion) return;
     state.shrimpHeadDiscarding = false;
@@ -1514,6 +1620,7 @@ function discardShrimpHead(sourceRect, headId) {
 }
 
 function finishCutLine(index) {
+  if (state.gamePaused) return;
   const sourceRect = boardSalmon.getBoundingClientRect();
   const rackRect = sliceRack.getBoundingClientRect();
   const sliceOrigins = CUT_SLICE_ORIGINS[index];
@@ -1541,6 +1648,7 @@ function hasRoomForShrimp() {
 }
 
 function finishShrimpPrep(shrimpId, sourceElement) {
+  if (state.gamePaused) return;
   const shrimp = state.shrimpBatch.find((batchItem) => batchItem.id === shrimpId && !batchItem.cut);
   if (!shrimp || !hasRoomForShrimp()) return;
   const sourceRect = sourceElement.getBoundingClientRect();
@@ -1652,6 +1760,7 @@ boardSalmon.addEventListener('keydown', (event) => {
 });
 
 drinkMachine.addEventListener('click', () => {
+  if (state.gamePaused) return;
   if (!isTeaUnlocked()) {
     setMessage('先在食材商店购买茶饮配方。');
     return;
@@ -1665,7 +1774,7 @@ drinkMachine.addEventListener('click', () => {
   const version = state.drinkVersion;
   setMessage('正在接茶。');
   render();
-  window.setTimeout(() => {
+  setGameplayTimeout(() => {
     if (version !== state.drinkVersion) return;
     const sourceRect = machineCup.getBoundingClientRect();
     const targetRect = drinkRack.getBoundingClientRect();
@@ -1694,22 +1803,8 @@ drinkMachine.addEventListener('click', () => {
   }, DRINK_FILL_MS);
 });
 
-document.querySelector('#reset-button').addEventListener('click', () => {
-  clearGameSave();
-  state.flightVersion += 1;
-  state.drinkVersion += 1;
-  clearCustomerTimers();
-  document.querySelectorAll('.flying-sushi-slice').forEach((slice) => slice.remove());
-  document.querySelectorAll('.flying-shrimp-head').forEach((head) => head.remove());
-  document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
-  document.querySelectorAll('.sushi-making-animation').forEach((item) => item.remove());
-  Object.assign(state, { salmonOnBoard: false, shrimpOnBoard: false, shrimpBatch: [], shrimpBatchSerial: 0, boardIngredientId: null, cutLines: [false, false, false], activeCut: null, cutStartY: 0, activeShrimpCut: null, shrimpCutStartY: 0, shrimpHeads: [], shrimpHeadDiscarding: false, slicesReady: 0, incomingSlices: 0, sliceTypes: [], riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, sushiTypes: [], cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, sashimiPickerOpen: false, shopPanelOpen: false, unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS], teaUnlocked: false, shopOpen: true, cash: 0, customers: [], customerSerial: 0 });
-  setMessage('制作台已整理，第一位客人马上就到。');
-  render();
-  saveGame();
-  scheduleCustomer(500);
-});
-
+gamePauseButton.addEventListener('click', toggleGamePause);
+resumeGameButton.addEventListener('click', resumeGame);
 pauseShopButton.addEventListener('click', pauseShop);
 openShopButton.addEventListener('click', resumeShop);
 

@@ -1,5 +1,8 @@
 const startButton = document.querySelector('#start-button');
+const resetSaveButton = document.querySelector('#reset-save-button');
+const saveResetStatus = document.querySelector('#save-reset-status');
 const menuStage = document.querySelector('.main-menu-stage');
+const MENU_SAVE_KEY = 'seaside-sushi-shop.save.v1';
 
 // 这些素材会在主菜单停留时悄悄进入浏览器缓存，进制作台时就不会一张张跳出来。
 const kitchenAssetSources = [
@@ -89,7 +92,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=smooth-items-v15-20260803';
+    kitchenScript.src = 'kitchen.js?v=smooth-items-v16-20260803';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -102,3 +105,12 @@ async function enterKitchen(event) {
 }
 
 startButton.addEventListener('click', enterKitchen);
+
+resetSaveButton.addEventListener('click', () => {
+  try {
+    window.localStorage.removeItem(MENU_SAVE_KEY);
+    saveResetStatus.textContent = '存档已重置，下次营业会从零开始。';
+  } catch {
+    saveResetStatus.textContent = '当前浏览器无法重置存档。';
+  }
+});
