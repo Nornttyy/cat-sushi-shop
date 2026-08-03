@@ -31,26 +31,41 @@ const STORAGE_UPGRADES = [
     id: 'slices',
     name: '鱼片架扩容',
     asset: 'salmon-slice.png',
-    price: 180,
-    capacities: [12, 16],
-    grids: [{ columns: 4, rows: 3 }, { columns: 4, rows: 4 }],
+    prices: [180, 360, 650],
+    capacities: [12, 16, 20, 24],
+    grids: [
+      { columns: 4, rows: 3 },
+      { columns: 4, rows: 4 },
+      { columns: 5, rows: 4 },
+      { columns: 6, rows: 4 },
+    ],
   },
   {
     id: 'sushi',
     name: '寿司架扩容',
     asset: 'tamago-nigiri.png',
-    price: 220,
-    capacities: [8, 12],
-    grids: [{ columns: 2, rows: 4 }, { columns: 3, rows: 4 }],
+    prices: [220, 450, 800],
+    capacities: [8, 12, 16, 20],
+    grids: [
+      { columns: 2, rows: 4 },
+      { columns: 3, rows: 4 },
+      { columns: 4, rows: 4 },
+      { columns: 4, rows: 5 },
+    ],
   },
   {
     id: 'drinks',
     name: '茶水架扩容',
     asset: 'tea-cup-ready.png',
-    price: 140,
+    prices: [140, 300, 550],
     requiresTea: true,
-    capacities: [6, 8],
-    grids: [{ columns: 2, rows: 3 }, { columns: 2, rows: 4 }],
+    capacities: [6, 8, 10, 12],
+    grids: [
+      { columns: 2, rows: 3 },
+      { columns: 2, rows: 4 },
+      { columns: 2, rows: 5 },
+      { columns: 3, rows: 4 },
+    ],
   },
 ];
 const SUSHI_TYPES = {
@@ -1167,8 +1182,9 @@ function renderStorageUpgrades() {
     const currentCapacity = storageCapacityFor(upgrade.id);
     const maxed = storageUpgradeIsMaxed(upgrade);
     const nextCapacity = maxed ? currentCapacity : upgrade.capacities[level + 1];
+    const nextPrice = maxed ? null : upgrade.prices[level];
     const needsTea = Boolean(upgrade.requiresTea && !isTeaUnlocked());
-    const canAfford = state.cash >= upgrade.price;
+    const canAfford = !maxed && state.cash >= nextPrice;
     const item = document.createElement('article');
     const image = document.createElement('img');
     const detail = document.createElement('div');
@@ -1185,7 +1201,7 @@ function renderStorageUpgrades() {
       ? `已扩至 ${currentCapacity} 格`
       : needsTea
         ? '先购买茶饮配方'
-        : `${currentCapacity} → ${nextCapacity} 格 · ¥${upgrade.price}`;
+        : `${currentCapacity} → ${nextCapacity} 格 · 第${level + 1}/${upgrade.prices.length}次 · ¥${nextPrice}`;
     detail.append(name, price);
 
     button.type = 'button';
@@ -1195,15 +1211,15 @@ function renderStorageUpgrades() {
       : needsTea
         ? '先买茶饮配方'
         : canAfford
-          ? `扩容 ¥${upgrade.price}`
-          : `余额不足 ¥${upgrade.price}`;
+          ? `扩容 ¥${nextPrice}`
+          : `余额不足 ¥${nextPrice}`;
     button.title = maxed
       ? `${upgrade.name}已扩到最大`
       : needsTea
         ? '先购买茶饮配方，才能扩容茶水架'
         : canAfford
-          ? `把${upgrade.name}从 ${currentCapacity} 格扩到 ${nextCapacity} 格`
-          : `余额不足，还差 ¥${upgrade.price - state.cash}`;
+          ? `第 ${level + 1}/${upgrade.prices.length} 次：把${upgrade.name}从 ${currentCapacity} 格扩到 ${nextCapacity} 格`
+          : `余额不足，还差 ¥${nextPrice - state.cash}`;
     button.addEventListener('click', () => buyStorageUpgrade(upgrade.id));
     item.append(image, detail, button);
     storageUpgradeItems.append(item);
@@ -1297,15 +1313,16 @@ function buyStorageUpgrade(storageId) {
     render();
     return;
   }
-  if (state.cash < upgrade.price) {
-    setMessage(`余额不足，还差 ¥${upgrade.price - state.cash} 才能扩容${upgrade.name}。`);
+  const price = upgrade.prices[storageLevelFor(storageId)];
+  if (state.cash < price) {
+    setMessage(`余额不足，还差 ¥${price - state.cash} 才能扩容${upgrade.name}。`);
     render();
     return;
   }
 
   const previousCapacity = storageCapacityFor(storageId);
   const nextLevel = storageLevelFor(storageId) + 1;
-  state.cash -= upgrade.price;
+  state.cash -= price;
   state.storageLevels = { ...state.storageLevels, [storageId]: nextLevel };
   setMessage(`${upgrade.name}已扩容：${previousCapacity} → ${storageCapacityFor(storageId)} 格。`);
   if (!saveGame()) scheduleSave();
