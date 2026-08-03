@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f4bd79" />
     <title>海边寿司店</title>
-    <link rel="stylesheet" href="style.css?v=smooth-items-v17-20260803" />
+    <link rel="stylesheet" href="style.css?v=smooth-items-v18-20260803" />
     <link rel="preload" as="image" href="assets/menu/sushi-shop-menu-background.jpg?v=menu-exterior-20260802b" fetchpriority="high" />
   </head>
   <body>
@@ -20,8 +20,19 @@
           <span>开始游戏</span>
           <small>走进寿司店</small>
         </button>
-        <button id="reset-save-button" class="main-menu-reset" type="button">重置存档</button>
+        <button id="reset-save-button" class="main-menu-reset" type="button" aria-haspopup="dialog" aria-expanded="false">重置存档</button>
         <p id="save-reset-status" class="menu-save-status" aria-live="polite"></p>
+      </section>
+      <section id="reset-save-dialog" class="save-reset-dialog is-hidden" role="alertdialog" aria-modal="true" aria-labelledby="reset-save-title" aria-describedby="reset-save-description">
+        <div class="save-reset-card">
+          <span>请确认</span>
+          <b id="reset-save-title">要重置存档吗？</b>
+          <p id="reset-save-description">营业额、已购买配方和库存都会清空，无法恢复。</p>
+          <div class="save-reset-actions">
+            <button id="cancel-reset-save-button" class="save-reset-cancel" type="button">取消</button>
+            <button id="confirm-reset-save-button" class="save-reset-confirm" type="button">确认重置</button>
+          </div>
+        </div>
       </section>
       <div class="menu-loading-screen" role="status" aria-live="polite" aria-label="加载中">
         <div class="menu-loading-sushi" aria-hidden="true">
@@ -32,6 +43,6 @@
         <span>加载中</span>
       </div>
     </main>
-    <script src="game.js?v=smooth-items-v17-20260803"></script>
+    <script src="game.js?v=smooth-items-v18-20260803"></script>
   </body>
 </html>

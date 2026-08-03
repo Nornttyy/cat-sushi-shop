@@ -1,8 +1,12 @@
 const startButton = document.querySelector('#start-button');
 const resetSaveButton = document.querySelector('#reset-save-button');
 const saveResetStatus = document.querySelector('#save-reset-status');
+const resetSaveDialog = document.querySelector('#reset-save-dialog');
+const cancelResetSaveButton = document.querySelector('#cancel-reset-save-button');
+const confirmResetSaveButton = document.querySelector('#confirm-reset-save-button');
 const menuStage = document.querySelector('.main-menu-stage');
 const MENU_SAVE_KEY = 'seaside-sushi-shop.save.v1';
+let resetSaveDialogOpen = false;
 
 // 这些素材会在主菜单停留时悄悄进入浏览器缓存，进制作台时就不会一张张跳出来。
 const kitchenAssetSources = [
@@ -92,7 +96,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=smooth-items-v17-20260803';
+    kitchenScript.src = 'kitchen.js?v=smooth-items-v18-20260803';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -106,11 +110,39 @@ async function enterKitchen(event) {
 
 startButton.addEventListener('click', enterKitchen);
 
-resetSaveButton.addEventListener('click', () => {
+function openResetSaveDialog() {
+  resetSaveDialogOpen = true;
+  resetSaveDialog.classList.remove('is-hidden');
+  resetSaveButton.setAttribute('aria-expanded', 'true');
+  window.requestAnimationFrame(() => cancelResetSaveButton.focus());
+}
+
+function closeResetSaveDialog() {
+  resetSaveDialogOpen = false;
+  resetSaveDialog.classList.add('is-hidden');
+  resetSaveButton.setAttribute('aria-expanded', 'false');
+  window.requestAnimationFrame(() => resetSaveButton.focus());
+}
+
+function resetSave() {
   try {
     window.localStorage.removeItem(MENU_SAVE_KEY);
     saveResetStatus.textContent = '存档已重置，下次营业会从零开始。';
   } catch {
     saveResetStatus.textContent = '当前浏览器无法重置存档。';
+  }
+  closeResetSaveDialog();
+}
+
+resetSaveButton.addEventListener('click', openResetSaveDialog);
+cancelResetSaveButton.addEventListener('click', closeResetSaveDialog);
+confirmResetSaveButton.addEventListener('click', resetSave);
+resetSaveDialog.addEventListener('click', (event) => {
+  if (event.target === resetSaveDialog) closeResetSaveDialog();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && resetSaveDialogOpen) {
+    event.preventDefault();
+    closeResetSaveDialog();
   }
 });

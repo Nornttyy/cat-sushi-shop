@@ -320,6 +320,18 @@ button { font: inherit; }
 .main-menu-reset:hover { filter: brightness(1.05); transform: translateY(-1px); }
 .main-menu-reset:active { transform: translateY(2px); box-shadow: 0 1px 0 rgb(90 57 45 / .18); }
 .menu-save-status { min-height: 1.45em; margin: 7px 0 0; color: #704331; font-size: clamp(10px, .88vw, 13px); font-weight: 800; }
+.save-reset-dialog { position: absolute; inset: 0; z-index: 7; display: grid; place-items: center; padding: 24px; background: rgb(45 30 28 / .58); backdrop-filter: blur(3px); }
+.save-reset-card { display: grid; justify-items: center; gap: clamp(10px, 1vw, 15px); width: min(88%, 390px); padding: clamp(22px, 2.4vw, 34px); border: 4px solid #704331; border-radius: 23px; color: #704331; background: #fff2d2; box-shadow: 0 9px 0 rgb(51 33 29 / .3); text-align: center; }
+.save-reset-card > span { color: #d46e52; font-size: clamp(11px, 1vw, 15px); font-weight: 1000; letter-spacing: .14em; }
+.save-reset-card b { color: #8c432d; font-size: clamp(25px, 2.65vw, 38px); font-weight: 1000; }
+.save-reset-card p { margin: 0; max-width: 18em; font-size: clamp(12px, 1.1vw, 16px); font-weight: 800; line-height: 1.55; }
+.save-reset-actions { display: flex; justify-content: center; gap: 10px; width: 100%; }
+.save-reset-actions button { min-width: 0; flex: 1; padding: clamp(9px, 1vw, 13px) clamp(12px, 1.2vw, 19px); cursor: pointer; border: 3px solid #704331; border-radius: 13px; color: #fff8df; font-size: clamp(13px, 1.2vw, 18px); font-weight: 1000; }
+.save-reset-cancel { color: #4b5671 !important; background: linear-gradient(#dce6f1, #b9c8dc); box-shadow: 0 4px 0 #8291aa; }
+.save-reset-confirm { background: linear-gradient(#e99179, #c75f50); box-shadow: 0 4px 0 #95483f; }
+.save-reset-actions button:active { transform: translateY(3px); box-shadow: 0 1px 0 #9e4d37; }
+.save-reset-cancel:active { box-shadow: 0 1px 0 #8291aa !important; }
+.save-reset-confirm:active { box-shadow: 0 1px 0 #95483f !important; }
 @media (max-width: 620px) { .main-menu-card { left: 7%; width: 52%; } .main-menu-kicker { letter-spacing: .03em; } .main-menu-title { font-size: clamp(32px, 8vw, 52px); } .main-menu-description { font-size: 11px; } .main-menu-start { min-width: 100%; padding-inline: 10px; } }
 
 @media (max-aspect-ratio: 1/1) {
