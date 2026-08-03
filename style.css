@@ -103,6 +103,12 @@ button { font: inherit; }
 .sashimi-choice { display: grid; grid-template-columns: 1fr; gap: 3px; width: 100%; padding: 5%; cursor: pointer; border: 0; border-radius: 8px; color: #704331; background: #ffe2a3; font-size: clamp(8px, .75vw, 12px); font-weight: 900; line-height: 1.15; }
 .sashimi-choice:hover { filter: brightness(1.06); transform: translateY(-1px); }
 .sashimi-choice img { width: 100%; height: clamp(24px, 3vw, 43px); object-fit: contain; }
+.sashimi-choice-name { display: block; }
+.sashimi-stock { display: inline-grid; justify-self: center; padding: 1px 4px; border-radius: 999px; color: #704331; background: rgb(255 248 222 / .76); font-size: .84em; font-weight: 1000; line-height: 1.1; }
+.sashimi-stock-unlimited { color: #50844f; }
+.sashimi-choice.is-out-of-stock { background: #e8d7b7; }
+.sashimi-choice:disabled { cursor: not-allowed; filter: saturate(.38) opacity(.68); }
+.sashimi-choice:disabled:hover { filter: saturate(.38) opacity(.68); transform: none; }
 .sashimi-choice.is-dragging { opacity: 0; }
 @keyframes sashimi-picker-in { from { opacity: 0; transform: translateY(8px) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
@@ -230,6 +236,7 @@ button { font: inherit; }
 .game-bottom-bar #game-pause-button { background: #d7c5e9; }
 .game-bottom-bar #pause-shop-button { background: #a9d8df; }
 .game-bottom-bar #open-shop-button { background: #f39a70; }
+.game-bottom-bar #go-fishing-button { background: #f1ca75; }
 .game-bottom-bar button:disabled { cursor: not-allowed; filter: grayscale(.5); opacity: .58; }
 .game-bottom-bar button:not(:disabled):active { transform: translateY(3px); box-shadow: none; }
 .game-pause-overlay { position: absolute; inset: 0; z-index: 80; display: grid; place-items: center; padding: 24px; background: rgb(34 25 30 / .58); backdrop-filter: blur(3px); }

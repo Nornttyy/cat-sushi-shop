@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=smooth-items-v18-20260803" />
+    <link rel="stylesheet" href="style.css?v=smooth-items-v19-20260803" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -23,7 +23,7 @@
       <section class="ingredient-shop" aria-label="食材商店">
         <button id="ingredient-shop-toggle" class="ingredient-shop-toggle" type="button" aria-expanded="false">食材商店</button>
         <div id="ingredient-shop-panel" class="ingredient-shop-panel is-hidden">
-          <div class="ingredient-shop-heading"><b>食材商店</b><span>用营业额解锁新食材</span></div>
+          <div class="ingredient-shop-heading"><b>食材商店</b><span>购买鱼种后，去钓鱼获得食材</span></div>
           <div id="ingredient-shop-items" class="ingredient-shop-items"></div>
         </div>
       </section>
@@ -35,19 +35,23 @@
           <div id="sashimi-picker" class="sashimi-picker is-hidden" role="dialog" aria-label="选择食材">
             <button id="select-salmon" class="sashimi-choice" type="button" data-ingredient-id="salmon" aria-label="选择三文鱼刺身">
               <img src="assets/restaurant/kitchen-layers/optimized/salmon-loin.png" alt="" draggable="false" decoding="async" />
-              <span>三文鱼刺身</span>
+              <span class="sashimi-choice-name">三文鱼刺身</span>
+              <small class="sashimi-stock" data-fish-stock="salmon">库存 0</small>
             </button>
             <button id="select-tuna" class="sashimi-choice" type="button" data-ingredient-id="tuna" aria-label="选择金枪鱼刺身">
               <img src="assets/restaurant/kitchen-layers/optimized/tuna-loin.png" alt="" draggable="false" decoding="async" />
-              <span>金枪鱼刺身</span>
+              <span class="sashimi-choice-name">金枪鱼刺身</span>
+              <small class="sashimi-stock" data-fish-stock="tuna">库存 0</small>
             </button>
             <button id="select-shrimp" class="sashimi-choice" type="button" data-ingredient-id="shrimp" aria-label="选择甜虾">
               <img src="assets/restaurant/kitchen-layers/optimized/shrimp-whole.png" alt="" draggable="false" decoding="async" />
-              <span>甜虾</span>
+              <span class="sashimi-choice-name">甜虾食材</span>
+              <small class="sashimi-stock" data-fish-stock="shrimp">库存 0</small>
             </button>
             <button id="select-tamago" class="sashimi-choice" type="button" data-ingredient-id="tamago" aria-label="选择玉子烧">
               <img src="assets/restaurant/kitchen-layers/optimized/tamago-loin.png" alt="" draggable="false" decoding="async" />
-              <span>玉子烧</span>
+              <span class="sashimi-choice-name">玉子烧</span>
+              <small class="sashimi-stock sashimi-stock-unlimited">无限</small>
             </button>
           </div>
         </section>
@@ -93,6 +97,7 @@
         <button id="game-pause-button" type="button" aria-pressed="false">暂停</button>
         <button id="pause-shop-button" type="button">暂停营业</button>
         <button id="open-shop-button" class="is-hidden" type="button">继续营业</button>
+        <button id="go-fishing-button" class="is-hidden" type="button">去钓鱼</button>
       </div>
       <section id="game-pause-overlay" class="game-pause-overlay is-hidden" role="dialog" aria-modal="true" aria-label="暂停菜单">
         <div class="game-pause-card">
@@ -120,6 +125,6 @@
         </div>
       </section>
     </main>
-    <script src="kitchen.js?v=smooth-items-v18-20260803"></script>
+    <script src="kitchen.js?v=smooth-items-v19-20260803"></script>
   </body>
 </html>

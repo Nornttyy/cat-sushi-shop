@@ -19,6 +19,8 @@ const DRINK_FILL_MS = 760;
 const TEA_PRICE = 14;
 const SHRIMP_BATCH_SIZE = 4;
 const SHRIMP_HEAD_CUT_X = 0.5;
+const RAW_FISH_IDS = ['salmon', 'tuna', 'shrimp'];
+const MAX_RAW_FISH = 99;
 const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
 const SETTINGS_KEY = 'seaside-sushi-shop.settings.v1';
@@ -122,12 +124,18 @@ function orderSummary(items) {
 }
 
 function createCustomerOrder() {
-  const orderPool = unlockedSushiTypes();
-  const sushiCount = 1 + (Math.random() < 0.58 ? 1 : 0) + (orderPool.length > 1 && Math.random() < 0.18 ? 1 : 0);
-  const orderItems = Array.from({ length: sushiCount }, () => {
+  const remainingServings = new Map(orderableSushiTypes().map(({ sushiType, servings }) => [sushiType.id, servings]));
+  const sushiCount = 1 + (Math.random() < 0.58 ? 1 : 0) + (remainingServings.size > 1 && Math.random() < 0.18 ? 1 : 0);
+  const orderItems = [];
+
+  for (let index = 0; index < sushiCount; index += 1) {
+    const orderPool = unlockedSushiTypes().filter((sushiType) => (remainingServings.get(sushiType.id) ?? 0) > 0);
     const sushi = orderPool[Math.floor(Math.random() * orderPool.length)] ?? SUSHI_TYPES.tamago;
-    return { type: 'sushi', id: sushi.id, price: sushi.price, fulfilled: false };
-  });
+    orderItems.push({ type: 'sushi', id: sushi.id, price: sushi.price, fulfilled: false });
+    if (Number.isFinite(remainingServings.get(sushi.id))) {
+      remainingServings.set(sushi.id, Math.max(0, remainingServings.get(sushi.id) - 1));
+    }
+  }
 
   if (isTeaUnlocked() && Math.random() < 0.62) {
     orderItems.push({ ...TEA_ORDER_ITEM, fulfilled: false });
@@ -146,6 +154,53 @@ function isTeaUnlocked() {
 
 function unlockedSushiTypes() {
   return SUSHI_TYPE_LIST.filter((sushiType) => isIngredientUnlocked(sushiType.id));
+}
+
+function needsFishing(id) {
+  return RAW_FISH_IDS.includes(id);
+}
+
+function rawFishYield(id) {
+  return id === 'shrimp' ? SHRIMP_BATCH_SIZE : CUT_SLICE_ORIGINS.flat().length;
+}
+
+function rawFishCount(id) {
+  return needsFishing(id) ? state.rawFish[id] ?? 0 : Number.POSITIVE_INFINITY;
+}
+
+function hasRawFish(id) {
+  return !needsFishing(id) || rawFishCount(id) > 0;
+}
+
+function consumeRawFish(id) {
+  if (!needsFishing(id)) return true;
+  if (!hasRawFish(id)) return false;
+  state.rawFish[id] -= 1;
+  return true;
+}
+
+function boardServingCapacity(id) {
+  if (id === 'shrimp') return state.shrimpBatch.filter((shrimp) => !shrimp.cut).length;
+  if (!state.salmonOnBoard || state.boardIngredientId !== id) return 0;
+  return state.cutLines.reduce((remaining, cut, index) => remaining + (cut ? 0 : CUT_SLICE_ORIGINS[index].length), 0);
+}
+
+function availableSushiServings(id) {
+  if (!needsFishing(id)) return Number.POSITIVE_INFINITY;
+  const finishedSlices = state.sliceTypes.filter((sliceId) => sliceId === id).length;
+  const finishedSushi = state.sushiTypes.filter((sushiId) => sushiId === id).length;
+  const pendingOrders = state.customers.reduce((total, customer) => {
+    if (customer.served || customer.leaving) return total;
+    return total + pendingOrderItems(customer).filter((item) => item.type === 'sushi' && item.id === id).length;
+  }, 0);
+  const total = (rawFishCount(id) * rawFishYield(id)) + boardServingCapacity(id) + finishedSlices + finishedSushi;
+  return Math.max(0, total - pendingOrders);
+}
+
+function orderableSushiTypes() {
+  return unlockedSushiTypes()
+    .map((sushiType) => ({ sushiType, servings: availableSushiServings(sushiType.id) }))
+    .filter((entry) => entry.servings > 0);
 }
 
 function shopItemFor(id) {
@@ -190,6 +245,7 @@ const state = {
   sashimiPickerOpen: false,
   shopPanelOpen: false,
   unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS],
+  rawFish: { salmon: 0, tuna: 0, shrimp: 0 },
   teaUnlocked: false,
   shopOpen: true,
   gamePaused: false,
@@ -280,6 +336,11 @@ function asStoredCount(value, max) {
   return Math.min(max, Math.max(0, Math.floor(parsed)));
 }
 
+function normalizeRawFish(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  return Object.fromEntries(RAW_FISH_IDS.map((id) => [id, asStoredCount(source[id], MAX_RAW_FISH)]));
+}
+
 function isKnownSushiId(id) {
   return typeof id === 'string' && Boolean(SUSHI_TYPES[id]);
 }
@@ -300,6 +361,10 @@ function hasUnsettledSaveState() {
     || state.incomingSushi
     || state.incomingDrinks
     || state.drinkPouring
+    || state.salmonOnBoard
+    || state.shrimpOnBoard
+    || state.shrimpHeads.length
+    || state.shrimpHeadDiscarding
     || hasPartialOrder,
   );
 }
@@ -312,7 +377,9 @@ function buildSaveSnapshot() {
     cash: asStoredCount(state.cash, 9_999_999),
     unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isKnownSushiId))],
     teaUnlocked: Boolean(state.teaUnlocked),
+    shopOpen: Boolean(state.shopOpen),
     inventory: {
+      rawFish: normalizeRawFish(state.rawFish),
       sliceTypes: state.sliceTypes.slice(0, stableSliceCount),
       rice: Math.max(0, state.riceStored - state.incomingRice),
       sushiTypes: state.sushiTypes.slice(0, stableSushiCount),
@@ -358,9 +425,11 @@ function restoreGame() {
       : [];
     const unlockedIngredients = [...new Set([...INITIAL_UNLOCKED_INGREDIENTS, ...savedUnlocks])];
     const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
+    const rawFish = normalizeRawFish(inventory.rawFish);
     const sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, MAX_SLICES);
     const sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, MAX_SUSHI);
     const teaUnlocked = Boolean(saved.teaUnlocked);
+    const shopOpen = typeof saved.shopOpen === 'boolean' ? saved.shopOpen : true;
 
     Object.assign(state, {
       salmonOnBoard: false,
@@ -392,8 +461,9 @@ function restoreGame() {
       sashimiPickerOpen: false,
       shopPanelOpen: false,
       unlockedIngredients,
+      rawFish,
       teaUnlocked,
-      shopOpen: true,
+      shopOpen,
       gamePaused: false,
       pauseSettingsOpen: false,
       cash: asStoredCount(saved.cash, 9_999_999),
@@ -440,6 +510,7 @@ const motionSettingButton = document.querySelector('#motion-setting-button');
 const exitGameButton = document.querySelector('#exit-game-button');
 const openShopButton = document.querySelector('#open-shop-button');
 const pauseShopButton = document.querySelector('#pause-shop-button');
+const goFishingButton = document.querySelector('#go-fishing-button');
 const shopStatus = document.querySelector('#shop-status');
 const shopStatusDetail = document.querySelector('#shop-status-detail');
 const drinkMachine = document.querySelector('#drink-machine');
@@ -696,6 +767,7 @@ function pauseShop() {
   state.customers.forEach((customer) => fadeOutCustomer(customer, { scheduleNext: false }));
   setMessage('已暂停营业，客人不会再进入。现在可以去捕鱼或补货。');
   render();
+  scheduleSave();
 }
 
 function resumeShop() {
@@ -704,6 +776,24 @@ function resumeShop() {
   setMessage('继续营业，第一位客人马上就到。');
   render();
   scheduleCustomer(550);
+  scheduleSave();
+}
+
+function goFishing() {
+  if (state.gamePaused) return;
+  if (state.shopOpen) {
+    setMessage('先暂停营业，送走正在等待的客人后再去钓鱼。');
+    return;
+  }
+  if (hasUnsettledSaveState()) {
+    setMessage('先等手上的食材处理完成，再带着鱼篓出门。');
+    return;
+  }
+  if (!saveGame()) {
+    setMessage('进度还在保存，等一下再去钓鱼。');
+    return;
+  }
+  window.location.assign('index.html?scene=fishing');
 }
 
 function pauseGame() {
@@ -982,8 +1072,17 @@ function renderSashimiChoices() {
   sashimiChoices.forEach((choice) => {
     const ingredientId = choice.dataset.ingredientId;
     const unlocked = isIngredientUnlocked(ingredientId);
+    const stocked = hasRawFish(ingredientId);
+    const stockLabel = choice.querySelector('[data-fish-stock]');
     show(choice, unlocked);
-    choice.disabled = !unlocked;
+    choice.disabled = !unlocked || !stocked;
+    choice.classList.toggle('is-out-of-stock', unlocked && !stocked);
+    if (stockLabel && needsFishing(ingredientId)) stockLabel.textContent = `库存 ${rawFishCount(ingredientId)}`;
+    choice.title = unlocked
+      ? stocked
+        ? needsFishing(ingredientId) ? `鱼篓库存：${rawFishCount(ingredientId)}` : '玉子烧无限供应'
+        : `库存为 0，暂停营业后去钓鱼获得${sushiName(ingredientId)}`
+      : '先在食材商店购买这个鱼种';
   });
 }
 
@@ -1004,6 +1103,7 @@ function renderIngredientShop() {
   SHOP_ITEMS.forEach((shopItem) => {
     const itemName = shopItemName(shopItem);
     const unlocked = isShopItemUnlocked(shopItem);
+    const isFish = needsFishing(shopItem.id);
     const canAfford = state.cash >= shopItem.price;
     const item = document.createElement('article');
     const image = document.createElement('img');
@@ -1017,17 +1117,19 @@ function renderIngredientShop() {
     image.alt = itemName;
     image.draggable = false;
     name.textContent = itemName;
-    price.textContent = unlocked ? '已购买' : `¥${shopItem.price}`;
+    price.textContent = unlocked ? isFish ? '已解锁 · 去钓鱼' : '已购买' : `¥${shopItem.price}`;
     detail.append(name, price);
 
     button.type = 'button';
     button.disabled = unlocked || !canAfford;
     button.textContent = unlocked
-      ? '已购买'
+      ? isFish ? '钓点已开放' : '已购买'
       : canAfford
         ? `购买 ¥${shopItem.price}`
         : `余额不足 ¥${shopItem.price}`;
-    button.title = unlocked ? '这个项目已经解锁' : canAfford ? `购买${itemName}` : `余额不足，还差 ¥${shopItem.price - state.cash}`;
+    button.title = unlocked
+      ? isFish ? '已解锁：暂停营业后可以去钓鱼获得' : '这个项目已经解锁'
+      : canAfford ? `购买${itemName}` : `余额不足，还差 ¥${shopItem.price - state.cash}`;
     button.addEventListener('click', () => buyIngredient(shopItem.id));
     item.append(image, detail, button);
     ingredientShopItems.append(item);
@@ -1056,7 +1158,7 @@ function buyIngredient(ingredientId) {
     setMessage('茶饮配方已解锁，饮品机和顾客订单都会出现茶。');
   } else {
     state.unlockedIngredients = [...state.unlockedIngredients, ingredientId];
-    setMessage(`${sushiName(ingredientId)}已解锁，冰柜和顾客订单都会立刻出现它。`);
+    setMessage(`${sushiName(ingredientId)}钓点已开放。它不会直接加入冰柜，暂停营业后去钓鱼获得。`);
   }
   scheduleSave();
   render();
@@ -1155,6 +1257,7 @@ function render() {
   trashBin.classList.toggle('is-discarding', state.shrimpHeadDiscarding);
   show(pauseShopButton, state.shopOpen);
   show(openShopButton, !state.shopOpen);
+  show(goFishingButton, !state.shopOpen);
   shopStatus.textContent = state.shopOpen ? '营业中' : '暂停营业';
   shopStatusDetail.textContent = state.shopOpen
     ? firstCustomer ? `${firstCustomer.name}：${orderSummary(pendingOrderItems(firstCustomer))}` : '等待第一位客人'
@@ -1302,6 +1405,11 @@ function dragSashimiFromPicker(event) {
   const ingredientId = event.currentTarget.dataset.ingredientId;
   if (!isIngredientUnlocked(ingredientId)) {
     setMessage('这个食材还没有解锁，去食材商店购买吧。');
+    return;
+  }
+  if (!hasRawFish(ingredientId)) {
+    setMessage(`${sushiName(ingredientId)}库存为 0。暂停营业后去钓鱼补货吧。`);
+    render();
     return;
   }
   if (!canSelectSashimi(ingredientId)) return;
@@ -1528,6 +1636,11 @@ window.addEventListener('pointerup', (event) => {
   }
 
   if (type === 'ingredient') {
+    if (!consumeRawFish(sushiType.id)) {
+      setMessage(`${sushiType.name}库存不足，暂停营业后去钓鱼补货。`);
+      render();
+      return;
+    }
     state.salmonOnBoard = sushiType.id !== 'shrimp';
     state.shrimpOnBoard = sushiType.id === 'shrimp';
     state.shrimpBatch = sushiType.id === 'shrimp' ? createShrimpBatch() : [];
@@ -1676,6 +1789,7 @@ function discardShrimpHead(sourceRect, headId) {
     state.shrimpHeadDiscarding = false;
     setMessage(state.shrimpHeads.length ? '这个虾头已经处理好，剩下的也要丢进垃圾桶。' : '所有虾头都处理好了，可以再拿一批甜虾。');
     render();
+    if (!state.shrimpHeads.length && !state.incomingSlices) scheduleSave();
   }, 620);
 }
 
@@ -1871,10 +1985,11 @@ motionSettingButton.addEventListener('click', toggleReducedMotion);
 exitGameButton.addEventListener('click', exitGame);
 pauseShopButton.addEventListener('click', pauseShop);
 openShopButton.addEventListener('click', resumeShop);
+goFishingButton.addEventListener('click', goFishing);
 
 restoreGameSettings();
 restoreGame();
-setMessage('营业中：第一位客人马上就到。');
+setMessage(state.shopOpen ? '营业中：第一位客人马上就到。' : '暂停营业中：可以去钓鱼补货，准备好后再继续营业。');
 render();
 scheduleCustomer(700);
 window.setInterval(refreshCustomerPatience, 120);

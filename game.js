@@ -6,6 +6,7 @@ const cancelResetSaveButton = document.querySelector('#cancel-reset-save-button'
 const confirmResetSaveButton = document.querySelector('#confirm-reset-save-button');
 const menuStage = document.querySelector('.main-menu-stage');
 const MENU_SAVE_KEY = 'seaside-sushi-shop.save.v1';
+const requestedScene = new URLSearchParams(window.location.search).get('scene');
 let resetSaveDialogOpen = false;
 
 // 这些素材会在主菜单停留时悄悄进入浏览器缓存，进制作台时就不会一张张跳出来。
@@ -37,6 +38,14 @@ const kitchenAssetSources = [
   'assets/restaurant/customers/customer-summer.png',
   'assets/restaurant/customers/customer-fisher.png',
 ];
+const fishingAssetSources = [
+  'assets/fishing-v2/sea-background.png',
+  'assets/fishing-v2/pier.png',
+  'assets/fishing-v2/fisherman.png',
+  'assets/fishing-v2/basket.png',
+  'assets/fishing-v2/bobber.png',
+  'assets/fishing-v2/salmon.png',
+];
 
 function preloadImage(source) {
   const image = new Image();
@@ -60,8 +69,32 @@ function loadKitchenMarkup() {
   });
 }
 
+function loadFishingMarkup() {
+  return fetch('fishing.html', { cache: 'no-cache' }).then(async (response) => {
+    if (!response.ok) throw new Error(`无法载入钓鱼场景：${response.status}`);
+    return response.text();
+  });
+}
+
+function loadStylesheet(id, href) {
+  const current = document.querySelector(`#${id}`);
+  if (current) return Promise.resolve(current);
+
+  return new Promise((resolve, reject) => {
+    const stylesheet = document.createElement('link');
+    stylesheet.id = id;
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = href;
+    stylesheet.addEventListener('load', () => resolve(stylesheet), { once: true });
+    stylesheet.addEventListener('error', () => reject(new Error(`无法载入样式：${href}`)), { once: true });
+    document.head.append(stylesheet);
+  });
+}
+
 const kitchenAssetsReady = Promise.all(kitchenAssetSources.map(preloadImage));
+const fishingAssetsReady = Promise.all(fishingAssetSources.map(preloadImage));
 let kitchenMarkupReady = loadKitchenMarkup();
+let fishingMarkupReady = loadFishingMarkup();
 
 function waitForMenuTransition() {
   return new Promise((resolve) => window.setTimeout(resolve, 700));
@@ -72,7 +105,7 @@ function waitForLoadingScreen() {
 }
 
 async function enterKitchen(event) {
-  const button = event.currentTarget;
+  const button = event?.currentTarget ?? startButton;
   if (menuStage.classList.contains('is-entering-game')) return;
 
   button.disabled = true;
@@ -96,7 +129,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=smooth-items-v18-20260803';
+    kitchenScript.src = 'kitchen.js?v=smooth-items-v19-20260803';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -104,6 +137,36 @@ async function enterKitchen(event) {
     button.removeAttribute('aria-busy');
     menuStage.classList.remove('is-entering-game', 'is-loading-game');
     kitchenMarkupReady = loadKitchenMarkup();
+    console.error(error);
+  }
+}
+
+async function enterFishing() {
+  if (menuStage.classList.contains('is-entering-game')) return;
+  menuStage.classList.add('is-entering-game', 'is-loading-game');
+
+  try {
+    const [fishingMarkup] = await Promise.all([
+      fishingMarkupReady,
+      fishingAssetsReady,
+      waitForMenuTransition(),
+      loadStylesheet('fishing-scene-style', 'fishing.css?v=fishing-stock-v1-20260803'),
+    ]);
+    const fishingDocument = new DOMParser().parseFromString(fishingMarkup, 'text/html');
+    const fishingStage = fishingDocument.querySelector('main');
+    if (!fishingStage) throw new Error('钓鱼场景内容不存在');
+
+    document.body.replaceChildren(fishingStage);
+    document.title = '海边寿司店 · 钓鱼';
+
+    const fishingScript = document.createElement('script');
+    fishingScript.src = 'fishing.js?v=fishing-stock-v1-20260803';
+    fishingScript.defer = true;
+    document.body.append(fishingScript);
+  } catch (error) {
+    document.querySelector('#fishing-scene-style')?.remove();
+    menuStage.classList.remove('is-entering-game', 'is-loading-game');
+    fishingMarkupReady = loadFishingMarkup();
     console.error(error);
   }
 }
@@ -146,3 +209,9 @@ document.addEventListener('keydown', (event) => {
     closeResetSaveDialog();
   }
 });
+
+if (requestedScene === 'kitchen' || requestedScene === 'fishing') {
+  window.history.replaceState({}, document.title, window.location.pathname);
+  if (requestedScene === 'kitchen') enterKitchen();
+  else enterFishing();
+}
