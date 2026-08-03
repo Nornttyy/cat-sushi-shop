@@ -16,14 +16,17 @@ const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
 const CUSTOMER_EXIT_MS = 1100;
 const COMPLETED_FLIGHT_MS = 820;
 const DRINK_FILL_MS = 760;
-const TEA_PRICE = 8;
+const TEA_PRICE = 14;
 const SHRIMP_BATCH_SIZE = 4;
 const SHRIMP_HEAD_CUT_X = 0.5;
+const SAVE_KEY = 'seaside-sushi-shop.save.v1';
+const SAVE_VERSION = 1;
 const INITIAL_UNLOCKED_INGREDIENTS = ['tamago'];
 const SHOP_ITEMS = [
-  { id: 'salmon', price: 48 },
-  { id: 'shrimp', price: 60 },
-  { id: 'tuna', price: 76 },
+  { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready.png', price: 120 },
+  { id: 'salmon', price: 180 },
+  { id: 'shrimp', price: 260 },
+  { id: 'tuna', price: 350 },
 ];
 const SUSHI_TYPES = {
   salmon: {
@@ -125,7 +128,7 @@ function createCustomerOrder() {
     return { type: 'sushi', id: sushi.id, price: sushi.price, fulfilled: false };
   });
 
-  if (Math.random() < 0.62) {
+  if (isTeaUnlocked() && Math.random() < 0.62) {
     orderItems.push({ ...TEA_ORDER_ITEM, fulfilled: false });
   }
 
@@ -136,12 +139,24 @@ function isIngredientUnlocked(id) {
   return state.unlockedIngredients.includes(id);
 }
 
+function isTeaUnlocked() {
+  return state.teaUnlocked;
+}
+
 function unlockedSushiTypes() {
   return SUSHI_TYPE_LIST.filter((sushiType) => isIngredientUnlocked(sushiType.id));
 }
 
 function shopItemFor(id) {
   return SHOP_ITEMS.find((item) => item.id === id) ?? null;
+}
+
+function isShopItemUnlocked(shopItem) {
+  return shopItem.id === 'tea' ? isTeaUnlocked() : isIngredientUnlocked(shopItem.id);
+}
+
+function shopItemName(shopItem) {
+  return shopItem.name ?? sushiName(shopItem.id);
 }
 
 const state = {
@@ -174,11 +189,156 @@ const state = {
   sashimiPickerOpen: false,
   shopPanelOpen: false,
   unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS],
+  teaUnlocked: false,
   shopOpen: true,
   cash: 0,
   customers: [],
   customerSerial: 0,
 };
+
+let lastSavedSnapshot = '';
+let saveTimer = null;
+
+function asStoredCount(value, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.min(max, Math.max(0, Math.floor(parsed)));
+}
+
+function isKnownSushiId(id) {
+  return typeof id === 'string' && Boolean(SUSHI_TYPES[id]);
+}
+
+function savedSushiTypes(value, unlockedIngredients, max) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((id) => isKnownSushiId(id) && unlockedIngredients.includes(id))
+    .slice(0, max);
+}
+
+function hasUnsettledSaveState() {
+  const hasPartialOrder = state.customers.some((customer) => !customer.served && !customer.leaving
+    && (customer.orderItems ?? []).some((item) => item.fulfilled));
+  return Boolean(
+    state.incomingSlices
+    || state.incomingRice
+    || state.incomingSushi
+    || state.incomingDrinks
+    || state.drinkPouring
+    || hasPartialOrder,
+  );
+}
+
+function buildSaveSnapshot() {
+  const stableSliceCount = Math.max(0, state.sliceTypes.length - state.incomingSlices);
+  const stableSushiCount = Math.max(0, state.sushiTypes.length - state.incomingSushi);
+  return {
+    version: SAVE_VERSION,
+    cash: asStoredCount(state.cash, 9_999_999),
+    unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isKnownSushiId))],
+    teaUnlocked: Boolean(state.teaUnlocked),
+    inventory: {
+      sliceTypes: state.sliceTypes.slice(0, stableSliceCount),
+      rice: Math.max(0, state.riceStored - state.incomingRice),
+      sushiTypes: state.sushiTypes.slice(0, stableSushiCount),
+      tea: Math.max(0, state.drinksStored - state.incomingDrinks),
+    },
+  };
+}
+
+function saveGame() {
+  if (hasUnsettledSaveState()) return false;
+  const snapshot = JSON.stringify(buildSaveSnapshot());
+  if (snapshot === lastSavedSnapshot) return true;
+  try {
+    window.localStorage.setItem(SAVE_KEY, snapshot);
+    lastSavedSnapshot = snapshot;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function scheduleSave(delay = 180) {
+  if (saveTimer) window.clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => {
+    saveTimer = null;
+    if (hasUnsettledSaveState()) {
+      scheduleSave(240);
+      return;
+    }
+    saveGame();
+  }, delay);
+}
+
+function clearGameSave() {
+  if (saveTimer) window.clearTimeout(saveTimer);
+  saveTimer = null;
+  lastSavedSnapshot = '';
+  try {
+    window.localStorage.removeItem(SAVE_KEY);
+  } catch {
+    // Storage can be unavailable in private browsing; the game still works normally.
+  }
+}
+
+function restoreGame() {
+  try {
+    const raw = window.localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== 'object' || saved.version !== SAVE_VERSION) return false;
+
+    const savedUnlocks = Array.isArray(saved.unlockedIngredients)
+      ? saved.unlockedIngredients.filter(isKnownSushiId)
+      : [];
+    const unlockedIngredients = [...new Set([...INITIAL_UNLOCKED_INGREDIENTS, ...savedUnlocks])];
+    const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
+    const sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, MAX_SLICES);
+    const sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, MAX_SUSHI);
+    const teaUnlocked = Boolean(saved.teaUnlocked);
+
+    Object.assign(state, {
+      salmonOnBoard: false,
+      shrimpOnBoard: false,
+      shrimpBatch: [],
+      shrimpBatchSerial: 0,
+      boardIngredientId: null,
+      cutLines: [false, false, false],
+      activeCut: null,
+      cutStartY: 0,
+      activeShrimpCut: null,
+      shrimpCutStartY: 0,
+      shrimpHeads: [],
+      shrimpHeadDiscarding: false,
+      slicesReady: sliceTypes.length,
+      incomingSlices: 0,
+      sliceTypes,
+      flightVersion: 0,
+      riceStored: asStoredCount(inventory.rice, MAX_RICE),
+      incomingRice: 0,
+      sushiStored: sushiTypes.length,
+      incomingSushi: 0,
+      sushiTypes,
+      cupOnMachine: false,
+      drinkPouring: false,
+      drinksStored: teaUnlocked ? asStoredCount(inventory.tea, MAX_DRINKS) : 0,
+      incomingDrinks: 0,
+      drinkVersion: 0,
+      sashimiPickerOpen: false,
+      shopPanelOpen: false,
+      unlockedIngredients,
+      teaUnlocked,
+      shopOpen: true,
+      cash: asStoredCount(saved.cash, 9_999_999),
+      customers: [],
+      customerSerial: 0,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const stage = document.querySelector('#kitchen-stage');
 const message = document.querySelector('#kitchen-message');
@@ -412,6 +572,7 @@ function fadeOutCustomer(customer, { holdMs = 0, scheduleNext = true } = {}) {
       const index = state.customers.findIndex((waitingCustomer) => waitingCustomer.id === customer.id);
       if (index !== -1) state.customers.splice(index, 1);
       render();
+      scheduleSave();
       if (scheduleNext) scheduleCustomer(950);
     }, CUSTOMER_EXIT_MS));
   };
@@ -561,6 +722,7 @@ function makeSushi(ingredientId = 'salmon') {
         state.incomingSushi = Math.max(0, state.incomingSushi - 1);
         setMessage(`${sushiType.name}寿司做好了，已放进寿司架。`);
         render();
+        if (!state.incomingSushi) scheduleSave();
       },
     });
   }, 420);
@@ -677,6 +839,7 @@ function renderSashimiChoices() {
 }
 
 function shopPreviewAsset(ingredientId) {
+  if (ingredientId === 'tea') return `${KITCHEN_ASSET_PATH}tea-cup-ready.png`;
   return ingredientId === 'shrimp'
     ? `${KITCHEN_ASSET_PATH}shrimp-whole.png`
     : sushiAsset(ingredientId, 'loin');
@@ -690,8 +853,8 @@ function renderIngredientShop() {
   ingredientShopItems.replaceChildren();
 
   SHOP_ITEMS.forEach((shopItem) => {
-    const sushiType = sushiTypeFor(shopItem.id);
-    const unlocked = isIngredientUnlocked(shopItem.id);
+    const itemName = shopItemName(shopItem);
+    const unlocked = isShopItemUnlocked(shopItem);
     const canAfford = state.cash >= shopItem.price;
     const item = document.createElement('article');
     const image = document.createElement('img');
@@ -702,9 +865,9 @@ function renderIngredientShop() {
 
     item.className = `ingredient-shop-item${unlocked ? ' is-owned' : ''}`;
     image.src = shopPreviewAsset(shopItem.id);
-    image.alt = sushiType.name;
+    image.alt = itemName;
     image.draggable = false;
-    name.textContent = sushiType.name;
+    name.textContent = itemName;
     price.textContent = unlocked ? '已购买' : `¥${shopItem.price}`;
     detail.append(name, price);
 
@@ -715,7 +878,7 @@ function renderIngredientShop() {
       : canAfford
         ? `购买 ¥${shopItem.price}`
         : `余额不足 ¥${shopItem.price}`;
-    button.title = unlocked ? '这个食材已经解锁' : canAfford ? `购买${sushiType.name}` : `余额不足，还差 ¥${shopItem.price - state.cash}`;
+    button.title = unlocked ? '这个项目已经解锁' : canAfford ? `购买${itemName}` : `余额不足，还差 ¥${shopItem.price - state.cash}`;
     button.addEventListener('click', () => buyIngredient(shopItem.id));
     item.append(image, detail, button);
     ingredientShopItems.append(item);
@@ -729,15 +892,22 @@ function toggleIngredientShop() {
 
 function buyIngredient(ingredientId) {
   const shopItem = shopItemFor(ingredientId);
-  if (!shopItem || isIngredientUnlocked(ingredientId)) return;
+  if (!shopItem || isShopItemUnlocked(shopItem)) return;
+  const itemName = shopItemName(shopItem);
   if (state.cash < shopItem.price) {
-    setMessage(`营业额不足，还差 ¥${shopItem.price - state.cash} 才能购买${sushiName(ingredientId)}。`);
+    setMessage(`营业额不足，还差 ¥${shopItem.price - state.cash} 才能购买${itemName}。`);
     render();
     return;
   }
   state.cash -= shopItem.price;
-  state.unlockedIngredients = [...state.unlockedIngredients, ingredientId];
-  setMessage(`${sushiName(ingredientId)}已解锁，冰柜和顾客订单都会立刻出现它。`);
+  if (ingredientId === 'tea') {
+    state.teaUnlocked = true;
+    setMessage('茶饮配方已解锁，饮品机和顾客订单都会出现茶。');
+  } else {
+    state.unlockedIngredients = [...state.unlockedIngredients, ingredientId];
+    setMessage(`${sushiName(ingredientId)}已解锁，冰柜和顾客订单都会立刻出现它。`);
+  }
+  scheduleSave();
   render();
 }
 
@@ -835,6 +1005,13 @@ function render() {
     : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
   machineCup.classList.toggle('is-filling', state.drinkPouring);
   drinkMachine.classList.toggle('is-pouring', state.drinkPouring);
+  const teaUnlocked = isTeaUnlocked();
+  drinkMachine.classList.toggle('is-locked', !teaUnlocked);
+  cupStation.classList.toggle('is-locked', !teaUnlocked);
+  drinkMachine.setAttribute('aria-disabled', String(!teaUnlocked));
+  cupStation.setAttribute('aria-disabled', String(!teaUnlocked));
+  drinkMachine.title = teaUnlocked ? '点击接茶' : '先在食材商店购买茶饮配方';
+  cupStation.title = teaUnlocked ? '拖出空杯' : '先在食材商店购买茶饮配方';
   renderSlices();
   renderStockRack(riceRack, state.riceStored - state.incomingRice, 'stored-rice', `${KITCHEN_ASSET_PATH}rice-portion.png`, '一团米饭');
   renderSushiRack();
@@ -997,11 +1174,16 @@ function takeRice() {
       state.incomingRice = Math.max(0, state.incomingRice - 1);
       setMessage('米饭已放进米饭架。拖一片配料到米饭架制作寿司。');
       render();
+      if (!state.incomingRice) scheduleSave();
     },
   });
 }
 
 function prepareCupDrag(event) {
+  if (!isTeaUnlocked()) {
+    setMessage('先在食材商店购买茶饮配方。');
+    return;
+  }
   if (state.cupOnMachine || state.drinkPouring) {
     setMessage('饮品机里已经有一只杯子。');
     return;
@@ -1092,6 +1274,7 @@ function completeCustomerOrderItem(customer, item) {
   state.cash += customer.price;
   setMessage(`${customer.name}的整单完成，获得 ¥${customer.price}。`);
   render();
+  scheduleSave();
   fadeOutCustomer(customer, { holdMs: 420 });
 }
 
@@ -1251,6 +1434,7 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
     if (flightVersion !== state.flightVersion) return;
     state.incomingSlices = Math.max(0, state.incomingSlices - 1);
     render();
+    if (!state.incomingSlices) scheduleSave();
   }, 650 + (sliceIndex * 75));
 }
 
@@ -1468,6 +1652,10 @@ boardSalmon.addEventListener('keydown', (event) => {
 });
 
 drinkMachine.addEventListener('click', () => {
+  if (!isTeaUnlocked()) {
+    setMessage('先在食材商店购买茶饮配方。');
+    return;
+  }
   if (!state.cupOnMachine) {
     setMessage('先从杯子区拖一个空杯到饮品机。');
     return;
@@ -1500,12 +1688,14 @@ drinkMachine.addEventListener('click', () => {
       onFinish: () => {
         state.incomingDrinks = Math.max(0, state.incomingDrinks - 1);
         render();
+        if (!state.incomingDrinks) scheduleSave();
       },
     });
   }, DRINK_FILL_MS);
 });
 
 document.querySelector('#reset-button').addEventListener('click', () => {
+  clearGameSave();
   state.flightVersion += 1;
   state.drinkVersion += 1;
   clearCustomerTimers();
@@ -1513,19 +1703,24 @@ document.querySelector('#reset-button').addEventListener('click', () => {
   document.querySelectorAll('.flying-shrimp-head').forEach((head) => head.remove());
   document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
   document.querySelectorAll('.sushi-making-animation').forEach((item) => item.remove());
-  Object.assign(state, { salmonOnBoard: false, shrimpOnBoard: false, shrimpBatch: [], shrimpBatchSerial: 0, boardIngredientId: null, cutLines: [false, false, false], activeCut: null, cutStartY: 0, activeShrimpCut: null, shrimpCutStartY: 0, shrimpHeads: [], shrimpHeadDiscarding: false, slicesReady: 0, incomingSlices: 0, sliceTypes: [], riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, sushiTypes: [], cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, sashimiPickerOpen: false, shopPanelOpen: false, unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS], shopOpen: true, cash: 0, customers: [], customerSerial: 0 });
+  Object.assign(state, { salmonOnBoard: false, shrimpOnBoard: false, shrimpBatch: [], shrimpBatchSerial: 0, boardIngredientId: null, cutLines: [false, false, false], activeCut: null, cutStartY: 0, activeShrimpCut: null, shrimpCutStartY: 0, shrimpHeads: [], shrimpHeadDiscarding: false, slicesReady: 0, incomingSlices: 0, sliceTypes: [], riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, sushiTypes: [], cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, sashimiPickerOpen: false, shopPanelOpen: false, unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS], teaUnlocked: false, shopOpen: true, cash: 0, customers: [], customerSerial: 0 });
   setMessage('制作台已整理，第一位客人马上就到。');
   render();
+  saveGame();
   scheduleCustomer(500);
 });
 
 pauseShopButton.addEventListener('click', pauseShop);
 openShopButton.addEventListener('click', resumeShop);
 
+restoreGame();
 setMessage('营业中：第一位客人马上就到。');
 render();
 scheduleCustomer(700);
 window.setInterval(refreshCustomerPatience, 120);
+window.addEventListener('pagehide', () => {
+  if (!hasUnsettledSaveState()) saveGame();
+});
 
 function preloadInteractionAssets() {
   const assetNames = new Set(['rice-portion.png', 'tea-cup-ready.png', 'shrimp-whole.png', 'shrimp-head.png', 'trash-bin.png']);
