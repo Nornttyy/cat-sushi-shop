@@ -165,7 +165,7 @@ async function enterFishing() {
     if (!fishingStage) throw new Error('钓鱼场景内容不存在');
 
     document.body.replaceChildren(fishingStage);
-    document.title = '海边寿司店 · 钓鱼';
+    document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
     fishingScript.src = 'fishing.js?v=fishing-unlimited-v6-20260803';
