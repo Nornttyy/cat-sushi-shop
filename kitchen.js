@@ -16,7 +16,6 @@ const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
 const CUSTOMER_EXIT_MS = 1100;
 const COMPLETED_FLIGHT_MS = 820;
 const DRINK_FILL_MS = 760;
-const TAMAGO_HALF_ID = 'tamago-half';
 const SUSHI_TYPES = {
   salmon: {
     id: 'salmon',
@@ -58,15 +57,8 @@ const SUSHI_TYPES = {
     nigiri: 'tamago-nigiri.png',
     price: 16,
   },
-  nori: {
-    id: 'nori',
-    name: '紫菜卷',
-    nigiri: 'nori-maki.png',
-    price: 24,
-  },
 };
 const SUSHI_TYPE_LIST = Object.values(SUSHI_TYPES);
-const NORI_WRAPPABLE_IDS = new Set(['salmon', 'tuna', 'shrimp', TAMAGO_HALF_ID]);
 const CUSTOMER_CATALOG = [
   { name: '夏海', avatar: 'customer-summer.png' },
   { name: '阿渔', avatar: 'customer-fisher.png' },
@@ -80,18 +72,8 @@ function sushiAsset(id, asset) {
   return `${KITCHEN_ASSET_PATH}${sushiTypeFor(id)[asset]}`;
 }
 
-function isTamagoHalf(id) {
-  return id === TAMAGO_HALF_ID;
-}
-
-function canWrapWithNori(id) {
-  return NORI_WRAPPABLE_IDS.has(id);
-}
-
 function sushiName(id) {
-  if (isTamagoHalf(id)) return '待包紫菜的玉子烧';
-  const sushiType = sushiTypeFor(id);
-  return sushiType.id === 'nori' ? sushiType.name : `${sushiType.name}寿司`;
+  return sushiTypeFor(id).name;
 }
 
 const state = {
@@ -109,7 +91,6 @@ const state = {
   sushiStored: 0,
   incomingSushi: 0,
   sushiTypes: [],
-  noriWrapping: false,
   cupOnMachine: false,
   drinkPouring: false,
   drinksStored: 0,
@@ -139,7 +120,6 @@ const boardIngredientImage = document.querySelector('#board-ingredient-image');
 const sliceRack = document.querySelector('#slice-rack');
 const riceRack = document.querySelector('#rice-rack');
 const sushiRack = document.querySelector('#sushi-rack');
-const noriStation = document.querySelector('#nori-station');
 const openShopButton = document.querySelector('#open-shop-button');
 const pauseShopButton = document.querySelector('#pause-shop-button');
 const shopStatus = document.querySelector('#shop-status');
@@ -233,6 +213,7 @@ function updateCustomerCard(card, customer) {
   const wait = card.querySelector('.customer-wait');
   const fill = wait.querySelector('i');
   const receivedSushi = card.querySelector('.customer-received-sushi');
+  const orderedSushi = sushiTypeFor(customer.orderId);
 
   const avatarSrc = `${CUSTOMER_ASSET_PATH}${customer.avatar}`;
   if (avatar.getAttribute('src') !== avatarSrc) avatar.src = avatarSrc;
@@ -241,7 +222,7 @@ function updateCustomerCard(card, customer) {
   card.classList.toggle('is-leaving', Boolean(customer.leaving));
   receivedSushi.classList.toggle('is-hidden', !customer.served);
   receivedSushi.src = sushiAsset(customer.orderId, 'nigiri');
-  receivedSushi.alt = `顾客拿到的${sushiName(customer.orderId)}`;
+  receivedSushi.alt = `顾客拿到的${orderedSushi.name}寿司`;
   order.replaceChildren();
 
   if (customer.served) {
@@ -253,7 +234,7 @@ function updateCustomerCard(card, customer) {
     sushi.src = sushiAsset(customer.orderId, 'nigiri');
     sushi.alt = '';
     sushi.draggable = false;
-    order.append(sushiName(customer.orderId), sushi);
+    order.append(`${orderedSushi.name}寿司`, sushi);
   }
 
   const patienceValue = getPatience(customer);
@@ -348,7 +329,7 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
     state.customerSerial += 1;
     state.customers.push(customer);
     customerLeaveTimers.set(customer.id, window.setTimeout(() => customerLeaves(customer.id), CUSTOMER_WAIT_MS));
-    setMessage(`${customer.name}来了，想要一份${sushiName(orderedSushi.id)}。`);
+    setMessage(`${customer.name}来了，想要一份${orderedSushi.name}寿司。`);
     render();
     scheduleCustomer();
   }, delay);
@@ -420,8 +401,6 @@ function playSushiMakingAnimation(ingredientId) {
 
 function makeSushi(ingredientId = 'salmon') {
   const sushiType = sushiTypeFor(ingredientId);
-  const needsNori = sushiType.id === 'tamago';
-  const preparedSushiId = needsNori ? TAMAGO_HALF_ID : sushiType.id;
   if (state.incomingSlices) {
     setMessage('等鱼片滑到旁边再制作寿司。');
     return;
@@ -448,19 +427,19 @@ function makeSushi(ingredientId = 'salmon') {
   state.riceStored -= 1;
   state.sushiStored += 1;
   state.incomingSushi += 1;
-  state.sushiTypes.push(preparedSushiId);
+  state.sushiTypes.push(sushiType.id);
   const targetRect = sushiRack.getBoundingClientRect();
   const targetIndex = state.sushiStored - 1;
   const animationVersion = state.flightVersion;
   const makingSushi = playSushiMakingAnimation(sushiType.id);
-  setMessage(needsNori ? '正在把玉子烧片和米饭合在一起。' : `正在捏制${sushiType.name}寿司。`);
+  setMessage(`正在捏制${sushiType.name}寿司。`);
   render();
   window.setTimeout(() => {
     makingSushi.maker.remove();
     if (animationVersion !== state.flightVersion) return;
     flyCompletedItem({
       className: 'sushi',
-      src: needsNori ? sushiAsset(sushiType.id, 'slice') : sushiAsset(sushiType.id, 'nigiri'),
+      src: sushiAsset(sushiType.id, 'nigiri'),
       sourceRect: makingSushi.sourceRect,
       targetRect,
       targetIndex,
@@ -470,7 +449,7 @@ function makeSushi(ingredientId = 'salmon') {
       displayScale: 1.12,
       onFinish: () => {
         state.incomingSushi = Math.max(0, state.incomingSushi - 1);
-        setMessage(needsNori ? '玉子烧半成品做好了，拖紫菜到它上面完成寿司。' : `${sushiType.name}寿司做好了，已放进寿司架。`);
+        setMessage(`${sushiType.name}寿司做好了，已放进寿司架。`);
         render();
       },
     });
@@ -508,8 +487,7 @@ function renderSushiRack() {
   existingItems.slice(displayedTypes.length).forEach((item) => item.remove());
 
   displayedTypes.forEach((ingredientId, index) => {
-    const isHalf = isTamagoHalf(ingredientId);
-    const sushiType = isHalf ? SUSHI_TYPES.tamago : sushiTypeFor(ingredientId);
+    const sushiType = sushiTypeFor(ingredientId);
     let item = existingItems[index];
     if (!item) {
       item = document.createElement('button');
@@ -517,46 +495,14 @@ function renderSushiRack() {
       item.className = 'stored-sushi stored-sushi-button stock-item-arriving';
       item.addEventListener('animationend', () => item.classList.remove('stock-item-arriving'), { once: true });
       item.addEventListener('pointerdown', prepareSushiServeDrag);
+      item.append(document.createElement('img'));
       sushiRack.append(item);
     }
-    item.dataset.ingredientId = ingredientId;
-    item.dataset.sushiIndex = String(index);
-    item.dataset.productId = ingredientId;
-    item.classList.toggle('is-nori-maki', sushiType.id === 'nori');
-    item.classList.toggle('is-tamago-half', isHalf);
-    item.setAttribute('aria-label', isHalf
-      ? `第 ${index + 1} 份待包紫菜的玉子烧，拖紫菜到它上面完成寿司`
-      : `第 ${index + 1} 份${sushiName(sushiType.id)}，拖给顾客`);
-
-    if (isHalf) {
-      let half = item.querySelector('.tamago-half-sushi');
-      if (!half) {
-        half = document.createElement('span');
-        const rice = document.createElement('img');
-        const topping = document.createElement('img');
-        half.className = 'tamago-half-sushi';
-        rice.className = 'tamago-half-rice';
-        topping.className = 'tamago-half-topping';
-        rice.alt = '';
-        topping.alt = '';
-        rice.draggable = false;
-        topping.draggable = false;
-        half.append(rice, topping);
-        item.replaceChildren(half);
-      }
-      half.querySelector('.tamago-half-rice').src = `${KITCHEN_ASSET_PATH}rice-portion.png`;
-      half.querySelector('.tamago-half-topping').src = sushiAsset('tamago', 'slice');
-      return;
-    }
-
-    let image = item.querySelector('.sushi-rack-image');
-    if (!image) {
-      image = document.createElement('img');
-      image.className = 'sushi-rack-image';
-      item.replaceChildren(image);
-    }
+    const image = item.querySelector('img');
+    item.dataset.ingredientId = sushiType.id;
+    item.setAttribute('aria-label', `第 ${index + 1} 份${sushiType.name}寿司，拖给顾客`);
     image.src = sushiAsset(sushiType.id, 'nigiri');
-    image.alt = sushiName(sushiType.id);
+    image.alt = `${sushiType.name}寿司`;
     image.draggable = false;
   });
 }
@@ -632,7 +578,7 @@ function render() {
   show(openShopButton, !state.shopOpen);
   shopStatus.textContent = state.shopOpen ? '营业中' : '暂停营业';
   shopStatusDetail.textContent = state.shopOpen
-    ? firstCustomer ? `${firstCustomer.name}：${sushiName(firstCustomer.orderId)}` : '等待第一位客人'
+    ? firstCustomer ? `${firstCustomer.name}：${sushiName(firstCustomer.orderId)}寿司` : '等待第一位客人'
     : '可捕鱼或补货';
   show(machineCup, state.cupOnMachine);
   machineCup.src = state.drinkPouring
@@ -668,7 +614,6 @@ function clearIngredientDrag() {
   assemblyStation.classList.remove('is-drop-target');
   drinkMachine.classList.remove('is-drop-target');
   riceRack.classList.remove('is-drop-target');
-  sushiRack.classList.remove('is-drop-target');
   customerQueue.querySelector('.customer.is-drop-target')?.classList.remove('is-drop-target');
   ingredientDrag = null;
 }
@@ -682,9 +627,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
 
   const preview = document.createElement('img');
   preview.className = `ingredient-drag-preview ${type}`;
-  preview.src = type === 'nori'
-    ? `${KITCHEN_ASSET_PATH}nori-sheet.png`
-    : type === 'ingredient'
+  preview.src = type === 'ingredient'
     ? sushiAsset(sushiType.id, 'loin')
     : type === 'slice'
       ? sushiAsset(sushiType.id, 'slice')
@@ -697,12 +640,12 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
   const targetCustomer = type === 'serve' ? getActiveCustomer() : null;
   const target = targetCustomer ? customerCardFor(targetCustomer.id)?.querySelector('.customer-avatar') : null;
   ingredientDrag = { type, source, pointerId: event.pointerId, preview, target, targetCustomerId: targetCustomer?.id ?? null, ingredientId: sushiType.id };
-  if (type === 'slice' || type === 'ingredient' || type === 'nori' || type === 'serve') source.classList.add('is-dragging');
+  if (type === 'slice' || type === 'ingredient' || type === 'serve') source.classList.add('is-dragging');
   source.setPointerCapture(event.pointerId);
-  const dropTarget = type === 'ingredient' ? boardStation : type === 'cup' ? drinkMachine : type === 'serve' ? target?.closest('.customer') : type === 'nori' ? sushiRack : riceRack;
+  const dropTarget = type === 'ingredient' ? boardStation : type === 'cup' ? drinkMachine : type === 'serve' ? target?.closest('.customer') : riceRack;
   dropTarget?.classList.add('is-drop-target');
   moveDragPreview(event);
-  setMessage(type === 'ingredient' ? `把${sushiType.boardName}拖到切菜板。` : type === 'cup' ? '把空杯拖到饮品机。' : type === 'serve' ? '把寿司直接拖给顾客。' : type === 'nori' ? '把紫菜拖到一份普通寿司上。' : `把${sushiType.name}片拖到米饭架。`);
+  setMessage(type === 'ingredient' ? `把${sushiType.boardName}拖到切菜板。` : type === 'cup' ? '把空杯拖到饮品机。' : type === 'serve' ? '把寿司直接拖给顾客。' : `把${sushiType.name}片拖到米饭架。`);
 }
 
 function canSelectSashimi() {
@@ -797,35 +740,7 @@ function prepareSliceDrag(event) {
   startIngredientDrag(event, 'slice', event.currentTarget.dataset.ingredientId);
 }
 
-function findNoriWrapTarget(event) {
-  return Array.from(sushiRack.children).find((item) => canWrapWithNori(item.dataset.ingredientId) && pointIsInside(event, item)) ?? null;
-}
-
-function prepareNoriDrag(event) {
-  if (state.noriWrapping) {
-    setMessage('正在包紫菜卷，稍等一下。');
-    return;
-  }
-  if (state.incomingSushi) {
-    setMessage('等寿司滑进寿司架后，再包紫菜。');
-    return;
-  }
-  if (!state.sushiTypes.some(canWrapWithNori)) {
-    setMessage('先做好一份普通寿司，或玉子烧半成品，再用紫菜把它包起来。');
-    return;
-  }
-  startIngredientDrag(event, 'nori', 'nori');
-}
-
 function prepareSushiServeDrag(event) {
-  if (state.noriWrapping) {
-    setMessage('紫菜卷正在完成，稍等一下再出餐。');
-    return;
-  }
-  if (isTamagoHalf(event.currentTarget.dataset.ingredientId)) {
-    setMessage('玉子烧还没有包紫菜，先拖一张紫菜到它上面。');
-    return;
-  }
   if (!state.shopOpen) {
     setMessage('营业暂停中，先继续营业再出餐。');
     return;
@@ -845,15 +760,10 @@ function prepareSushiServeDrag(event) {
 function deliverSushiToCustomer(ingredientId, customerId) {
   const customer = state.customers.find((waitingCustomer) => waitingCustomer.id === customerId && !waitingCustomer.served && !waitingCustomer.leaving);
   if (!customer || !state.sushiStored) return;
-  if (isTamagoHalf(ingredientId)) {
-    setMessage('这份玉子烧还没包紫菜，不能出餐。');
-    render();
-    return;
-  }
   const sushiType = sushiTypeFor(ingredientId);
   const expectedSushi = sushiTypeFor(customer.orderId);
   if (customer.orderId !== sushiType.id) {
-    setMessage(`${customer.name}想要${sushiName(expectedSushi.id)}，这份${sushiName(sushiType.id)}不能交给他。`);
+    setMessage(`${customer.name}想要${expectedSushi.name}寿司，这份${sushiType.name}寿司不能交给他。`);
     render();
     return;
   }
@@ -876,68 +786,10 @@ function deliverSushiToCustomer(ingredientId, customerId) {
   fadeOutCustomer(customer, { holdMs: 420 });
 }
 
-function wrapSushiWithNori(target, sourceRect) {
-  const targetIndex = Number.parseInt(target.dataset.sushiIndex, 10);
-  const sourceProductId = target.dataset.ingredientId;
-  if (state.noriWrapping || !Number.isInteger(targetIndex) || !canWrapWithNori(sourceProductId)) {
-    setMessage('紫菜要放到一份普通寿司，或玉子烧半成品上。');
-    render();
-    return;
-  }
-
-  const stageRect = stage.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
-  const noriSheet = document.createElement('img');
-  const wrapsTamago = isTamagoHalf(sourceProductId);
-  const completedProductId = wrapsTamago ? 'tamago' : 'nori';
-  const animationVersion = state.flightVersion;
-
-  noriSheet.className = 'flying-nori-sheet';
-  noriSheet.src = `${KITCHEN_ASSET_PATH}nori-sheet.png`;
-  noriSheet.alt = '';
-  noriSheet.draggable = false;
-  noriSheet.style.left = `${sourceRect.left + (sourceRect.width / 2) - stageRect.left}px`;
-  noriSheet.style.top = `${sourceRect.top + (sourceRect.height / 2) - stageRect.top}px`;
-  noriSheet.style.width = `${targetRect.width * 1.3}px`;
-  noriSheet.style.height = `${targetRect.height * 1.3}px`;
-  stage.append(noriSheet);
-  target.classList.add('is-wrapping');
-  state.noriWrapping = true;
-  setMessage(wrapsTamago ? '正在把玉子烧半成品包上紫菜。' : `正在把${sushiName(sourceProductId)}包成紫菜卷。`);
-
-  requestAnimationFrame(() => {
-    noriSheet.style.left = `${targetRect.left + (targetRect.width / 2) - stageRect.left}px`;
-    noriSheet.style.top = `${targetRect.top + (targetRect.height / 2) - stageRect.top}px`;
-    noriSheet.classList.add('is-flying');
-  });
-
-  window.setTimeout(() => {
-    noriSheet.remove();
-    target.classList.remove('is-wrapping');
-    if (animationVersion !== state.flightVersion) return;
-    if (state.sushiTypes[targetIndex] !== sourceProductId) {
-      state.noriWrapping = false;
-      render();
-      return;
-    }
-    state.sushiTypes[targetIndex] = completedProductId;
-    state.noriWrapping = false;
-    setMessage(wrapsTamago ? '玉子烧寿司完成了，已放进寿司架。' : '紫菜卷完成了，已放进寿司架。');
-    render();
-    const completedItem = sushiRack.children[targetIndex];
-    if (!completedItem) return;
-    completedItem.classList.remove('nori-roll-arriving');
-    void completedItem.offsetWidth;
-    completedItem.classList.add('nori-roll-arriving');
-    completedItem.addEventListener('animationend', () => completedItem.classList.remove('nori-roll-arriving'), { once: true });
-  }, 580);
-}
-
 freezerButton.addEventListener('click', openSashimiPicker);
 sashimiChoices.forEach((choice) => choice.addEventListener('pointerdown', dragSashimiFromPicker));
 riceBin.addEventListener('click', takeRice);
 cupStation.addEventListener('pointerdown', prepareCupDrag);
-noriStation.addEventListener('pointerdown', prepareNoriDrag);
 
 window.addEventListener('pointermove', (event) => moveDragPreview(event));
 window.addEventListener('pointercancel', () => clearIngredientDrag());
@@ -945,26 +797,19 @@ window.addEventListener('pointerup', (event) => {
   if (!ingredientDrag || event.pointerId !== ingredientDrag.pointerId) return;
   const { type, source, target, targetCustomerId, ingredientId } = ingredientDrag;
   const sushiType = sushiTypeFor(ingredientId);
-  const noriTarget = type === 'nori' ? findNoriWrapTarget(event) : null;
-  const noriSourceRect = type === 'nori' ? source.getBoundingClientRect() : null;
-  const destination = type === 'ingredient' ? boardStation : type === 'cup' ? drinkMachine : type === 'serve' ? target : type === 'nori' ? noriTarget : riceRack;
+  const destination = type === 'ingredient' ? boardStation : type === 'cup' ? drinkMachine : type === 'serve' ? target : riceRack;
   const accepted = Boolean(destination && pointIsInside(event, destination));
   if (source.hasPointerCapture(event.pointerId)) source.releasePointerCapture(event.pointerId);
   clearIngredientDrag();
 
   if (!accepted) {
-    setMessage(type === 'ingredient' ? `把${sushiType.boardName}拖到切菜板里。` : type === 'cup' ? '把空杯拖到饮品机里。' : type === 'serve' ? '把寿司直接拖到顾客身上。' : type === 'nori' ? '把紫菜拖到一份普通寿司，或玉子烧半成品上。' : `把${sushiType.name}片拖到米饭架里。`);
+    setMessage(type === 'ingredient' ? `把${sushiType.boardName}拖到切菜板里。` : type === 'cup' ? '把空杯拖到饮品机里。' : type === 'serve' ? '把寿司直接拖到顾客身上。' : `把${sushiType.name}片拖到米饭架里。`);
     render();
     return;
   }
 
   if (type === 'serve') {
     deliverSushiToCustomer(sushiType.id, targetCustomerId);
-    return;
-  }
-
-  if (type === 'nori') {
-    wrapSushiWithNori(noriTarget, noriSourceRect);
     return;
   }
 
@@ -1189,10 +1034,9 @@ document.querySelector('#reset-button').addEventListener('click', () => {
   state.drinkVersion += 1;
   clearCustomerTimers();
   document.querySelectorAll('.flying-sushi-slice').forEach((slice) => slice.remove());
-  document.querySelectorAll('.flying-nori-sheet').forEach((sheet) => sheet.remove());
   document.querySelectorAll('.flying-completed-item').forEach((item) => item.remove());
   document.querySelectorAll('.sushi-making-animation').forEach((item) => item.remove());
-  Object.assign(state, { salmonOnBoard: false, boardIngredientId: null, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, sliceTypes: [], riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, sushiTypes: [], noriWrapping: false, cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, sashimiPickerOpen: false, shopOpen: true, cash: 0, customers: [], customerSerial: 0 });
+  Object.assign(state, { salmonOnBoard: false, boardIngredientId: null, cutLines: [false, false, false], activeCut: null, cutStartY: 0, slicesReady: 0, incomingSlices: 0, sliceTypes: [], riceStored: 0, incomingRice: 0, sushiStored: 0, incomingSushi: 0, sushiTypes: [], cupOnMachine: false, drinkPouring: false, drinksStored: 0, incomingDrinks: 0, sashimiPickerOpen: false, shopOpen: true, cash: 0, customers: [], customerSerial: 0 });
   setMessage('制作台已整理，第一位客人马上就到。');
   render();
   scheduleCustomer(500);
@@ -1207,11 +1051,11 @@ scheduleCustomer(700);
 window.setInterval(refreshCustomerPatience, 120);
 
 function preloadInteractionAssets() {
-  const assetNames = new Set(['rice-portion.png', 'tea-cup-ready.png', 'nori-sheet.png']);
+  const assetNames = new Set(['rice-portion.png', 'tea-cup-ready.png']);
   SUSHI_TYPE_LIST.forEach((sushiType) => {
-    ['loin', 'slice', 'nigiri'].forEach((asset) => {
-      if (sushiType[asset]) assetNames.add(sushiType[asset]);
-    });
+    assetNames.add(sushiType.loin);
+    assetNames.add(sushiType.slice);
+    assetNames.add(sushiType.nigiri);
   });
   assetNames.forEach((name) => {
     const image = new Image();
