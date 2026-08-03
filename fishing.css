@@ -90,7 +90,7 @@ body {
 .fishing-target-body { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; transform-origin: 50% 50%; }
 .fishing-target:not(.is-hooked) .fishing-target-body { will-change: transform; animation: fish-swim var(--swim-duration) cubic-bezier(.42, 0, .58, 1) var(--swim-delay) infinite alternate; }
 .fishing-target img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 1px rgb(20 97 125 / .3)); }
-.fishing-target[data-fish-id="tuna"] { width: clamp(52px, 6.4vw, 96px); }
+.fishing-target[data-fish-id="tuna"] { width: clamp(56px, 7.1vw, 108px); }
 .fishing-target[data-fish-id="shrimp"] { width: clamp(48px, 5.8vw, 86px); }
 .fishing-target[data-fish-id="shrimp"] img { transform: rotate(-16deg); }
 .fishing-target:hover .fishing-target-body { filter: brightness(1.09); }

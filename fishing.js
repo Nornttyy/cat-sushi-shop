@@ -27,7 +27,7 @@ const FISH_CATALOG = {
     id: 'tuna',
     name: '金枪鱼',
     weight: 20,
-    asset: 'assets/restaurant/kitchen-layers/optimized/tuna-loin.png',
+    asset: 'assets/fishing-v2/tuna-whole.png',
     swimSpeed: 0.095,
     pullSpeed: 0.64,
     scale: 1.08,
