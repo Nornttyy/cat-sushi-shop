@@ -91,8 +91,14 @@ function loadStylesheet(id, href) {
   });
 }
 
-const kitchenAssetsReady = Promise.all(kitchenAssetSources.map(preloadImage));
-const fishingAssetsReady = Promise.all(fishingAssetSources.map(preloadImage));
+// 从钓鱼场景返回或直接打开钓鱼时，不能被整套厨房素材阻塞。
+// 主菜单只预热最可能马上进入的厨房；钓鱼场景则只在后台预热自己的图。
+const kitchenAssetsReady = requestedScene === 'fishing'
+  ? Promise.resolve()
+  : Promise.all(kitchenAssetSources.map(preloadImage));
+const fishingAssetsReady = requestedScene === 'fishing'
+  ? Promise.all(fishingAssetSources.map(preloadImage))
+  : Promise.resolve();
 let kitchenMarkupReady = loadKitchenMarkup();
 let fishingMarkupReady = loadFishingMarkup();
 
@@ -148,7 +154,6 @@ async function enterFishing() {
   try {
     const [fishingMarkup] = await Promise.all([
       fishingMarkupReady,
-      fishingAssetsReady,
       waitForMenuTransition(),
       loadStylesheet('fishing-scene-style', 'fishing.css?v=fishing-gold-miner-v1-20260803'),
     ]);
