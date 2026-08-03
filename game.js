@@ -155,7 +155,7 @@ async function enterFishing() {
     const [fishingMarkup] = await Promise.all([
       fishingMarkupReady,
       waitForMenuTransition(),
-      loadStylesheet('fishing-scene-style', 'fishing.css?v=fishing-gold-miner-v1-20260803'),
+      loadStylesheet('fishing-scene-style', 'fishing.css?v=fishing-water-motion-v2-20260803'),
     ]);
     const fishingDocument = new DOMParser().parseFromString(fishingMarkup, 'text/html');
     const fishingStage = fishingDocument.querySelector('main');
