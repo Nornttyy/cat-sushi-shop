@@ -11,7 +11,7 @@ const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
 const CUSTOMER_EXIT_MS = 820;
 const SLICE_FLIGHT_STAGGER_MS = 70;
 const DRINK_FILL_MS = 760;
-const TEA_PRICE = 14;
+const TEA_PRICE = 7;
 const SHRIMP_BATCH_SIZE = 4;
 const SHRIMP_HEAD_CUT_X = 0.5;
 const RAW_FISH_IDS = ['salmon', 'tuna', 'shrimp'];
@@ -77,7 +77,7 @@ const SUSHI_TYPES = {
     loin: 'salmon-loin.png',
     slice: 'salmon-slice.png',
     nigiri: 'salmon-nigiri.png',
-    price: 18,
+    price: 10,
   },
   tuna: {
     id: 'tuna',
@@ -87,7 +87,7 @@ const SUSHI_TYPES = {
     loin: 'tuna-loin.png',
     slice: 'tuna-slice.png',
     nigiri: 'tuna-nigiri.png',
-    price: 22,
+    price: 13,
   },
   shrimp: {
     id: 'shrimp',
@@ -99,7 +99,7 @@ const SUSHI_TYPES = {
     head: 'shrimp-head.png',
     slice: 'shrimp-slice.png',
     nigiri: 'shrimp-nigiri.png',
-    price: 20,
+    price: 11,
   },
   tamago: {
     id: 'tamago',
@@ -109,7 +109,7 @@ const SUSHI_TYPES = {
     loin: 'tamago-loin.png',
     slice: 'tamago-slice.png',
     nigiri: 'tamago-nigiri.png',
-    price: 16,
+    price: 8,
   },
 };
 const SUSHI_TYPE_LIST = Object.values(SUSHI_TYPES);
