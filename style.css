@@ -189,7 +189,18 @@ button { font: inherit; }
 .sushi-slice-crop:active { cursor: grabbing; }
 .sushi-slice-crop img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 0 rgb(90 57 45 / .25)); }
 .stock-rack { --stock-columns: 2; --stock-rows: 4; position: absolute; top: 42%; z-index: 4; display: grid; grid-template-columns: repeat(var(--stock-columns), 1fr); grid-template-rows: repeat(var(--stock-rows), 1fr); gap: 4%; height: 55%; }
-.rice-rack { left: 2%; width: 45%; }
+.rice-rack {
+  --rice-item-scale: 1.04;
+  left: 1%;
+  width: 47%;
+  overflow: hidden;
+  padding: 1.5% 1.2%;
+  border-radius: 8%;
+}
+.rice-rack[data-storage-level="1"] { --rice-item-scale: 1.01; left: .5%; width: 48%; }
+.rice-rack[data-storage-level="2"] { --rice-item-scale: .96; left: 0; width: 49%; }
+.rice-rack[data-storage-level="3"] { --rice-item-scale: .9; top: 40%; left: 0; width: 49%; height: 57%; }
+.rice-rack .stored-rice { min-width: 0; min-height: 0; transform: scale(var(--rice-item-scale)); }
 .sushi-rack { right: 2%; width: 45%; }
 .stock-rack img { display: block; width: 100%; height: 100%; object-fit: contain; transform: scale(1.12); }
 .stored-rice { filter: drop-shadow(0 1px 0 rgb(90 57 45 / .22)); }

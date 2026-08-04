@@ -2267,6 +2267,7 @@ function renderStorageLayouts() {
   sliceRack.style.setProperty('--slice-rows', String(sliceGrid.rows));
   riceRack.style.setProperty('--stock-columns', String(riceGrid.columns));
   riceRack.style.setProperty('--stock-rows', String(riceGrid.rows));
+  riceRack.dataset.storageLevel = String(storageLevelFor('rice'));
   sushiRack.style.setProperty('--stock-columns', String(sushiGrid.columns));
   sushiRack.style.setProperty('--stock-rows', String(sushiGrid.rows));
   drinkRack.style.setProperty('--drink-columns', String(drinkGrid.columns));
