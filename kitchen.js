@@ -133,10 +133,13 @@ const TEA_ORDER_ITEM = {
   price: TEA_PRICE,
   asset: 'tea-cup-ready.png',
 };
-const CUSTOMER_CATALOG = [
-  { avatar: 'customer-summer.png' },
-  { avatar: 'customer-fisher.png' },
-];
+const CUSTOMER_CATALOG = Object.freeze([
+  Object.freeze({ avatar: 'customer-summer.png', customerType: 'standard', patienceMultiplier: 1 }),
+  Object.freeze({ avatar: 'customer-fisher.png', customerType: 'regular', favoriteSushiId: 'salmon', patienceMultiplier: 1.16 }),
+  Object.freeze({ avatar: 'customer-rush.png', customerType: 'impatient', patienceMultiplier: 0.58 }),
+  Object.freeze({ avatar: 'customer-feast.png', customerType: 'large-order', patienceMultiplier: 1.18 }),
+  Object.freeze({ avatar: 'customer-regular.png', customerType: 'regular', favoriteSushiId: 'tuna', patienceMultiplier: 1.2 }),
+]);
 
 function sushiTypeFor(id) {
   return SUSHI_TYPES[id] ?? SUSHI_TYPES.salmon;
@@ -173,10 +176,24 @@ function orderSummary(items) {
   return Array.from(counts, ([name, count]) => count > 1 ? `${name}×${count}` : name).join('、');
 }
 
-function createCustomerOrder() {
+function createCustomerOrder(template = CUSTOMER_CATALOG[0]) {
   const remainingServings = new Map(orderableSushiTypes().map(({ sushiType, servings }) => [sushiType.id, servings]));
-  const sushiCount = 1 + (Math.random() < 0.58 ? 1 : 0) + (remainingServings.size > 1 && Math.random() < 0.18 ? 1 : 0);
   const orderItems = [];
+
+  if (template.customerType === 'regular') {
+    const favorite = SUSHI_TYPES[template.favoriteSushiId];
+    if (!favorite || (remainingServings.get(favorite.id) ?? 0) <= 0) {
+      return createCustomerOrder({ customerType: 'standard' });
+    }
+    orderItems.push({ type: 'sushi', id: favorite.id, price: favorite.price, fulfilled: false });
+    return orderItems;
+  }
+
+  const sushiCount = template.customerType === 'large-order'
+    ? 3
+    : template.customerType === 'impatient'
+      ? 1
+      : 1 + (Math.random() < 0.58 ? 1 : 0) + (remainingServings.size > 1 && Math.random() < 0.18 ? 1 : 0);
 
   for (let index = 0; index < sushiCount; index += 1) {
     const orderPool = unlockedSushiTypes().filter((sushiType) => (remainingServings.get(sushiType.id) ?? 0) > 0);
@@ -187,7 +204,12 @@ function createCustomerOrder() {
     }
   }
 
-  if (isTeaUnlocked() && Math.random() < 0.62) {
+  const teaChance = template.customerType === 'large-order'
+    ? 0.46
+    : template.customerType === 'impatient'
+      ? 0.18
+      : 0.62;
+  if (orderItems.length < 4 && isTeaUnlocked() && Math.random() < teaChance) {
     orderItems.push({ ...TEA_ORDER_ITEM, fulfilled: false });
   }
 
@@ -251,6 +273,17 @@ function orderableSushiTypes() {
   return unlockedSushiTypes()
     .map((sushiType) => ({ sushiType, servings: availableSushiServings(sushiType.id) }))
     .filter((entry) => entry.servings > 0);
+}
+
+function customerTemplateCanOrder(template) {
+  if (!template || template.customerType !== 'regular') return true;
+  const favoriteId = template.favoriteSushiId;
+  return Boolean(favoriteId && isIngredientUnlocked(favoriteId) && availableSushiServings(favoriteId) > 0);
+}
+
+function nextCustomerTemplate() {
+  const eligible = CUSTOMER_CATALOG.filter(customerTemplateCanOrder);
+  return eligible[state.customerSerial % eligible.length] ?? CUSTOMER_CATALOG[0];
 }
 
 function shopItemFor(id) {
@@ -1217,9 +1250,16 @@ function maybeEndDayForMissingFish() {
   return true;
 }
 
+function customerWaitDuration(customer) {
+  const multiplier = Number(customer?.patienceMultiplier);
+  const normalizedMultiplier = Number.isFinite(multiplier) ? multiplier : 1;
+  return Math.round(CUSTOMER_WAIT_MS * Math.min(1.35, Math.max(0.45, normalizedMultiplier)));
+}
+
 function getPatience(customer) {
   if (customer.tutorial) return 100;
-  return Math.max(0, Math.min(100, ((CUSTOMER_WAIT_MS - (gameplayNow() - customer.arrivedAt)) / CUSTOMER_WAIT_MS) * 100));
+  const waitDuration = customerWaitDuration(customer);
+  return Math.max(0, Math.min(100, ((waitDuration - (gameplayNow() - customer.arrivedAt)) / waitDuration) * 100));
 }
 
 function stopCustomerPatienceLoop() {
@@ -1322,6 +1362,9 @@ function updateCustomerCard(card, customer) {
   const avatarSrc = `${CUSTOMER_ASSET_PATH}${customer.avatar}`;
   if (avatar.getAttribute('src') !== avatarSrc) avatar.src = avatarSrc;
   avatar.alt = '正在等待点寿司的顾客';
+  card.classList.toggle('is-impatient', customer.customerType === 'impatient');
+  card.classList.toggle('is-large-order', customer.customerType === 'large-order');
+  card.classList.toggle('is-regular', customer.customerType === 'regular');
   card.classList.toggle('is-serving', Boolean(customer.served));
   card.classList.toggle('is-leaving', Boolean(customer.leaving));
   receivedSushi.classList.add('is-hidden');
@@ -1415,8 +1458,8 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
   customerSpawnTimer = setGameplayTimeout(() => {
     customerSpawnTimer = null;
     if (tutorialNeedsCompletion() || !isServingDay() || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
-    const template = CUSTOMER_CATALOG[state.customerSerial % CUSTOMER_CATALOG.length];
-    const orderItems = createCustomerOrder();
+    const template = nextCustomerTemplate();
+    const orderItems = createCustomerOrder(template);
     const customer = {
       ...template,
       id: `${state.customerSerial}-${Date.now()}`,
@@ -1430,7 +1473,7 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
     };
     state.customerSerial += 1;
     state.customers.push(customer);
-    customerLeaveTimers.set(customer.id, setGameplayTimeout(() => customerLeaves(customer.id), CUSTOMER_WAIT_MS));
+    customerLeaveTimers.set(customer.id, setGameplayTimeout(() => customerLeaves(customer.id), customerWaitDuration(customer)));
     setMessage(`有客人来了，想要${orderSummary(orderItems)}。`);
     render();
     scheduleCustomer();

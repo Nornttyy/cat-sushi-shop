@@ -77,6 +77,10 @@ button { font: inherit; }
 .customer-order strong { position: relative; z-index: 1; font-size: .88em; white-space: nowrap; }
 .customer-wait { position: absolute; right: 8%; bottom: 39%; left: 8%; z-index: 3; height: 7px; overflow: visible; border: 1px solid rgb(90 57 45 / .45); border-radius: 999px; background: #ffdba3; }
 .customer-wait > i { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7fce93, #f7bf60 65%, #e96d58); transform-origin: left; will-change: transform; }
+.customer.is-impatient .customer-wait { border-color: rgb(184 80 52 / .8); background: #ffe0c0; }
+.customer.is-impatient .customer-wait > i { background: linear-gradient(90deg, #f5a13b, #e96d58); }
+.customer.is-large-order .customer-order { max-width: 13em; background: #fff0c8; }
+.customer.is-regular .customer-order { background: #f5f0df; }
 .customer-received-sushi { position: absolute; bottom: 43%; left: 50%; z-index: 4; width: 31%; height: auto; object-fit: contain; transform: translateX(-50%) rotate(-4deg); filter: drop-shadow(0 3px 2px rgb(59 39 28 / .25)); }
 @keyframes customer-enter { 0% { opacity: 0; transform: translate3d(82px, 10px, 0) scale(.9); } 68% { opacity: 1; transform: translate3d(-4px, 0, 0) scale(1.012); } 100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 @keyframes customer-thank { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(0, -4px, 0) scale(1.025); } }
