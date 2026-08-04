@@ -12,7 +12,9 @@ const wealthLeaderboardList = document.querySelector('#wealth-leaderboard-list')
 const closeWealthLeaderboardButton = document.querySelector('#close-wealth-leaderboard-button');
 const menuStage = document.querySelector('.main-menu-stage');
 const MENU_SAVE_KEY = 'seaside-sushi-shop.save.v1';
-const requestedScene = new URLSearchParams(window.location.search).get('scene');
+const menuSearchParams = new URLSearchParams(window.location.search);
+const requestedScene = menuSearchParams.get('scene');
+const returningToMenu = menuSearchParams.get('returning') === '1';
 let resetSaveDialogOpen = false;
 let resetSaveDialogCloseTimer = null;
 let wealthLeaderboardDialogOpen = false;
@@ -298,7 +300,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=beggar-customer-v51-20260804';
+    kitchenScript.src = 'kitchen.js?v=exit-loading-v55-20260804';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -434,8 +436,11 @@ document.addEventListener('keydown', (event) => {
   closeResetSaveDialog();
 });
 
-if (requestedScene === 'kitchen' || requestedScene === 'fishing') {
+if (requestedScene === 'kitchen' || requestedScene === 'fishing' || returningToMenu) {
   window.history.replaceState({}, document.title, window.location.pathname);
-  if (requestedScene === 'kitchen' || !canFishFromSavedDay()) enterKitchen();
-  else enterFishing();
+  if (requestedScene === 'kitchen') enterKitchen();
+  else if (requestedScene === 'fishing') {
+    if (!canFishFromSavedDay()) enterKitchen();
+    else enterFishing();
+  }
 }

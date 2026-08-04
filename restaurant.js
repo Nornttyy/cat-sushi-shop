@@ -15,7 +15,7 @@ async function enterBackroom() {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=beggar-customer-v51-20260804';
+    kitchenScript.src = 'kitchen.js?v=exit-loading-v55-20260804';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {

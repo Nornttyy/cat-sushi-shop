@@ -704,6 +704,7 @@ const openGameSettingsButton = document.querySelector('#open-game-settings-butto
 const closeGameSettingsButton = document.querySelector('#close-game-settings-button');
 const motionSettingButton = document.querySelector('#motion-setting-button');
 const exitGameButton = document.querySelector('#exit-game-button');
+const exitLoadingOverlay = document.querySelector('#exit-loading-overlay');
 const openShopButton = document.querySelector('#open-shop-button');
 const goFishingButton = document.querySelector('#go-fishing-button');
 const settlementActions = document.querySelector('#settlement-actions');
@@ -1651,9 +1652,14 @@ function toggleReducedMotion() {
 }
 
 function exitGame() {
-  if (!state.gamePaused) return;
+  if (!state.gamePaused || stage.classList.contains('is-exiting-game')) return;
+  exitGameButton.disabled = true;
+  exitGameButton.setAttribute('aria-busy', 'true');
   saveGame();
-  window.location.assign('index.html');
+  stage.classList.add('is-exiting-game');
+  exitLoadingOverlay.setAttribute('aria-hidden', 'false');
+  const exitDelay = gameSettings.reducedMotion ? 1 : 900;
+  window.setTimeout(() => window.location.assign('index.html?returning=1'), exitDelay);
 }
 
 function blockPausedGameInput(event) {
