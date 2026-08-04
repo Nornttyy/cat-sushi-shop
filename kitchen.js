@@ -134,11 +134,12 @@ const TEA_ORDER_ITEM = {
   asset: 'tea-cup-ready.png',
 };
 const CUSTOMER_CATALOG = Object.freeze([
-  Object.freeze({ avatar: 'customer-summer.png', customerType: 'standard', patienceMultiplier: 1 }),
-  Object.freeze({ avatar: 'customer-fisher.png', customerType: 'regular', favoriteSushiId: 'salmon', patienceMultiplier: 1.16 }),
-  Object.freeze({ avatar: 'customer-rush.png', customerType: 'impatient', patienceMultiplier: 0.58 }),
-  Object.freeze({ avatar: 'customer-feast.png', customerType: 'large-order', patienceMultiplier: 1.18 }),
-  Object.freeze({ avatar: 'customer-regular.png', customerType: 'regular', favoriteSushiId: 'tuna', patienceMultiplier: 1.2 }),
+  Object.freeze({ avatar: 'customer-summer.png', customerType: 'standard', minimumDay: 1, patienceMultiplier: 1 }),
+  Object.freeze({ avatar: 'customer-beggar.png', customerType: 'beggar', minimumDay: 7, patienceMultiplier: 0.86 }),
+  Object.freeze({ avatar: 'customer-fisher.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'salmon', patienceMultiplier: 1.16 }),
+  Object.freeze({ avatar: 'customer-rush.png', customerType: 'impatient', minimumDay: 12, patienceMultiplier: 0.58 }),
+  Object.freeze({ avatar: 'customer-feast.png', customerType: 'large-order', minimumDay: 12, patienceMultiplier: 1.18 }),
+  Object.freeze({ avatar: 'customer-regular.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'tuna', patienceMultiplier: 1.2 }),
 ]);
 
 function sushiTypeFor(id) {
@@ -179,6 +180,12 @@ function orderSummary(items) {
 function createCustomerOrder(template = CUSTOMER_CATALOG[0]) {
   const remainingServings = new Map(orderableSushiTypes().map(({ sushiType, servings }) => [sushiType.id, servings]));
   const orderItems = [];
+
+  // 逃单客只会要一份基础寿司，确保第 7 天起无论玩家买了什么都能应对。
+  if (template.customerType === 'beggar') {
+    const tamago = SUSHI_TYPES.tamago;
+    return [{ type: 'sushi', id: tamago.id, price: tamago.price, fulfilled: false }];
+  }
 
   if (template.customerType === 'regular') {
     const favorite = SUSHI_TYPES[template.favoriteSushiId];
@@ -276,6 +283,8 @@ function orderableSushiTypes() {
 }
 
 function customerTemplateCanOrder(template) {
+  const minimumDay = Math.max(1, Math.floor(Number(template?.minimumDay) || 1));
+  if (!template || state.day < minimumDay) return false;
   if (!template || template.customerType !== 'regular') return true;
   const favoriteId = template.favoriteSushiId;
   return Boolean(favoriteId && isIngredientUnlocked(favoriteId) && availableSushiServings(favoriteId) > 0);
@@ -1305,6 +1314,17 @@ function createCustomerCard(customer) {
   motion.className = 'customer-motion';
   avatar.className = 'customer-avatar';
   avatar.draggable = false;
+  avatar.addEventListener('click', (event) => {
+    if (avatar.tabIndex !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    evictBeggar(card.dataset.customerId);
+  });
+  avatar.addEventListener('keydown', (event) => {
+    if (avatar.tabIndex !== 0 || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    evictBeggar(card.dataset.customerId);
+  });
   order.className = 'customer-order';
   wait.className = 'customer-wait';
   wait.append(fill);
@@ -1361,7 +1381,17 @@ function updateCustomerCard(card, customer) {
 
   const avatarSrc = `${CUSTOMER_ASSET_PATH}${customer.avatar}`;
   if (avatar.getAttribute('src') !== avatarSrc) avatar.src = avatarSrc;
-  avatar.alt = '正在等待点寿司的顾客';
+  const isBeggar = customer.customerType === 'beggar';
+  const canEvictBeggar = isBeggar && !customer.served && !customer.leaving && isServingDay() && !state.gamePaused;
+  avatar.alt = canEvictBeggar
+    ? '逃单客，点击驱逐'
+    : isBeggar && customer.fledWithoutPay
+      ? '逃单客正在离开'
+      : '正在等待点寿司的顾客';
+  avatar.tabIndex = canEvictBeggar ? 0 : -1;
+  avatar.setAttribute('role', canEvictBeggar ? 'button' : 'img');
+  avatar.title = canEvictBeggar ? '点击驱逐' : '';
+  card.classList.toggle('is-beggar', isBeggar);
   card.classList.toggle('is-impatient', customer.customerType === 'impatient');
   card.classList.toggle('is-large-order', customer.customerType === 'large-order');
   card.classList.toggle('is-regular', customer.customerType === 'regular');
@@ -1375,7 +1405,7 @@ function updateCustomerCard(card, customer) {
     order.setAttribute('aria-label', `订单：${orderSummary(orderItems)}`);
 
     if (customer.served) {
-      order.append('谢谢！');
+      order.append(customer.fledWithoutPay ? '逃单了' : '谢谢！');
     } else if (customer.leaving) {
       order.append('下次见');
     } else {
@@ -1448,6 +1478,10 @@ function fadeOutCustomer(customer, { holdMs = 0, scheduleNext = true } = {}) {
       if (scheduleNext) scheduleCustomer(950);
     }, CUSTOMER_EXIT_MS));
   };
+  if (holdMs <= 0) {
+    startFade();
+    return;
+  }
   customerExitTimers.set(customer.id, setGameplayTimeout(startFade, holdMs));
 }
 
@@ -1464,7 +1498,7 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
       ...template,
       id: `${state.customerSerial}-${Date.now()}`,
       orderItems,
-      price: orderItems.reduce((total, item) => total + item.price, 0),
+      price: template.customerType === 'beggar' ? 0 : orderItems.reduce((total, item) => total + item.price, 0),
       arrivedAt: gameplayNow(),
       served: false,
       leaving: false,
@@ -1474,7 +1508,9 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
     state.customerSerial += 1;
     state.customers.push(customer);
     customerLeaveTimers.set(customer.id, setGameplayTimeout(() => customerLeaves(customer.id), customerWaitDuration(customer)));
-    setMessage(`有客人来了，想要${orderSummary(orderItems)}。`);
+    setMessage(template.customerType === 'beggar'
+      ? '逃单客出现了，点击他可以驱逐。'
+      : `有客人来了，想要${orderSummary(orderItems)}。`);
     render();
     scheduleCustomer();
   }, delay);
@@ -1487,6 +1523,20 @@ function customerLeaves(customerId) {
   resolveDayCustomer(customer);
   setMessage('有位客人等太久离开了。');
   fadeOutCustomer(customer);
+}
+
+function evictBeggar(customerId) {
+  const customer = state.customers.find((waitingCustomer) => waitingCustomer.id === customerId);
+  if (!customer || customer.customerType !== 'beggar' || customer.served || customer.leaving || state.gamePaused || !isServingDay() || customerExitTimers.has(customer.id)) return false;
+
+  const leaveTimer = customerLeaveTimers.get(customer.id);
+  if (leaveTimer) clearGameplayTimeout(leaveTimer);
+  customerLeaveTimers.delete(customer.id);
+  resolveDayCustomer(customer);
+  setMessage('已驱逐逃单客。');
+  fadeOutCustomer(customer);
+  scheduleSave();
+  return true;
 }
 
 function canContinueCurrentDay() {
@@ -2625,6 +2675,18 @@ function completeCustomerOrderItem(customer, item) {
   const leaveTimer = customerLeaveTimers.get(customer.id);
   if (leaveTimer) clearGameplayTimeout(leaveTimer);
   customerLeaveTimers.delete(customer.id);
+
+  if (customer.customerType === 'beggar') {
+    customer.served = true;
+    customer.fledWithoutPay = true;
+    resolveDayCustomer(customer);
+    setMessage('逃单客拿走食物跑掉了，没有留下钱。');
+    render();
+    scheduleSave();
+    fadeOutCustomer(customer, { holdMs: 160 });
+    return;
+  }
+
   customer.served = true;
   state.cash += customer.price;
   state.lifetimeRevenue = Math.min(9_999_999, state.lifetimeRevenue + customer.price);

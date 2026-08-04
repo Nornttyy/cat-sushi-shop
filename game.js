@@ -171,6 +171,7 @@ const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/tea-cup-empty.png',
   'assets/restaurant/kitchen-layers/optimized/tea-cup-ready.png',
   'assets/restaurant/customers/customer-summer.png',
+  'assets/restaurant/customers/customer-beggar.png',
   'assets/restaurant/customers/customer-fisher.png',
   'assets/restaurant/customers/customer-rush.png',
   'assets/restaurant/customers/customer-feast.png',
@@ -297,7 +298,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=customer-types-v47-20260804';
+    kitchenScript.src = 'kitchen.js?v=beggar-customer-v51-20260804';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
