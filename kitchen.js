@@ -72,12 +72,12 @@ const STORAGE_UPGRADES = [
     asset: 'tea-cup-ready.png',
     prices: [140, 300, 550],
     requiresTea: true,
-    capacities: [6, 8, 10, 12],
+    capacities: [8, 10, 12, 14],
     grids: [
-      { columns: 2, rows: 3 },
       { columns: 2, rows: 4 },
       { columns: 2, rows: 5 },
       { columns: 3, rows: 4 },
+      { columns: 3, rows: 5 },
     ],
   },
 ];
