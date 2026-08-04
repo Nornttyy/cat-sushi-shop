@@ -101,6 +101,28 @@ const kitchenAssetsReady = requestedScene === 'fishing'
 const fishingAssetsReady = requestedScene === 'fishing'
   ? Promise.all(fishingAssetSources.map(preloadImage))
   : Promise.resolve();
+
+// 预加载只是为了让进场更顺，不该成为无法开始游戏的门槛。
+// 个别图片在移动网络或 CDN 上迟迟没有完成解码时，继续在后台加载即可。
+function waitForAssetWarmup(assetsReady, maximumWait = 2200) {
+  return new Promise((resolve) => {
+    let finished = false;
+    let timeoutId = 0;
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      window.clearTimeout(timeoutId);
+      resolve();
+    };
+
+    timeoutId = window.setTimeout(finish, maximumWait);
+    Promise.resolve(assetsReady).then(finish, finish);
+  });
+}
+
+const kitchenAssetWarmup = waitForAssetWarmup(kitchenAssetsReady);
+const fishingAssetWarmup = waitForAssetWarmup(fishingAssetsReady);
 let kitchenMarkupReady = loadKitchenMarkup();
 let fishingMarkupReady = loadFishingMarkup();
 
@@ -126,7 +148,7 @@ async function enterKitchen(event) {
 
     const [kitchenMarkup] = await Promise.all([
       kitchenMarkupReady,
-      kitchenAssetsReady,
+      kitchenAssetWarmup,
       waitForLoadingScreen(),
     ]);
     const kitchenDocument = new DOMParser().parseFromString(kitchenMarkup, 'text/html');
@@ -156,7 +178,7 @@ async function enterFishing() {
   try {
     const [fishingMarkup] = await Promise.all([
       fishingMarkupReady,
-      fishingAssetsReady,
+      fishingAssetWarmup,
       waitForMenuTransition(),
       loadStylesheet('fishing-scene-style', 'fishing.css?v=fishing-tuna-v3-20260803'),
     ]);
