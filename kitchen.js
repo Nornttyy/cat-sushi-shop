@@ -12,8 +12,9 @@ const CUSTOMER_EXIT_MS = 820;
 const SLICE_FLIGHT_STAGGER_MS = 70;
 const DRINK_FILL_MS = 760;
 const TEA_PRICE = 3;
-const DAY_ONE_CUSTOMERS = 4;
-const MAX_DAILY_CUSTOMERS = 7;
+const FIRST_DAY_SERVICE_MS = 90 * 1000;
+const STANDARD_DAY_SERVICE_MS = 150 * 1000;
+const DAY_CLOCK_SAVE_INTERVAL_MS = 5 * 1000;
 const TUTORIAL_STEP = Object.freeze({
   WELCOME: 0,
   FREEZER: 1,
@@ -201,11 +202,6 @@ function isTeaUnlocked() {
   return state.teaUnlocked;
 }
 
-function customerTargetForDay(day) {
-  const normalizedDay = Math.max(1, Math.floor(Number(day) || 1));
-  return Math.min(MAX_DAILY_CUSTOMERS, DAY_ONE_CUSTOMERS + normalizedDay - 1);
-}
-
 function unlockedSushiTypes() {
   return SUSHI_TYPE_LIST.filter((sushiType) => isIngredientUnlocked(sushiType.id));
 }
@@ -345,7 +341,11 @@ const state = {
   dayCustomersFinished: 0,
   dayCustomersServed: 0,
   dayIncome: 0,
+  dayTimeRemainingMs: FIRST_DAY_SERVICE_MS,
+  dayTimerStarted: false,
+  dayTimerStartedAt: 0,
   dayEndedEarly: false,
+  daySummaryOpen: false,
   shopOpen: true,
   gamePaused: false,
   pauseSettingsOpen: false,
@@ -483,6 +483,7 @@ function buildSaveSnapshot() {
     dayCustomersFinished: Math.max(0, Math.floor(state.dayCustomersFinished)),
     dayCustomersServed: Math.max(0, Math.floor(state.dayCustomersServed)),
     dayIncome: Math.max(0, Math.floor(state.dayIncome)),
+    dayTimeRemainingMs: Math.ceil(dayTimeRemaining()),
     dayEndedEarly: Boolean(state.dayEndedEarly),
     shopOpen: Boolean(state.shopOpen),
     inventory: {
@@ -546,11 +547,15 @@ function restoreGame() {
       : tutorialCompleted ? 2 : 1;
     const legacySettlement = !hasSavedDay && typeof saved.shopOpen === 'boolean' && !saved.shopOpen;
     let dayPhase = saved.dayPhase === 'settlement' || legacySettlement ? 'settlement' : 'service';
-    const dayTarget = customerTargetForDay(day);
-    const dayCustomersFinished = Math.min(dayTarget, asStoredCount(saved.dayCustomersFinished, dayTarget));
-    const dayCustomersServed = Math.min(dayCustomersFinished, asStoredCount(saved.dayCustomersServed, dayTarget));
+    const dayCustomersFinished = asStoredCount(saved.dayCustomersFinished, 9_999_999);
+    const dayCustomersServed = Math.min(dayCustomersFinished, asStoredCount(saved.dayCustomersServed, 9_999_999));
     const dayIncome = asStoredCount(saved.dayIncome, 9_999_999);
-    if (dayPhase === 'service' && dayCustomersFinished >= dayTarget) dayPhase = 'settlement';
+    const dayDuration = dayDurationForDay(day);
+    const savedDayTime = Number(saved.dayTimeRemainingMs);
+    const dayTimeRemainingMs = Number.isFinite(savedDayTime)
+      ? Math.min(dayDuration, Math.max(0, Math.floor(savedDayTime)))
+      : dayDuration;
+    if (dayPhase === 'service' && tutorialCompleted && dayTimeRemainingMs <= 0) dayPhase = 'settlement';
     const shopOpen = dayPhase === 'service';
 
     Object.assign(state, {
@@ -595,7 +600,11 @@ function restoreGame() {
       dayCustomersFinished,
       dayCustomersServed,
       dayIncome,
+      dayTimeRemainingMs,
+      dayTimerStarted: false,
+      dayTimerStartedAt: 0,
       dayEndedEarly: dayPhase === 'settlement' && Boolean(saved.dayEndedEarly),
+      daySummaryOpen: false,
       shopOpen,
       gamePaused: false,
       pauseSettingsOpen: false,
@@ -618,11 +627,9 @@ const cashValue = document.querySelector('#cash-value');
 const dayLabel = document.querySelector('#day-label');
 const dayStatus = document.querySelector('#day-status');
 const daySummaryOverlay = document.querySelector('#day-summary-overlay');
-const daySummaryKicker = document.querySelector('#day-summary-kicker');
 const daySummaryTitle = document.querySelector('#day-summary-title');
-const dayOrdersValue = document.querySelector('#day-orders-value');
-const dayIncomeValue = document.querySelector('#day-income-value');
 const daySummaryNote = document.querySelector('#day-summary-note');
+const daySummaryDismissButton = document.querySelector('#day-summary-dismiss');
 const freezerButton = document.querySelector('#freezer-button');
 const sashimiPicker = document.querySelector('#sashimi-picker');
 const sashimiChoices = Array.from(document.querySelectorAll('.sashimi-choice'));
@@ -655,6 +662,7 @@ const exitGameButton = document.querySelector('#exit-game-button');
 const openShopButton = document.querySelector('#open-shop-button');
 const pauseShopButton = document.querySelector('#pause-shop-button');
 const goFishingButton = document.querySelector('#go-fishing-button');
+const settlementActions = document.querySelector('#settlement-actions');
 const shopStatus = document.querySelector('#shop-status');
 const shopStatusDetail = document.querySelector('#shop-status-detail');
 const drinkMachine = document.querySelector('#drink-machine');
@@ -676,6 +684,11 @@ const customerLeaveTimers = new Map();
 const customerExitTimers = new Map();
 const stationMotionTimers = new WeakMap();
 const stationMotionFrames = new WeakMap();
+let dayEndTimer = null;
+let dayClockFrame = null;
+let dayClockLastSecond = null;
+let dayClockLastSavedAt = 0;
+let daySummaryCloseTimer = null;
 
 stage.addEventListener('dragstart', (event) => event.preventDefault());
 
@@ -769,6 +782,7 @@ function finishTutorial({ skipped = false } = {}) {
   setMessage(skipped
     ? '已跳过新手教程，可以按自己的节奏经营。'
     : '第一单完成！教程结束，接下来自己完成第一天的订单吧。');
+  startDayClock();
   if (!hasUnsettledSaveState()) saveGame();
   else scheduleSave();
   if (skipped) scheduleCustomer(650);
@@ -933,53 +947,157 @@ function clearCustomerTimers({ keepExitTimers = false } = {}) {
   customerExitTimers.clear();
 }
 
-function dayTarget() {
-  return customerTargetForDay(state.day);
-}
-
 function isServingDay() {
   return state.dayPhase === 'service' && state.shopOpen;
 }
 
-function unresolvedDayCustomerCount() {
-  return state.customers.filter((customer) => customer.day === state.day && !customer.dayResolved).length;
+function dayDurationForDay(day = state.day) {
+  return Math.max(1, Math.floor(Number(day) || 1)) === 1
+    ? FIRST_DAY_SERVICE_MS
+    : STANDARD_DAY_SERVICE_MS;
 }
 
-function hasDayCustomerSlot() {
-  return state.dayCustomersFinished + unresolvedDayCustomerCount() < dayTarget();
+function dayTimeRemaining() {
+  const storedRemaining = Math.max(0, Number(state.dayTimeRemainingMs) || 0);
+  if (!state.dayTimerStarted) return storedRemaining;
+  return Math.max(0, storedRemaining - (gameplayNow() - state.dayTimerStartedAt));
+}
+
+function formatDayTime(remainingMs) {
+  const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, '0')}`;
+}
+
+function stopDayClockLoop() {
+  if (dayClockFrame !== null) window.cancelAnimationFrame(dayClockFrame);
+  dayClockFrame = null;
+  dayClockLastSecond = null;
+}
+
+function clearDayEndTimer() {
+  if (!dayEndTimer) return;
+  clearGameplayTimeout(dayEndTimer);
+  dayEndTimer = null;
+}
+
+function stopDayClock() {
+  if (state.dayTimerStarted) state.dayTimeRemainingMs = dayTimeRemaining();
+  state.dayTimerStarted = false;
+  state.dayTimerStartedAt = 0;
+  clearDayEndTimer();
+  stopDayClockLoop();
+}
+
+function refreshDayClock() {
+  dayClockFrame = null;
+  if (!isServingDay() || state.gamePaused || !state.dayTimerStarted) return;
+
+  const remaining = dayTimeRemaining();
+  if (remaining <= 0) {
+    state.dayTimeRemainingMs = 0;
+    state.dayTimerStarted = false;
+    finishDay();
+    return;
+  }
+
+  const remainingSecond = Math.ceil(remaining / 1000);
+  if (remainingSecond !== dayClockLastSecond) {
+    dayClockLastSecond = remainingSecond;
+    dayStatus.textContent = `剩余 ${formatDayTime(remaining)}`;
+  }
+
+  const now = gameplayNow();
+  if (now - dayClockLastSavedAt >= DAY_CLOCK_SAVE_INTERVAL_MS && !hasUnsettledSaveState()) {
+    dayClockLastSavedAt = now;
+    saveGame();
+  }
+  dayClockFrame = window.requestAnimationFrame(refreshDayClock);
+}
+
+function ensureDayClockLoop() {
+  if (!isServingDay() || state.gamePaused || !state.dayTimerStarted || dayClockFrame !== null) return;
+  dayClockFrame = window.requestAnimationFrame(refreshDayClock);
+}
+
+function startDayClock() {
+  if (!isServingDay() || tutorialNeedsCompletion() || state.dayTimerStarted) return;
+  const remaining = dayTimeRemaining();
+  if (remaining <= 0) {
+    finishDay();
+    return;
+  }
+
+  state.dayTimeRemainingMs = remaining;
+  state.dayTimerStarted = true;
+  state.dayTimerStartedAt = gameplayNow();
+  dayClockLastSavedAt = state.dayTimerStartedAt;
+  clearDayEndTimer();
+  dayEndTimer = setGameplayTimeout(() => {
+    dayEndTimer = null;
+    state.dayTimeRemainingMs = 0;
+    state.dayTimerStarted = false;
+    finishDay();
+  }, remaining);
+  ensureDayClockLoop();
 }
 
 function resolveDayCustomer(customer, { served = false } = {}) {
   if (!customer || customer.day !== state.day || customer.dayResolved || state.dayPhase !== 'service') return false;
   customer.dayResolved = true;
-  state.dayCustomersFinished = Math.min(dayTarget(), state.dayCustomersFinished + 1);
-  if (served) state.dayCustomersServed = Math.min(dayTarget(), state.dayCustomersServed + 1);
+  state.dayCustomersFinished += 1;
+  if (served) state.dayCustomersServed += 1;
   return true;
 }
 
-function finishDay({ early = false } = {}) {
+function clearInProgressKitchenWork() {
+  // Completed ingredients already exist in their storage arrays before their
+  // flight animation ends. Keep those items, but cancel their visual callback
+  // so an ended day cannot modify the counter behind the settlement screen.
+  state.flightVersion += 1;
+  state.drinkVersion += 1;
+  state.incomingSlices = 0;
+  state.incomingRice = 0;
+  state.incomingSushi = 0;
+  state.incomingDrinks = 0;
+  state.slicesReady = state.sliceTypes.length;
+  state.sushiStored = state.sushiTypes.length;
+  state.cupOnMachine = false;
+  state.drinkPouring = false;
+  state.salmonOnBoard = false;
+  state.boardIngredientId = null;
+  state.cutLines = [false, false, false];
+  state.activeCut = null;
+  state.shrimpOnBoard = false;
+  state.shrimpBatch = [];
+  state.activeShrimpCut = null;
+  state.shrimpHeads = [];
+  state.shrimpHeadDiscarding = false;
+  stage.querySelectorAll('.flying-sushi-slice, .flying-completed-item, .flying-shrimp-head, .sushi-making-animation, .customer-delivery-flight').forEach((element) => element.remove());
+}
+
+function finishDay({ early = false, reason = 'time' } = {}) {
   if (state.dayPhase !== 'service') return false;
+  stopDayClock();
   clearCustomerTimers();
   stopCustomerPatienceLoop();
   clearIngredientDrag();
+  clearInProgressKitchenWork();
   state.customers = [];
   state.sashimiPickerOpen = false;
   state.shopOpen = false;
   state.dayPhase = 'settlement';
   state.dayEndedEarly = early;
-  setMessage(early
-    ? `第 ${state.day} 天已提前打烊。先补充食材，再开始下一天吧。`
-    : `第 ${state.day} 天结束！先采购或钓鱼，为明天做准备。`);
+  state.daySummaryOpen = true;
+  setMessage(reason === 'missing-fish'
+    ? `没有足够的鱼完成订单，第 ${state.day} 天提前结束。`
+    : early
+      ? `第 ${state.day} 天已提前打烊。`
+      : `第 ${state.day} 天时间到了。`);
   render();
-  window.requestAnimationFrame(() => openShopButton.focus());
+  window.requestAnimationFrame(() => daySummaryDismissButton.focus());
   if (!hasUnsettledSaveState()) saveGame();
   else scheduleSave();
   return true;
-}
-
-function maybeFinishDay() {
-  if (!isServingDay() || state.dayCustomersFinished < dayTarget() || state.customers.length) return false;
-  return finishDay();
 }
 
 function customerCardFor(customerId) {
@@ -993,6 +1111,53 @@ function getActiveCustomer() {
 function activeCustomerAvatar() {
   const customer = getActiveCustomer();
   return customer ? customerCardFor(customer.id)?.querySelector('.customer-avatar') : null;
+}
+
+function availableFishServings(id) {
+  if (!needsFishing(id)) return Number.POSITIVE_INFINITY;
+  const rawServings = rawFishCount(id) * rawFishYield(id);
+  const boardServings = boardServingCapacity(id);
+  const slicedServings = state.sliceTypes.filter((sliceId) => sliceId === id).length;
+  const finishedSushi = state.sushiTypes.filter((sushiId) => sushiId === id).length;
+  return rawServings + boardServings + slicedServings + finishedSushi;
+}
+
+function kitchenWorkIsInFlight() {
+  return Boolean(
+    state.incomingSlices
+    || state.incomingRice
+    || state.incomingSushi
+    || state.incomingDrinks
+    || state.drinkPouring
+    || state.salmonOnBoard
+    || state.shrimpOnBoard
+    || state.shrimpHeads.length
+    || state.shrimpHeadDiscarding,
+  );
+}
+
+function hasMissingFishForWaitingOrders() {
+  const requiredServings = new Map();
+  state.customers.forEach((customer) => {
+    if (customer.served || customer.leaving) return;
+    pendingOrderItems(customer).forEach((item) => {
+      if (item.type !== 'sushi' || !needsFishing(item.id)) return;
+      requiredServings.set(item.id, (requiredServings.get(item.id) ?? 0) + 1);
+    });
+  });
+  return Array.from(requiredServings).some(([id, required]) => availableFishServings(id) < required);
+}
+
+function allUnlockedFishAreGone() {
+  const unlockedFish = state.unlockedIngredients.filter((id) => needsFishing(id));
+  return unlockedFish.length > 0 && unlockedFish.every((id) => availableFishServings(id) <= 0);
+}
+
+function maybeEndDayForMissingFish() {
+  if (!isServingDay() || state.gamePaused || tutorialNeedsCompletion() || kitchenWorkIsInFlight()) return false;
+  if (!hasMissingFishForWaitingOrders() && !allUnlockedFishAreGone()) return false;
+  finishDay({ early: true, reason: 'missing-fish' });
+  return true;
 }
 
 function getPatience(customer) {
@@ -1178,8 +1343,6 @@ function fadeOutCustomer(customer, { holdMs = 0, scheduleNext = true } = {}) {
       customerExitTimers.delete(customer.id);
       const index = state.customers.findIndex((waitingCustomer) => waitingCustomer.id === customer.id);
       if (index !== -1) state.customers.splice(index, 1);
-      const dayFinished = maybeFinishDay();
-      if (dayFinished) return;
       render();
       scheduleSave();
       if (scheduleNext) scheduleCustomer(950);
@@ -1191,10 +1354,10 @@ function fadeOutCustomer(customer, { holdMs = 0, scheduleNext = true } = {}) {
 function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
   if (customerSpawnTimer) clearGameplayTimeout(customerSpawnTimer);
   customerSpawnTimer = null;
-  if (tutorialNeedsCompletion() || !isServingDay() || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS || !hasDayCustomerSlot()) return;
+  if (tutorialNeedsCompletion() || !isServingDay() || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
   customerSpawnTimer = setGameplayTimeout(() => {
     customerSpawnTimer = null;
-    if (tutorialNeedsCompletion() || !isServingDay() || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS || !hasDayCustomerSlot()) return;
+    if (tutorialNeedsCompletion() || !isServingDay() || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
     const template = CUSTOMER_CATALOG[state.customerSerial % CUSTOMER_CATALOG.length];
     const orderItems = createCustomerOrder();
     const customer = {
@@ -1247,12 +1410,17 @@ function resumeShop() {
   state.dayCustomersFinished = 0;
   state.dayCustomersServed = 0;
   state.dayIncome = 0;
+  state.dayTimeRemainingMs = dayDurationForDay(state.day);
+  state.dayTimerStarted = false;
+  state.dayTimerStartedAt = 0;
   state.dayEndedEarly = false;
+  state.daySummaryOpen = false;
   state.shopOpen = true;
   state.shopPanelOpen = false;
   state.sashimiPickerOpen = false;
   setMessage(`第 ${state.day} 天开始，第一位客人马上就到。`);
   render();
+  startDayClock();
   scheduleCustomer(550);
   scheduleSave();
 }
@@ -1278,6 +1446,7 @@ function pauseGame() {
   if (state.gamePaused) return;
   clearIngredientDrag();
   stopCustomerPatienceLoop();
+  stopDayClockLoop();
   state.activeCut = null;
   state.activeShrimpCut = null;
   state.pauseSettingsOpen = false;
@@ -1299,6 +1468,7 @@ function resumeGame() {
   setMessage('继续游戏。');
   render();
   ensureCustomerPatienceLoop();
+  ensureDayClockLoop();
   window.requestAnimationFrame(() => gamePauseButton.focus());
 }
 
@@ -1346,6 +1516,15 @@ function blockShopPanelInput(event) {
   event.stopImmediatePropagation();
 }
 
+function blockSettledDayInput(event) {
+  if (state.dayPhase !== 'settlement') return;
+  const target = event.target instanceof Node ? event.target : null;
+  const allowed = target?.closest('#day-summary-overlay, #settlement-actions, #ingredient-shop-panel, #game-pause-button, #game-pause-overlay');
+  if (allowed) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}
+
 function trapShopPanelFocus(event) {
   if (!state.shopPanelOpen || event.key !== 'Tab') return;
   const focusable = Array.from(ingredientShopPanel.querySelectorAll('button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'))
@@ -1376,6 +1555,9 @@ stage.addEventListener('keydown', blockPausedGameInput, true);
 stage.addEventListener('pointerdown', blockShopPanelInput, true);
 stage.addEventListener('click', blockShopPanelInput, true);
 stage.addEventListener('keydown', blockShopPanelInput, true);
+stage.addEventListener('pointerdown', blockSettledDayInput, true);
+stage.addEventListener('click', blockSettledDayInput, true);
+stage.addEventListener('keydown', blockSettledDayInput, true);
 window.addEventListener('pointerdown', blockTutorialWelcomeInput, true);
 window.addEventListener('keydown', blockTutorialWelcomeInput, true);
 window.addEventListener('keydown', trapShopPanelFocus, true);
@@ -1383,6 +1565,10 @@ window.addEventListener('keydown', trapShopPanelFocus, true);
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   event.preventDefault();
+  if (state.daySummaryOpen) {
+    dismissDaySummary();
+    return;
+  }
   if (state.shopPanelOpen) {
     closeIngredientShop();
     return;
@@ -1741,22 +1927,38 @@ function renderIngredientShop() {
 }
 
 function renderDaySummary() {
-  const isSettlement = state.dayPhase === 'settlement';
-  show(daySummaryOverlay, isSettlement);
-  daySummaryOverlay.setAttribute('aria-hidden', String(!isSettlement));
-  if (!isSettlement) return;
-
-  const target = dayTarget();
-  daySummaryKicker.textContent = state.dayEndedEarly
-    ? `第 ${state.day} 天 · 提前打烊`
-    : `第 ${state.day} 天结算`;
-  daySummaryTitle.textContent = state.dayEndedEarly ? '今天先收摊吧' : '今天辛苦啦';
-  dayOrdersValue.textContent = `${state.dayCustomersServed} / ${target} 单`;
-  dayIncomeValue.textContent = `¥${state.dayIncome}`;
-  daySummaryNote.textContent = state.dayEndedEarly
-    ? '食材不足时可以提前收摊，补货后再开始新的一天。'
-    : '补充食材后，再开始新的一天吧。';
+  const showSummary = state.dayPhase === 'settlement' && state.daySummaryOpen;
+  if (showSummary) {
+    if (daySummaryCloseTimer) {
+      window.clearTimeout(daySummaryCloseTimer);
+      daySummaryCloseTimer = null;
+    }
+    daySummaryOverlay.classList.remove('is-hidden', 'is-closing');
+  } else if (!daySummaryOverlay.classList.contains('is-closing')) {
+    daySummaryOverlay.classList.add('is-hidden');
+  }
+  daySummaryOverlay.setAttribute('aria-hidden', String(!showSummary));
+  daySummaryTitle.textContent = '今天结束啦';
+  daySummaryNote.textContent = '今天的营业已经结束。';
   openShopButton.textContent = `开始第 ${state.day + 1} 天`;
+}
+
+function dismissDaySummary() {
+  if (!state.daySummaryOpen) return;
+  state.daySummaryOpen = false;
+  daySummaryOverlay.setAttribute('aria-hidden', 'true');
+  daySummaryOverlay.classList.remove('is-hidden');
+  daySummaryOverlay.classList.add('is-closing');
+  if (daySummaryCloseTimer) window.clearTimeout(daySummaryCloseTimer);
+  daySummaryCloseTimer = window.setTimeout(() => {
+    daySummaryCloseTimer = null;
+    if (!state.daySummaryOpen) {
+      daySummaryOverlay.classList.remove('is-closing');
+      daySummaryOverlay.classList.add('is-hidden');
+    }
+  }, motionDuration(210));
+  render();
+  window.requestAnimationFrame(() => ingredientShopToggle.focus());
 }
 
 function toggleIngredientShop() {
@@ -1919,7 +2121,9 @@ function renderShrimpHeads() {
 
 function render() {
   syncTutorialProgress();
+  if (maybeEndDayForMissingFish()) return;
   stage.classList.toggle('is-game-paused', state.gamePaused);
+  stage.classList.toggle('is-day-settled', state.dayPhase === 'settlement');
   stage.classList.toggle('is-reduced-motion', gameSettings.reducedMotion);
   show(gamePauseOverlay, state.gamePaused);
   show(gamePauseMenu, !state.pauseSettingsOpen);
@@ -1934,14 +2138,13 @@ function render() {
   const firstCustomer = getActiveCustomer();
   const boardSushiType = sushiTypeFor(state.boardIngredientId);
   const servingDay = isServingDay();
-  const dayCustomerTarget = dayTarget();
   stageName.textContent = servingDay ? `第 ${state.day} 天营业` : `第 ${state.day} 天休息中`;
   dayLabel.textContent = `第 ${state.day} 天`;
   dayStatus.textContent = state.dayPhase === 'settlement'
     ? '今日已结算'
     : tutorialNeedsCompletion()
       ? '新手教程'
-      : `完成 ${state.dayCustomersServed}/${dayCustomerTarget} 单`;
+      : `剩余 ${formatDayTime(dayTimeRemaining())}`;
   cashValue.textContent = `¥${state.cash}`;
   renderStorageLayouts();
   freezerButton.classList.toggle('is-active', state.sashimiPickerOpen);
@@ -1968,8 +2171,9 @@ function render() {
   renderShrimpHeads();
   trashBin.classList.toggle('is-discarding', state.shrimpHeadDiscarding);
   show(pauseShopButton, servingDay && !tutorialNeedsCompletion());
-  show(openShopButton, state.dayPhase === 'settlement');
-  show(goFishingButton, state.dayPhase === 'settlement');
+  show(settlementActions, state.dayPhase === 'settlement' && !state.daySummaryOpen);
+  show(openShopButton, state.dayPhase === 'settlement' && !state.daySummaryOpen);
+  show(goFishingButton, state.dayPhase === 'settlement' && !state.daySummaryOpen);
   shopStatus.textContent = servingDay ? '营业中' : '今日结算';
   shopStatusDetail.textContent = servingDay
     ? tutorialNeedsCompletion()
@@ -2788,6 +2992,7 @@ exitGameButton.addEventListener('click', exitGame);
 pauseShopButton.addEventListener('click', pauseShop);
 openShopButton.addEventListener('click', resumeShop);
 goFishingButton.addEventListener('click', goFishing);
+daySummaryDismissButton.addEventListener('click', dismissDaySummary);
 tutorialStartButton.addEventListener('click', startTutorial);
 tutorialSkipButton.addEventListener('click', skipTutorial);
 
@@ -2799,6 +3004,7 @@ setMessage(state.dayPhase === 'settlement'
     ? '第 1 天：先完成新手教程，招待第一位客人。'
     : `第 ${state.day} 天营业中：第一位客人马上就到。`);
 render();
+startDayClock();
 scheduleCustomer(700);
 window.addEventListener('pagehide', () => {
   if (!hasUnsettledSaveState()) saveGame();

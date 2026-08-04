@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=day-system-v30-20260804" />
+    <link rel="stylesheet" href="style.css?v=time-day-v31-20260804" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -121,18 +121,9 @@
 
       <section id="day-summary-overlay" class="day-summary-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="day-summary-title" aria-describedby="day-summary-note">
         <div class="day-summary-card">
-          <span id="day-summary-kicker">第 1 天结算</span>
-          <b id="day-summary-title">今天辛苦啦</b>
-          <div class="day-summary-stats">
-            <div><span>完成订单</span><b id="day-orders-value">0 / 4 单</b></div>
-            <div><span>今日收入</span><b id="day-income-value">¥0</b></div>
-          </div>
-          <p id="day-summary-note">补充食材后，再开始新的一天吧。</p>
-          <div class="day-summary-actions">
-            <button id="ingredient-shop-toggle" class="ingredient-shop-toggle" type="button" aria-controls="ingredient-shop-panel" aria-expanded="false">采购商店</button>
-            <button id="go-fishing-button" class="pause-secondary-button" type="button">去钓鱼</button>
-            <button id="open-shop-button" class="day-next-button" type="button">开始第 2 天</button>
-          </div>
+          <b id="day-summary-title">今天结束啦</b>
+          <p id="day-summary-note">今天的营业已经结束。</p>
+          <button id="day-summary-dismiss" class="day-summary-dismiss" type="button">知道了</button>
         </div>
       </section>
 
@@ -140,6 +131,11 @@
         <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击冰柜选择食材，把它放到切菜板。</span>
         <button id="game-pause-button" type="button" aria-pressed="false">暂停</button>
         <button id="pause-shop-button" class="is-hidden" type="button">提前打烊</button>
+        <div id="settlement-actions" class="settlement-actions is-hidden" aria-label="今日结算操作">
+          <button id="ingredient-shop-toggle" class="ingredient-shop-toggle" type="button" aria-controls="ingredient-shop-panel" aria-expanded="false">采购商店</button>
+          <button id="go-fishing-button" class="pause-secondary-button" type="button">去钓鱼</button>
+          <button id="open-shop-button" class="day-next-button" type="button">开始第 2 天</button>
+        </div>
       </div>
       <section id="game-pause-overlay" class="game-pause-overlay is-hidden" role="dialog" aria-modal="true" aria-label="暂停菜单">
         <div class="game-pause-card">
@@ -167,6 +163,6 @@
         </div>
       </section>
     </main>
-    <script src="kitchen.js?v=day-system-v32-20260804"></script>
+    <script src="kitchen.js?v=time-day-v33-20260804"></script>
   </body>
 </html>
