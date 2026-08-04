@@ -15,7 +15,7 @@ async function enterBusiness() {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=separate-backroom-20260802';
+    kitchenScript.src = 'kitchen.js?v=tutorial-economy-v30-20260804';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {

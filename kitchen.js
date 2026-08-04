@@ -11,7 +11,17 @@ const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
 const CUSTOMER_EXIT_MS = 820;
 const SLICE_FLIGHT_STAGGER_MS = 70;
 const DRINK_FILL_MS = 760;
-const TEA_PRICE = 7;
+const TEA_PRICE = 3;
+const TUTORIAL_STEP = Object.freeze({
+  WELCOME: 0,
+  FREEZER: 1,
+  PLACE_TAMAGO: 2,
+  CUT_TAMAGO: 3,
+  TAKE_RICE: 4,
+  MAKE_SUSHI: 5,
+  SERVE_CUSTOMER: 6,
+});
+const TUTORIAL_STEP_COUNT = 6;
 const SHRIMP_BATCH_SIZE = 4;
 const SHRIMP_HEAD_CUT_X = 0.5;
 const RAW_FISH_IDS = ['salmon', 'tuna', 'shrimp'];
@@ -77,7 +87,7 @@ const SUSHI_TYPES = {
     loin: 'salmon-loin.png',
     slice: 'salmon-slice.png',
     nigiri: 'salmon-nigiri.png',
-    price: 10,
+    price: 4,
   },
   tuna: {
     id: 'tuna',
@@ -87,7 +97,7 @@ const SUSHI_TYPES = {
     loin: 'tuna-loin.png',
     slice: 'tuna-slice.png',
     nigiri: 'tuna-nigiri.png',
-    price: 13,
+    price: 6,
   },
   shrimp: {
     id: 'shrimp',
@@ -99,7 +109,7 @@ const SUSHI_TYPES = {
     head: 'shrimp-head.png',
     slice: 'shrimp-slice.png',
     nigiri: 'shrimp-nigiri.png',
-    price: 11,
+    price: 5,
   },
   tamago: {
     id: 'tamago',
@@ -109,7 +119,7 @@ const SUSHI_TYPES = {
     loin: 'tamago-loin.png',
     slice: 'tamago-slice.png',
     nigiri: 'tamago-nigiri.png',
-    price: 8,
+    price: 3,
   },
 };
 const SUSHI_TYPE_LIST = Object.values(SUSHI_TYPES);
@@ -319,6 +329,10 @@ const state = {
   rawFish: { salmon: 0, tuna: 0, shrimp: 0 },
   storageLevels: { slices: 0, sushi: 0, drinks: 0 },
   teaUnlocked: false,
+  tutorialCompleted: false,
+  tutorialStarted: false,
+  tutorialStep: TUTORIAL_STEP.WELCOME,
+  tutorialCustomerId: null,
   shopOpen: true,
   gamePaused: false,
   pauseSettingsOpen: false,
@@ -450,6 +464,7 @@ function buildSaveSnapshot() {
     unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isKnownSushiId))],
     storageLevels: normalizeStorageLevels(state.storageLevels),
     teaUnlocked: Boolean(state.teaUnlocked),
+    tutorialCompleted: Boolean(state.tutorialCompleted),
     shopOpen: Boolean(state.shopOpen),
     inventory: {
       rawFish: normalizeRawFish(state.rawFish),
@@ -503,6 +518,9 @@ function restoreGame() {
     const sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, storageCapacityFor('slices', storageLevels));
     const sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, storageCapacityFor('sushi', storageLevels));
     const teaUnlocked = Boolean(saved.teaUnlocked);
+    // Old saves predate the tutorial. Keep their owners in the game instead of
+    // putting an established shop back through a first-day lesson.
+    const tutorialCompleted = typeof saved.tutorialCompleted === 'boolean' ? saved.tutorialCompleted : true;
     const shopOpen = typeof saved.shopOpen === 'boolean' ? saved.shopOpen : true;
 
     Object.assign(state, {
@@ -538,6 +556,10 @@ function restoreGame() {
       rawFish,
       storageLevels,
       teaUnlocked,
+      tutorialCompleted,
+      tutorialStarted: false,
+      tutorialStep: TUTORIAL_STEP.WELCOME,
+      tutorialCustomerId: null,
       shopOpen,
       gamePaused: false,
       pauseSettingsOpen: false,
@@ -593,6 +615,13 @@ const drinkMachine = document.querySelector('#drink-machine');
 const cupStation = document.querySelector('#cup-station');
 const machineCup = document.querySelector('#machine-cup');
 const drinkRack = document.querySelector('#drink-rack');
+const tutorialGuide = document.querySelector('#tutorial-guide');
+const tutorialStepLabel = document.querySelector('#tutorial-step-label');
+const tutorialTitle = document.querySelector('#tutorial-title');
+const tutorialDescription = document.querySelector('#tutorial-description');
+const tutorialStartButton = document.querySelector('#tutorial-start-button');
+const tutorialSkipButton = document.querySelector('#tutorial-skip-button');
+const selectTamago = document.querySelector('#select-tamago');
 let ingredientDrag = null;
 let customerPatienceFrame = null;
 let shopRenderSignature = '';
@@ -610,6 +639,198 @@ function show(element, visible) {
 
 function setMessage(text) {
   message.textContent = text;
+}
+
+function tutorialNeedsCompletion() {
+  return !state.tutorialCompleted;
+}
+
+function tutorialIsRunning() {
+  return tutorialNeedsCompletion() && state.tutorialStarted;
+}
+
+function tutorialCustomer() {
+  return state.tutorialCustomerId
+    ? state.customers.find((customer) => customer.id === state.tutorialCustomerId) ?? null
+    : null;
+}
+
+function tutorialStepFromProgress() {
+  const hasReadyTamagoSushi = state.sushiTypes.includes('tamago') && !state.incomingSushi;
+  if (hasReadyTamagoSushi) return TUTORIAL_STEP.SERVE_CUSTOMER;
+
+  const hasReadyTamagoSlice = state.sliceTypes.includes('tamago') && !state.incomingSlices;
+  if (hasReadyTamagoSlice) {
+    return state.riceStored && !state.incomingRice ? TUTORIAL_STEP.MAKE_SUSHI : TUTORIAL_STEP.TAKE_RICE;
+  }
+
+  if (state.salmonOnBoard && state.boardIngredientId === 'tamago') return TUTORIAL_STEP.CUT_TAMAGO;
+  return TUTORIAL_STEP.FREEZER;
+}
+
+function spawnTutorialCustomer() {
+  if (!tutorialIsRunning() || state.tutorialStep !== TUTORIAL_STEP.SERVE_CUSTOMER || tutorialCustomer()) return;
+  const tutorialSushi = SUSHI_TYPES.tamago;
+  const customer = {
+    name: '第一位客人',
+    avatar: CUSTOMER_CATALOG[0].avatar,
+    id: `tutorial-${Date.now()}`,
+    orderItems: [{ type: 'sushi', id: tutorialSushi.id, price: tutorialSushi.price, fulfilled: false }],
+    price: tutorialSushi.price,
+    arrivedAt: gameplayNow(),
+    served: false,
+    leaving: false,
+    tutorial: true,
+  };
+  state.tutorialCustomerId = customer.id;
+  state.customers.push(customer);
+  setMessage('第一位客人来了，只想要一份玉子烧寿司。');
+}
+
+function tutorialStepIsReady() {
+  switch (state.tutorialStep) {
+    case TUTORIAL_STEP.FREEZER:
+      return state.sashimiPickerOpen;
+    case TUTORIAL_STEP.PLACE_TAMAGO:
+      return state.salmonOnBoard && state.boardIngredientId === 'tamago';
+    case TUTORIAL_STEP.CUT_TAMAGO:
+      return state.cutLines.every(Boolean) && state.sliceTypes.filter((id) => id === 'tamago').length >= 4 && !state.incomingSlices;
+    case TUTORIAL_STEP.TAKE_RICE:
+      return state.riceStored > 0 && !state.incomingRice;
+    case TUTORIAL_STEP.MAKE_SUSHI:
+      return state.sushiTypes.includes('tamago') && !state.incomingSushi;
+    case TUTORIAL_STEP.SERVE_CUSTOMER:
+      return Boolean(tutorialCustomer()?.served);
+    default:
+      return false;
+  }
+}
+
+function finishTutorial({ skipped = false } = {}) {
+  if (state.tutorialCompleted) return;
+  const customer = tutorialCustomer();
+  if (skipped && customer && !customer.served && !customer.leaving) {
+    customer.tutorial = false;
+    customerLeaveTimers.set(customer.id, setGameplayTimeout(() => customerLeaves(customer.id), CUSTOMER_WAIT_MS));
+  }
+  if (customer) customer.tutorial = false;
+  state.tutorialCompleted = true;
+  state.tutorialStarted = false;
+  state.tutorialStep = TUTORIAL_STEP.WELCOME;
+  state.tutorialCustomerId = null;
+  setMessage(skipped
+    ? '已跳过新手教程，可以按自己的节奏经营。'
+    : '第一单完成！继续营业，攒钱解锁更多食材吧。');
+  if (!hasUnsettledSaveState()) saveGame();
+  else scheduleSave();
+  if (skipped) scheduleCustomer(650);
+}
+
+function syncTutorialProgress() {
+  if (!tutorialIsRunning()) return;
+  let safety = 0;
+  while (tutorialStepIsReady() && safety < TUTORIAL_STEP_COUNT) {
+    if (state.tutorialStep === TUTORIAL_STEP.SERVE_CUSTOMER) {
+      finishTutorial();
+      return;
+    }
+    state.tutorialStep += 1;
+    if (state.tutorialStep === TUTORIAL_STEP.SERVE_CUSTOMER) spawnTutorialCustomer();
+    safety += 1;
+  }
+}
+
+function tutorialView() {
+  const cutProgress = state.cutLines.filter(Boolean).length;
+  const customerCard = tutorialCustomer() ? customerCardFor(state.tutorialCustomerId) : null;
+  switch (state.tutorialStep) {
+    case TUTORIAL_STEP.FREEZER:
+      return {
+        label: `第 1/${TUTORIAL_STEP_COUNT} 步`,
+        title: '先选玉子烧',
+        description: '点击左边的冰柜，打开食材选择。',
+        targets: [freezerButton],
+      };
+    case TUTORIAL_STEP.PLACE_TAMAGO:
+      return {
+        label: `第 2/${TUTORIAL_STEP_COUNT} 步`,
+        title: '把玉子烧放上菜板',
+        description: '按住玉子烧，拖到旁边的切菜板。',
+        targets: [selectTamago, boardStation],
+      };
+    case TUTORIAL_STEP.CUT_TAMAGO:
+      return {
+        label: `第 3/${TUTORIAL_STEP_COUNT} 步`,
+        title: '沿虚线切片',
+        description: `在虚线附近按住后向下滑动，切出玉子烧片（${cutProgress}/3）。`,
+        targets: [boardSalmon],
+      };
+    case TUTORIAL_STEP.TAKE_RICE:
+      return {
+        label: `第 4/${TUTORIAL_STEP_COUNT} 步`,
+        title: '取一团米饭',
+        description: '点击饭盒，米饭会飞进制作区。',
+        targets: [riceBin],
+      };
+    case TUTORIAL_STEP.MAKE_SUSHI:
+      return {
+        label: `第 5/${TUTORIAL_STEP_COUNT} 步`,
+        title: '组合成寿司',
+        description: '把一片玉子烧拖到米饭架，做出第一份寿司。',
+        targets: [sliceRack, riceRack],
+      };
+    case TUTORIAL_STEP.SERVE_CUSTOMER:
+      return {
+        label: `第 6/${TUTORIAL_STEP_COUNT} 步`,
+        title: '交给第一位客人',
+        description: '把寿司架里的玉子烧寿司拖到客人身上。',
+        targets: [sushiRack, customerCard],
+      };
+    default:
+      return {
+        label: '新手教程',
+        title: '欢迎来到海边寿司店',
+        description: '跟着做出第一份玉子烧寿司，再交给第一位客人吧。',
+        targets: [],
+      };
+  }
+}
+
+function renderTutorial() {
+  stage.querySelectorAll('.is-tutorial-target').forEach((element) => element.classList.remove('is-tutorial-target'));
+  const visible = tutorialNeedsCompletion();
+  show(tutorialGuide, visible);
+  if (!visible) return;
+
+  const welcome = !state.tutorialStarted;
+  const view = tutorialView();
+  tutorialGuide.classList.toggle('is-welcome', welcome);
+  tutorialStepLabel.textContent = view.label;
+  tutorialTitle.textContent = view.title;
+  tutorialDescription.textContent = view.description;
+  show(tutorialStartButton, welcome);
+  tutorialSkipButton.textContent = welcome ? '先自己试试' : '跳过教程';
+  view.targets.filter(Boolean).forEach((element) => element.classList.add('is-tutorial-target'));
+  if (welcome && document.activeElement !== tutorialStartButton && document.activeElement !== tutorialSkipButton) {
+    window.requestAnimationFrame(() => {
+      if (tutorialNeedsCompletion() && !state.tutorialStarted) tutorialStartButton.focus();
+    });
+  }
+}
+
+function startTutorial() {
+  if (!tutorialNeedsCompletion()) return;
+  state.tutorialStarted = true;
+  state.tutorialStep = tutorialStepFromProgress();
+  if (state.tutorialStep === TUTORIAL_STEP.SERVE_CUSTOMER) spawnTutorialCustomer();
+  setMessage('新手教程开始：跟着高亮提示完成第一单。');
+  render();
+}
+
+function skipTutorial() {
+  if (!tutorialNeedsCompletion()) return;
+  finishTutorial({ skipped: true });
+  render();
 }
 
 function motionDuration(duration) {
@@ -654,11 +875,12 @@ function playStationMotion(element, className, duration) {
   stationMotionFrames.set(element, frame);
 }
 
-function clearCustomerTimers() {
+function clearCustomerTimers({ keepExitTimers = false } = {}) {
   if (customerSpawnTimer) clearGameplayTimeout(customerSpawnTimer);
   customerSpawnTimer = null;
   customerLeaveTimers.forEach((timer) => clearGameplayTimeout(timer));
   customerLeaveTimers.clear();
+  if (keepExitTimers) return;
   customerExitTimers.forEach((timer) => clearGameplayTimeout(timer));
   customerExitTimers.clear();
 }
@@ -677,6 +899,7 @@ function activeCustomerAvatar() {
 }
 
 function getPatience(customer) {
+  if (customer.tutorial) return 100;
   return Math.max(0, Math.min(100, ((CUSTOMER_WAIT_MS - (gameplayNow() - customer.arrivedAt)) / CUSTOMER_WAIT_MS) * 100));
 }
 
@@ -869,10 +1092,10 @@ function fadeOutCustomer(customer, { holdMs = 0, scheduleNext = true } = {}) {
 function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
   if (customerSpawnTimer) clearGameplayTimeout(customerSpawnTimer);
   customerSpawnTimer = null;
-  if (!state.shopOpen || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
+  if (tutorialNeedsCompletion() || !state.shopOpen || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
   customerSpawnTimer = setGameplayTimeout(() => {
     customerSpawnTimer = null;
-    if (!state.shopOpen || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
+    if (tutorialNeedsCompletion() || !state.shopOpen || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
     const template = CUSTOMER_CATALOG[state.customerSerial % CUSTOMER_CATALOG.length];
     const orderItems = createCustomerOrder();
     const customer = {
@@ -902,9 +1125,13 @@ function customerLeaves(customerId) {
 }
 
 function pauseShop() {
+  if (tutorialNeedsCompletion()) {
+    setMessage('完成或跳过新手教程后，再暂停营业去钓鱼。');
+    return;
+  }
   if (!state.shopOpen) return;
   state.shopOpen = false;
-  clearCustomerTimers();
+  clearCustomerTimers({ keepExitTimers: true });
   state.customers.forEach((customer) => fadeOutCustomer(customer, { scheduleNext: false }));
   setMessage('已暂停营业，客人不会再进入。现在可以去捕鱼或补货。');
   render();
@@ -1002,9 +1229,18 @@ function blockPausedGameInput(event) {
   event.stopImmediatePropagation();
 }
 
+function blockTutorialWelcomeInput(event) {
+  const tutorialEvent = event.target instanceof Node && tutorialGuide.contains(event.target);
+  if (!tutorialNeedsCompletion() || state.tutorialStarted || tutorialEvent) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}
+
 stage.addEventListener('pointerdown', blockPausedGameInput, true);
 stage.addEventListener('click', blockPausedGameInput, true);
 stage.addEventListener('keydown', blockPausedGameInput, true);
+window.addEventListener('pointerdown', blockTutorialWelcomeInput, true);
+window.addEventListener('keydown', blockTutorialWelcomeInput, true);
 
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
@@ -1497,6 +1733,7 @@ function renderShrimpHeads() {
 }
 
 function render() {
+  syncTutorialProgress();
   stage.classList.toggle('is-game-paused', state.gamePaused);
   stage.classList.toggle('is-reduced-motion', gameSettings.reducedMotion);
   show(gamePauseOverlay, state.gamePaused);
@@ -1562,6 +1799,7 @@ function render() {
   renderSushiRack();
   renderDrinks();
   renderCustomers();
+  renderTutorial();
 }
 
 function pointIsInside(event, element) {
@@ -2335,6 +2573,8 @@ exitGameButton.addEventListener('click', exitGame);
 pauseShopButton.addEventListener('click', pauseShop);
 openShopButton.addEventListener('click', resumeShop);
 goFishingButton.addEventListener('click', goFishing);
+tutorialStartButton.addEventListener('click', startTutorial);
+tutorialSkipButton.addEventListener('click', skipTutorial);
 
 restoreGameSettings();
 restoreGame();

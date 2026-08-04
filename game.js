@@ -137,7 +137,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=economy-v28-20260803';
+    kitchenScript.src = 'kitchen.js?v=tutorial-economy-v30-20260804';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -168,7 +168,7 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'fishing.js?v=fishing-unlimited-v6-20260803';
+    fishingScript.src = 'fishing.js?v=tutorial-economy-v7-20260804';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {

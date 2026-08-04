@@ -105,9 +105,9 @@ function normalizeRawFish(value) {
 function readSave() {
   try {
     const raw = window.localStorage.getItem(SAVE_KEY);
-    if (!raw) return { version: SAVE_VERSION, inventory: {} };
+    if (!raw) return { version: SAVE_VERSION, tutorialCompleted: false, inventory: {} };
     const saved = JSON.parse(raw);
-    if (!saved || typeof saved !== 'object' || saved.version !== SAVE_VERSION) return { version: SAVE_VERSION, inventory: {} };
+    if (!saved || typeof saved !== 'object' || saved.version !== SAVE_VERSION) return { version: SAVE_VERSION, tutorialCompleted: false, inventory: {} };
     return saved;
   } catch {
     return { version: SAVE_VERSION, inventory: {} };
