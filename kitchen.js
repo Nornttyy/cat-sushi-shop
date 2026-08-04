@@ -2586,6 +2586,7 @@ function completeCustomerOrderItem(customer, item) {
   state.cash += customer.price;
   state.lifetimeRevenue = Math.min(9_999_999, state.lifetimeRevenue + customer.price);
   if (resolveDayCustomer(customer, { served: true })) state.dayIncome += customer.price;
+  window.SeasideSushiLeaderboard?.recordOrder(customer.orderItems);
   setMessage(`订单完成，获得 ¥${customer.price}。`);
   render();
   scheduleSave();

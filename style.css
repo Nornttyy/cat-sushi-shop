@@ -414,6 +414,9 @@ button { font: inherit; }
 .wealth-leaderboard-hero > small { padding: 3px 9px; border-radius: 999px; color: #725040; background: rgb(255 249 225 / .78); font-size: clamp(10px, .83vw, 12px); font-weight: 1000; }
 .wealth-leaderboard-list { display: grid; gap: 7px; width: 100%; margin: 0; padding: 0; list-style: none; }
 .wealth-leaderboard-entry { display: grid; grid-template-columns: clamp(30px, 3vw, 40px) minmax(0, 1fr) auto; align-items: center; gap: 9px; min-height: 48px; padding: 6px 9px; border: 2px solid rgb(112 67 49 / .27); border-radius: 13px; color: #704331; background: rgb(255 252 237 / .8); box-shadow: 0 2px 0 rgb(112 67 49 / .1); text-align: left; }
+.wealth-leaderboard-entry.is-status { grid-template-columns: 1fr; justify-items: center; gap: 3px; min-height: 70px; padding: 12px; text-align: center; }
+.wealth-leaderboard-entry.is-status > b { font-size: clamp(13px, 1.08vw, 16px); font-weight: 1000; }
+.wealth-leaderboard-entry.is-status > span { color: #8c6a58; font-size: clamp(10px, .82vw, 12px); font-weight: 800; }
 .wealth-leaderboard-entry.is-player { border-color: #c8704e; background: linear-gradient(115deg, #fff0c4, #ffdca6); box-shadow: 0 3px 0 rgb(190 96 62 / .2), inset 0 1px 0 rgb(255 255 255 / .72); }
 .wealth-leaderboard-rank { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border: 2px solid #8b5b42; border-radius: 999px; color: #704331; background: #f6dfb2; font-size: clamp(11px, .98vw, 14px); font-weight: 1000; }
 .wealth-leaderboard-rank.is-top-one { border-color: #b78129; color: #764716; background: #f6cf64; }

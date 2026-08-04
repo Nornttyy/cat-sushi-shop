@@ -1,0 +1,17 @@
+{
+  "name": "seaside-sushi-leaderboard-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "海边寿司店在线财富排行榜服务",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}
