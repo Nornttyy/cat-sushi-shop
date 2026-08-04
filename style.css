@@ -106,6 +106,9 @@ button { font: inherit; }
 
 .fish-station { left: 2.8%; top: 57%; width: 10.5%; height: 29%; }
 .fish-station > img { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; object-fit: fill; opacity: 1; }
+.fish-station.is-upgraded > img { filter: drop-shadow(0 0 5px rgb(151 223 239 / .62)) saturate(1.08); }
+.fish-station[data-upgrade-level="2"] > img { filter: drop-shadow(0 0 8px rgb(151 223 239 / .78)) saturate(1.14) brightness(1.03); }
+.fish-station[data-upgrade-level="3"] > img { filter: drop-shadow(0 0 11px rgb(176 236 248 / .92)) saturate(1.2) brightness(1.06); }
 .freezer-button { position: absolute; inset: 0; z-index: 1; padding: 0; cursor: pointer; border: 0; background: transparent; touch-action: manipulation; }
 .freezer-button:hover, .freezer-button.is-active { filter: brightness(1.04); }
 .sashimi-picker { position: absolute; bottom: 82%; left: -30%; z-index: 4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5%; width: 160%; padding: 6%; border: 2px solid #704331; border-radius: 12px; background: #fff1d1; box-shadow: 0 4px 0 rgb(90 57 45 / .25); animation: sashimi-picker-in 190ms cubic-bezier(.22, .9, .28, 1) both; transition: opacity 150ms ease, transform 150ms cubic-bezier(.32, .8, .28, 1); will-change: opacity, transform; }
@@ -201,16 +204,22 @@ button { font: inherit; }
 }
 
 .rice-station { left: 65.9%; top: 60%; width: 10.6%; height: 30%; cursor: pointer; }
+.rice-station.is-upgraded img { filter: drop-shadow(0 0 5px rgb(255 207 107 / .58)) saturate(1.06); }
+.rice-station[data-upgrade-level="2"] img { filter: drop-shadow(0 0 8px rgb(255 207 107 / .76)) saturate(1.12) brightness(1.03); }
+.rice-station[data-upgrade-level="3"] img { filter: drop-shadow(0 0 11px rgb(255 224 147 / .9)) saturate(1.18) brightness(1.06); }
 .trash-bin { left: 13.2%; top: 62%; z-index: 7; width: 11.2%; height: 27%; }
 .trash-bin img { transform: scale(1.28); transform-origin: center; }
 .trash-bin.is-discarding img { animation: trash-bin-toss 620ms cubic-bezier(.18, .82, .24, 1) both; }
 .rice-station.is-dispensing img { animation: rice-bin-scoop 420ms cubic-bezier(.16, .84, .22, 1) both; }
 .drink-machine-station { left: 84%; top: 51%; z-index: 3; width: 11.4%; height: 28%; }
+.drink-machine-station.is-upgraded img { filter: drop-shadow(0 0 5px rgb(144 221 211 / .6)) saturate(1.08); }
+.drink-machine-station[data-upgrade-level="2"] img { filter: drop-shadow(0 0 8px rgb(144 221 211 / .78)) saturate(1.14) brightness(1.03); }
+.drink-machine-station[data-upgrade-level="3"] img { filter: drop-shadow(0 0 11px rgb(171 240 226 / .92)) saturate(1.2) brightness(1.06); }
 .cup-station { left: 82%; top: 81%; z-index: 2; width: 15%; height: 10%; cursor: grab; touch-action: none; }
 .cup-station:active { cursor: grabbing; }
 .machine-cup { position: absolute; left: 86.5%; top: 69.4%; z-index: 4; width: 3.5%; height: auto; pointer-events: none; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .23)); will-change: transform, opacity; }
-.machine-cup.is-filling { animation: tea-cup-fill 720ms cubic-bezier(.18, .82, .24, 1) both; }
-.drink-machine-station.is-pouring img { animation: drink-machine-pour 720ms cubic-bezier(.18, .82, .24, 1) both; }
+.machine-cup.is-filling { animation: tea-cup-fill var(--drink-fill-duration, 760ms) cubic-bezier(.18, .82, .24, 1) both; }
+.drink-machine-station.is-pouring img { animation: drink-machine-pour var(--drink-fill-duration, 760ms) cubic-bezier(.18, .82, .24, 1) both; }
 .drink-rack { --drink-columns: 2; --drink-rows: 4; position: absolute; left: 76%; top: 70%; z-index: 6; display: grid; grid-template-columns: repeat(var(--drink-columns), 1fr); grid-template-rows: repeat(var(--drink-rows), 1fr); gap: 7%; width: 6.1%; height: 20.4%; }
 .stored-drink { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 0 rgb(59 39 28 / .22)); }
 @keyframes tea-cup-fill { 0% { opacity: .28; transform: translateY(-10%) scale(.78); } 48% { opacity: 1; transform: translateY(2%) scale(1.09); } 100% { opacity: 1; transform: translateY(0) scale(1); } }

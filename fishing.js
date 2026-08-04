@@ -1,6 +1,9 @@
 const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
 const MAX_RAW_FISH = Number.MAX_SAFE_INTEGER;
+// This is shared inventory space, not a daily fishing quota. Players can
+// keep fishing after they process some raw fish back in the kitchen.
+const RAW_FISH_CAPACITIES = [12, 18, 26, 36];
 const SWING_MIN_ANGLE = 4;
 const SWING_MAX_ANGLE = 70;
 const SWING_SPEED = 54;
@@ -67,12 +70,14 @@ const resultOverlay = $('#fishing-result-overlay');
 const resultCatchCount = $('#result-catch-count');
 const resultTitle = $('#fishing-result-title');
 const backToKitchenButton = $('#back-to-kitchen-button');
+const fishStockNote = $('#fish-stock-note');
 
 const state = {
   phase: 'aiming',
   ended: false,
   unlockedFish: [],
   rawFish: { salmon: 0, tuna: 0, shrimp: 0 },
+  rawFishCapacity: RAW_FISH_CAPACITIES[0],
   sessionCatch: { salmon: 0, tuna: 0, shrimp: 0 },
   totalCaught: 0,
   targets: [],
@@ -105,6 +110,26 @@ function asStoredCount(value, max) {
 function normalizeRawFish(value) {
   const source = value && typeof value === 'object' ? value : {};
   return Object.fromEntries(FISH_IDS.map((id) => [id, asStoredCount(source[id], MAX_RAW_FISH)]));
+}
+
+function storageLevel(value, maxLevel) {
+  return asStoredCount(value, maxLevel);
+}
+
+function rawFishCapacityFromSave(save) {
+  const levels = save?.storageLevels && typeof save.storageLevels === 'object'
+    ? save.storageLevels
+    : {};
+  const level = storageLevel(levels.freezer, RAW_FISH_CAPACITIES.length - 1);
+  return RAW_FISH_CAPACITIES[level] ?? RAW_FISH_CAPACITIES[0];
+}
+
+function rawFishTotal(rawFish = state.rawFish) {
+  return FISH_IDS.reduce((total, id) => total + Math.max(0, Number(rawFish?.[id]) || 0), 0);
+}
+
+function rawFishStorageIsFull() {
+  return rawFishTotal() >= state.rawFishCapacity;
 }
 
 function readSave() {
@@ -291,16 +316,26 @@ function renderFishStocks() {
     $(`#${id}-status`).textContent = unlocked ? '海里可抓' : '未解锁';
   });
   sessionCatchCount.textContent = `${state.totalCaught} 份`;
+  if (fishStockNote) fishStockNote.textContent = `冰柜 ${rawFishTotal()}/${state.rawFishCapacity} 份`;
 }
 
 function renderControls() {
-  const canCast = state.phase === 'aiming' && !state.ended && catchableFish().length > 0 && state.targets.length > 0;
+  const storageFull = rawFishStorageIsFull();
+  const canCast = state.phase === 'aiming'
+    && !state.ended
+    && !storageFull
+    && catchableFish().length > 0
+    && state.targets.length > 0;
   fishingButton.disabled = !canCast;
   fishingButton.textContent = state.phase === 'extending'
     ? '钩子出发中'
     : state.phase === 'retracting'
       ? state.activeTarget ? '正在拉回' : '正在收线'
-      : catchableFish().length ? '发射钩子' : '没有可抓的鱼';
+      : storageFull ? '冰柜已满'
+        : catchableFish().length ? '发射钩子' : '没有可抓的鱼';
+  fishingButton.title = storageFull
+    ? '先回店里加工一些生鱼，空出冰柜位置。'
+    : '';
   finishFishingButton.disabled = state.ended || state.phase !== 'aiming';
   finishFishingButton.title = state.phase === 'aiming' ? '带着今天的收获回店里' : '先等钩子收回来';
 }
@@ -320,6 +355,7 @@ function showCatch(type) {
 }
 
 function targetCount() {
+  if (rawFishStorageIsFull()) return 0;
   const poolSize = catchableFish().length;
   if (!poolSize) return 0;
   return Math.min(TARGET_COUNT, 3 + poolSize);
@@ -518,6 +554,10 @@ function startRetracting() {
 function awardCaughtFish(target) {
   if (!target || target.captureToken !== state.hookToken || state.awardedToken === target.captureToken) return false;
   state.awardedToken = target.captureToken;
+  if (rawFishStorageIsFull()) {
+    setInstruction('冰柜已经装满了，先回店里加工一些生鱼。', '冰柜满啦，先回店里加工吧！');
+    return false;
+  }
   const type = target.type;
 
   const nextRawFish = { ...state.rawFish, [type]: state.rawFish[type] + 1 };
@@ -612,6 +652,11 @@ function stopAnimationLoop() {
 
 function castHook() {
   if (state.ended || state.phase !== 'aiming') return;
+  if (rawFishStorageIsFull()) {
+    setInstruction('冰柜已经装满了，先回店里加工一些生鱼。', '冰柜满啦，先回店里加工吧！');
+    renderControls();
+    return;
+  }
   if (!catchableFish().length || !state.targets.length) {
     setInstruction('还没有可抓的鱼。先回店里购买一种鱼的钓点，再回来捕鱼。', '玉子烧够用，但鱼要先开放钓点。');
     renderControls();
@@ -665,10 +710,13 @@ function initializeFishing() {
   const inventory = save.inventory && typeof save.inventory === 'object' ? save.inventory : {};
   state.unlockedFish = getUnlockedFish(save);
   state.rawFish = normalizeRawFish(inventory.rawFish);
+  state.rawFishCapacity = rawFishCapacityFromSave(save);
   state.ropeLength = idleRopeLength();
   syncHookAnchor();
 
-  if (state.unlockedFish.length) {
+  if (rawFishStorageIsFull()) {
+    setInstruction('冰柜已经装满了，先回店里加工一些生鱼。', '冰柜满啦，先回店里加工吧！');
+  } else if (state.unlockedFish.length) {
     setInstruction('钩子会来回摆动，瞄准水里的鱼后点击发射。', '看准时机，把新鲜食材抓回来！');
   } else {
     setInstruction('先回店里购买一种鱼的钓点，再来这里抓鱼。', '玉子烧够用，但鱼要先买钓点。');

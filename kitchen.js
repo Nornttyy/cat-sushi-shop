@@ -1,4 +1,3 @@
-const MAX_RICE = 8;
 const MAX_WAITING_CUSTOMERS = 2;
 const KITCHEN_ASSET_PATH = 'assets/restaurant/kitchen-layers/optimized/';
 const CUSTOMER_ASSET_PATH = 'assets/restaurant/customers/';
@@ -10,7 +9,6 @@ const CUSTOMER_WAIT_MS = 75000;
 const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
 const CUSTOMER_EXIT_MS = 820;
 const SLICE_FLIGHT_STAGGER_MS = 70;
-const DRINK_FILL_MS = 760;
 const TEA_PRICE = 3;
 const FIRST_DAY_SERVICE_MS = 90 * 1000;
 const STANDARD_DAY_SERVICE_MS = 150 * 1000;
@@ -79,6 +77,36 @@ const STORAGE_UPGRADES = [
       { columns: 3, rows: 4 },
       { columns: 3, rows: 5 },
     ],
+  },
+  {
+    id: 'rice',
+    name: '饭盒扩容',
+    asset: 'rice-bin.png',
+    prices: [280, 560, 980],
+    capacities: [8, 12, 16, 20],
+    unit: '团',
+    grids: [
+      { columns: 2, rows: 4 },
+      { columns: 3, rows: 4 },
+      { columns: 4, rows: 4 },
+      { columns: 4, rows: 5 },
+    ],
+  },
+  {
+    id: 'teaMachine',
+    name: '饮品机提速',
+    asset: 'drink-machine-opaque.png',
+    prices: [320, 650, 1120],
+    requiresTea: true,
+    durations: [760, 610, 480, 360],
+  },
+  {
+    id: 'freezer',
+    name: '冰柜扩容',
+    asset: 'fish-well-frosted.png',
+    prices: [380, 760, 1320],
+    capacities: [12, 18, 26, 36],
+    unit: '份',
   },
 ];
 const SUSHI_TYPES = {
@@ -311,34 +339,64 @@ function storageUpgradeFor(id) {
   return STORAGE_UPGRADES.find((upgrade) => upgrade.id === id) ?? null;
 }
 
+function storageUpgradeValues(upgrade) {
+  return upgrade?.capacities ?? upgrade?.durations ?? [];
+}
+
 function normalizeStorageLevels(value) {
   const source = value && typeof value === 'object' ? value : {};
   return Object.fromEntries(STORAGE_UPGRADES.map((upgrade) => [
     upgrade.id,
-    asStoredCount(source[upgrade.id], upgrade.capacities.length - 1),
+    asStoredCount(source[upgrade.id], storageUpgradeValues(upgrade).length - 1),
   ]));
 }
 
 function storageLevelFor(id, levels = state.storageLevels) {
   const upgrade = storageUpgradeFor(id);
   if (!upgrade) return 0;
-  return asStoredCount(levels?.[id], upgrade.capacities.length - 1);
+  return asStoredCount(levels?.[id], storageUpgradeValues(upgrade).length - 1);
 }
 
 function storageCapacityFor(id, levels = state.storageLevels) {
   const upgrade = storageUpgradeFor(id);
-  if (!upgrade) return 0;
+  if (!upgrade?.capacities) return 0;
   return upgrade.capacities[storageLevelFor(id, levels)] ?? upgrade.capacities[0];
 }
 
 function storageGridFor(id, levels = state.storageLevels) {
   const upgrade = storageUpgradeFor(id);
-  if (!upgrade) return { columns: 1, rows: 1 };
+  if (!upgrade?.grids) return { columns: 1, rows: 1 };
   return upgrade.grids[storageLevelFor(id, levels)] ?? upgrade.grids[0];
 }
 
 function storageUpgradeIsMaxed(upgrade) {
-  return storageLevelFor(upgrade.id) >= upgrade.capacities.length - 1;
+  return storageLevelFor(upgrade.id) >= storageUpgradeValues(upgrade).length - 1;
+}
+
+function storageUpgradeValue(upgrade, levels = state.storageLevels) {
+  const values = storageUpgradeValues(upgrade);
+  return values[storageLevelFor(upgrade.id, levels)] ?? values[0] ?? 0;
+}
+
+function storageUpgradeValueLabel(upgrade, value) {
+  if (upgrade.durations) return `${(value / 1000).toFixed(value % 1000 ? 2 : 0)} 秒`;
+  return `${value} ${upgrade.unit ?? '格'}`;
+}
+
+function riceStorageCapacity() {
+  return storageCapacityFor('rice');
+}
+
+function teaFillDuration() {
+  return storageUpgradeValue(storageUpgradeFor('teaMachine'));
+}
+
+function rawFishStorageCapacity() {
+  return storageCapacityFor('freezer');
+}
+
+function rawFishStorageTotal(rawFish = state.rawFish) {
+  return RAW_FISH_IDS.reduce((total, id) => total + Math.max(0, Number(rawFish?.[id]) || 0), 0);
 }
 
 const state = {
@@ -372,7 +430,7 @@ const state = {
   shopPanelOpen: false,
   unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS],
   rawFish: { salmon: 0, tuna: 0, shrimp: 0 },
-  storageLevels: { slices: 0, sushi: 0, drinks: 0 },
+  storageLevels: normalizeStorageLevels({}),
   teaUnlocked: false,
   tutorialCompleted: false,
   tutorialStarted: false,
@@ -620,7 +678,7 @@ function restoreGame() {
       incomingSlices: 0,
       sliceTypes,
       flightVersion: 0,
-      riceStored: asStoredCount(inventory.rice, MAX_RICE),
+      riceStored: asStoredCount(inventory.rice, storageCapacityFor('rice', storageLevels)),
       incomingRice: 0,
       sushiStored: sushiTypes.length,
       incomingSushi: 0,
@@ -675,6 +733,7 @@ const dayStatus = document.querySelector('#day-status');
 const daySummaryOverlay = document.querySelector('#day-summary-overlay');
 const daySummaryTitle = document.querySelector('#day-summary-title');
 const daySummaryDismissButton = document.querySelector('#day-summary-dismiss');
+const fishStation = document.querySelector('.fish-station');
 const freezerButton = document.querySelector('#freezer-button');
 const sashimiPicker = document.querySelector('#sashimi-picker');
 const sashimiChoices = Array.from(document.querySelectorAll('.sashimi-choice'));
@@ -1980,12 +2039,14 @@ function renderStorageUpgrades() {
 
   STORAGE_UPGRADES.forEach((upgrade) => {
     const level = storageLevelFor(upgrade.id);
-    const currentCapacity = storageCapacityFor(upgrade.id);
+    const values = storageUpgradeValues(upgrade);
+    const currentValue = storageUpgradeValue(upgrade);
     const maxed = storageUpgradeIsMaxed(upgrade);
-    const nextCapacity = maxed ? currentCapacity : upgrade.capacities[level + 1];
+    const nextValue = maxed ? currentValue : values[level + 1];
     const nextPrice = maxed ? null : upgrade.prices[level];
     const needsTea = Boolean(upgrade.requiresTea && !isTeaUnlocked());
     const canAfford = !maxed && state.cash >= nextPrice;
+    const actionLabel = upgrade.durations ? '提速' : '升级';
     const item = document.createElement('article');
     const image = document.createElement('img');
     const detail = document.createElement('div');
@@ -1999,10 +2060,10 @@ function renderStorageUpgrades() {
     image.draggable = false;
     name.textContent = upgrade.name;
     price.textContent = maxed
-      ? `已扩至 ${currentCapacity} 格`
+      ? `已升级至 ${storageUpgradeValueLabel(upgrade, currentValue)}`
       : needsTea
         ? '先购买茶饮配方'
-        : `${currentCapacity} → ${nextCapacity} 格 · 第${level + 1}/${upgrade.prices.length}次 · ¥${nextPrice}`;
+        : `${storageUpgradeValueLabel(upgrade, currentValue)} → ${storageUpgradeValueLabel(upgrade, nextValue)} · 第${level + 1}/${upgrade.prices.length}次 · ¥${nextPrice}`;
     detail.append(name, price);
 
     button.type = 'button';
@@ -2012,14 +2073,14 @@ function renderStorageUpgrades() {
       : needsTea
         ? '先买茶饮配方'
         : canAfford
-          ? `扩容 ¥${nextPrice}`
+          ? `${actionLabel} ¥${nextPrice}`
           : `余额不足 ¥${nextPrice}`;
     button.title = maxed
       ? `${upgrade.name}已扩到最大`
       : needsTea
-        ? '先购买茶饮配方，才能扩容茶水架'
+        ? '先购买茶饮配方，才能升级饮品机'
         : canAfford
-          ? `第 ${level + 1}/${upgrade.prices.length} 次：把${upgrade.name}从 ${currentCapacity} 格扩到 ${nextCapacity} 格`
+          ? `第 ${level + 1}/${upgrade.prices.length} 次：把${upgrade.name}从 ${storageUpgradeValueLabel(upgrade, currentValue)}提升到 ${storageUpgradeValueLabel(upgrade, nextValue)}`
           : `余额不足，还差 ¥${nextPrice - state.cash}`;
     button.addEventListener('click', () => buyStorageUpgrade(upgrade.id));
     item.append(image, detail, button);
@@ -2177,7 +2238,7 @@ function buyStorageUpgrade(storageId) {
   const upgrade = storageUpgradeFor(storageId);
   if (!upgrade || storageUpgradeIsMaxed(upgrade)) return;
   if (upgrade.requiresTea && !isTeaUnlocked()) {
-    setMessage('先购买茶饮配方，才能扩容茶水架。');
+    setMessage('先购买茶饮配方，才能升级饮品机。');
     render();
     return;
   }
@@ -2188,25 +2249,51 @@ function buyStorageUpgrade(storageId) {
     return;
   }
 
-  const previousCapacity = storageCapacityFor(storageId);
+  const previousValue = storageUpgradeValue(upgrade);
   const nextLevel = storageLevelFor(storageId) + 1;
   state.cash -= price;
   state.storageLevels = { ...state.storageLevels, [storageId]: nextLevel };
-  setMessage(`${upgrade.name}已扩容：${previousCapacity} → ${storageCapacityFor(storageId)} 格。`);
+  setMessage(`${upgrade.name}已升级：${storageUpgradeValueLabel(upgrade, previousValue)} → ${storageUpgradeValueLabel(upgrade, storageUpgradeValue(upgrade))}。`);
   if (!saveGame()) scheduleSave();
   render();
 }
 
 function renderStorageLayouts() {
   const sliceGrid = storageGridFor('slices');
+  const riceGrid = storageGridFor('rice');
   const sushiGrid = storageGridFor('sushi');
   const drinkGrid = storageGridFor('drinks');
   sliceRack.style.setProperty('--slice-columns', String(sliceGrid.columns));
   sliceRack.style.setProperty('--slice-rows', String(sliceGrid.rows));
+  riceRack.style.setProperty('--stock-columns', String(riceGrid.columns));
+  riceRack.style.setProperty('--stock-rows', String(riceGrid.rows));
   sushiRack.style.setProperty('--stock-columns', String(sushiGrid.columns));
   sushiRack.style.setProperty('--stock-rows', String(sushiGrid.rows));
   drinkRack.style.setProperty('--drink-columns', String(drinkGrid.columns));
   drinkRack.style.setProperty('--drink-rows', String(drinkGrid.rows));
+}
+
+function renderEquipmentAppearance() {
+  const equipment = [
+    [riceBin, 'rice'],
+    [drinkMachine, 'teaMachine'],
+    [fishStation, 'freezer'],
+  ];
+  equipment.forEach(([element, upgradeId]) => {
+    if (!element) return;
+    const level = storageLevelFor(upgradeId);
+    element.dataset.upgradeLevel = String(level);
+    element.classList.toggle('is-upgraded', level > 0);
+  });
+
+  const rawFishTotal = rawFishStorageTotal();
+  const rawFishCapacity = rawFishStorageCapacity();
+  const freezerLabel = `冰柜生鱼库存 ${rawFishTotal}/${rawFishCapacity} 份`;
+  freezerButton.title = freezerLabel;
+  freezerButton.setAttribute('aria-label', `点击冰柜选择刺身，${freezerLabel}`);
+  const teaDuration = motionDuration(teaFillDuration());
+  machineCup.style.setProperty('--drink-fill-duration', `${teaDuration}ms`);
+  drinkMachine.style.setProperty('--drink-fill-duration', `${teaDuration}ms`);
 }
 
 function renderShrimpBatch() {
@@ -2311,6 +2398,7 @@ function render() {
       : `剩余 ${formatDayTime(dayTimeRemaining())}`;
   cashValue.textContent = `¥${state.cash}`;
   renderStorageLayouts();
+  renderEquipmentAppearance();
   freezerButton.classList.toggle('is-active', state.sashimiPickerOpen);
   sashimiPicker.classList.remove('is-picked');
   setModalVisibility(sashimiPicker, state.sashimiPickerOpen, 160);
@@ -2531,8 +2619,9 @@ function dragSashimiFromPicker(event) {
 
 function takeRice() {
   if (state.gamePaused) return;
-  if (state.riceStored >= MAX_RICE) {
-    setMessage('米饭架已经存满 8 团。');
+  const capacity = riceStorageCapacity();
+  if (state.riceStored >= capacity) {
+    setMessage(`米饭架已经存满 ${capacity} 团。`);
     return;
   }
   playStationMotion(riceBin, 'is-dispensing', motionDuration(420));
@@ -2541,6 +2630,7 @@ function takeRice() {
   const sourceRect = riceBin.getBoundingClientRect();
   const targetRect = riceRack.getBoundingClientRect();
   const targetIndex = state.riceStored - 1;
+  const riceGrid = storageGridFor('rice');
   setMessage('米饭正在滑进米饭架。');
   render();
   flyCompletedItem({
@@ -2549,8 +2639,8 @@ function takeRice() {
     sourceRect,
     targetRect,
     targetIndex,
-    columns: 2,
-    rows: 4,
+    columns: riceGrid.columns,
+    rows: riceGrid.rows,
     gap: 0.04,
     displayScale: 1.12,
     onFinish: () => {
@@ -3153,7 +3243,7 @@ drinkMachine.addEventListener('click', () => {
         if (!state.incomingDrinks) scheduleSave();
       },
     });
-  }, motionDuration(DRINK_FILL_MS));
+  }, motionDuration(teaFillDuration()));
 });
 
 gamePauseButton.addEventListener('click', toggleGamePause);
