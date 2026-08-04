@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=wealth-board-v33-20260804" />
+    <link rel="stylesheet" href="style.css?v=service-flow-v34-20260804" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -14,7 +14,6 @@
       <header class="game-header">
         <div><span>海边寿司店</span><b id="stage-name">营业制作台</b></div>
         <div class="day-card"><span id="day-label">第 1 天</span><b id="day-status">新手教程</b></div>
-        <div class="order-card"><span id="shop-status">营业中</span><b id="shop-status-detail">第一单新手教程</b></div>
         <div class="cash-card"><span>余额</span><b id="cash-value">¥0</b></div>
       </header>
 
@@ -119,10 +118,9 @@
         </div>
       </aside>
 
-      <section id="day-summary-overlay" class="day-summary-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="day-summary-title" aria-describedby="day-summary-note">
+      <section id="day-summary-overlay" class="day-summary-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="day-summary-title">
         <div class="day-summary-card">
           <b id="day-summary-title">今天结束啦</b>
-          <p id="day-summary-note">今天的营业已经结束。</p>
           <button id="day-summary-dismiss" class="day-summary-dismiss" type="button">知道了</button>
         </div>
       </section>
@@ -130,7 +128,6 @@
       <div class="game-bottom-bar">
         <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击冰柜选择食材，把它放到切菜板。</span>
         <button id="game-pause-button" type="button" aria-pressed="false">暂停</button>
-        <button id="pause-shop-button" class="is-hidden" type="button">提前打烊</button>
         <div id="settlement-actions" class="settlement-actions is-hidden" aria-label="今日结算操作">
           <button id="ingredient-shop-toggle" class="ingredient-shop-toggle" type="button" aria-controls="ingredient-shop-panel" aria-expanded="false">采购商店</button>
           <button id="go-fishing-button" class="pause-secondary-button" type="button">去钓鱼</button>
@@ -142,18 +139,15 @@
           <section id="game-pause-menu" class="game-pause-view" aria-labelledby="game-pause-title">
             <span>海边寿司店</span>
             <b id="game-pause-title">游戏暂停</b>
-            <p>客人和制作进度都已暂停。</p>
             <div class="game-pause-actions">
               <button id="resume-game-button" type="button">继续游戏</button>
               <button id="open-game-settings-button" class="pause-secondary-button" type="button">设置</button>
               <button id="exit-game-button" class="pause-exit-button" type="button">退出游戏</button>
             </div>
-            <small>按 Esc 也能继续</small>
           </section>
           <section id="game-settings-panel" class="game-pause-view is-hidden" aria-labelledby="game-settings-title">
             <span>设置</span>
             <b id="game-settings-title">游戏设置</b>
-            <p>按你的习惯调整画面效果。</p>
             <div class="game-setting-row">
               <span>动态效果</span>
               <button id="motion-setting-button" type="button" aria-pressed="true">已开启</button>
@@ -163,6 +157,6 @@
         </div>
       </section>
     </main>
-    <script src="kitchen.js?v=wealth-board-v35-20260804"></script>
+    <script src="kitchen.js?v=service-flow-v36-20260804"></script>
   </body>
 </html>
