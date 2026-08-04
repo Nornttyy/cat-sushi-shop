@@ -254,7 +254,7 @@ button { font: inherit; }
 .game-bottom-bar button:disabled { cursor: not-allowed; filter: grayscale(.5); opacity: .58; }
 .game-bottom-bar button:not(:disabled):active { transform: translateY(3px); box-shadow: none; }
 .tutorial-guide { position: absolute; inset: 0; z-index: 70; pointer-events: none; }
-.tutorial-guide-card { position: absolute; top: 19%; left: 2%; display: grid; gap: clamp(6px, .7vw, 10px); width: min(27%, 320px); padding: clamp(12px, 1.2vw, 18px); border: 3px solid var(--ink); border-radius: 17px; color: #704331; background: rgb(255 245 218 / .97); box-shadow: 0 5px 0 rgb(90 57 45 / .23), 0 12px 26px rgb(73 45 33 / .18); pointer-events: none; }
+.tutorial-guide-card { position: absolute; top: 16%; right: 2.8%; left: auto; display: grid; gap: clamp(6px, .7vw, 10px); width: min(25%, 340px); padding: clamp(12px, 1.2vw, 18px); border: 3px solid var(--ink); border-radius: 17px; color: #704331; background: rgb(255 245 218 / .97); box-shadow: 0 5px 0 rgb(90 57 45 / .23), 0 12px 26px rgb(73 45 33 / .18); pointer-events: none; }
 .tutorial-guide-card > span { color: #d46e52; font-size: clamp(10px, .9vw, 13px); font-weight: 1000; letter-spacing: .12em; }
 .tutorial-guide-card > b { color: #8c432d; font-size: clamp(17px, 1.65vw, 24px); font-weight: 1000; line-height: 1.12; }
 .tutorial-guide-card > p { margin: 0; font-size: clamp(11px, 1vw, 15px); font-weight: 800; line-height: 1.45; }
@@ -264,7 +264,7 @@ button { font: inherit; }
 .tutorial-actions .tutorial-skip-button { color: #4b5671; background: linear-gradient(#dce6f1, #b9c8dc); box-shadow: 0 3px 0 #8291aa; }
 .tutorial-actions .tutorial-skip-button:active { box-shadow: 0 1px 0 #8291aa; }
 .tutorial-guide.is-welcome { display: grid; place-items: center; padding: 24px; background: rgb(43 31 29 / .52); backdrop-filter: blur(3px); pointer-events: auto; }
-.tutorial-guide.is-welcome .tutorial-guide-card { position: relative; top: auto; left: auto; width: min(92%, 390px); padding: clamp(22px, 2.4vw, 34px); text-align: center; pointer-events: auto; }
+.tutorial-guide.is-welcome .tutorial-guide-card { position: relative; top: auto; right: auto; left: auto; width: min(92%, 390px); padding: clamp(22px, 2.4vw, 34px); text-align: center; pointer-events: auto; }
 .tutorial-guide.is-welcome .tutorial-actions { justify-content: center; }
 .is-tutorial-target { outline: 3px dashed #fff2a9; outline-offset: 5px; animation: tutorial-target-pulse 960ms ease-in-out infinite; }
 @keyframes tutorial-target-pulse { 0%, 100% { outline-color: #fff2a9; outline-offset: 4px; filter: drop-shadow(0 0 4px rgb(255 219 105 / .78)); } 50% { outline-color: #ffbd62; outline-offset: 8px; filter: drop-shadow(0 0 10px rgb(255 199 91 / .96)); } }
