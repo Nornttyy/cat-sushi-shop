@@ -90,6 +90,11 @@ const state = {
 };
 
 let popTimer = null;
+let resultCloseTimer = null;
+
+function fishingModalDuration(duration) {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 1 : duration;
+}
 
 function asStoredCount(value, max) {
   const parsed = Number(value);
@@ -630,12 +635,19 @@ function finishFishing() {
   const total = state.totalCaught;
   resultCatchCount.textContent = total;
   resultTitle.textContent = total ? '这次钓得不错！' : '下次一定会抓到！';
-  resultOverlay.classList.remove('is-hidden');
+  resultOverlay.classList.remove('is-hidden', 'is-closing');
+  resultOverlay.setAttribute('aria-hidden', 'false');
   window.requestAnimationFrame(() => backToKitchenButton.focus());
 }
 
 function returnToKitchen() {
-  window.location.assign('index.html?scene=kitchen');
+  if (resultCloseTimer !== null) return;
+  backToKitchenButton.disabled = true;
+  resultOverlay.setAttribute('aria-hidden', 'true');
+  resultOverlay.classList.add('is-closing');
+  resultCloseTimer = window.setTimeout(() => {
+    window.location.assign('index.html?scene=kitchen');
+  }, fishingModalDuration(220));
 }
 
 function handleSceneLaunch(event) {
@@ -691,6 +703,7 @@ window.addEventListener('resize', () => {
 window.addEventListener('pagehide', () => {
   stopAnimationLoop();
   if (popTimer) window.clearTimeout(popTimer);
+  if (resultCloseTimer) window.clearTimeout(resultCloseTimer);
 }, { once: true });
 
 initializeFishing();

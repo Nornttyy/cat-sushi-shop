@@ -15,7 +15,7 @@ async function enterBusiness() {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=time-day-v33-20260804';
+    kitchenScript.src = 'kitchen.js?v=modal-motion-v34-20260804';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {

@@ -688,7 +688,11 @@ let dayEndTimer = null;
 let dayClockFrame = null;
 let dayClockLastSecond = null;
 let dayClockLastSavedAt = 0;
-let daySummaryCloseTimer = null;
+const modalCloseTimers = new WeakMap();
+let daySummaryTransitioning = false;
+let shopPanelClosing = false;
+let pauseOverlayClosing = false;
+let tutorialWelcomeClosing = false;
 
 stage.addEventListener('dragstart', (event) => event.preventDefault());
 
@@ -862,7 +866,10 @@ function renderTutorial() {
   stage.querySelectorAll('.is-tutorial-target').forEach((element) => element.classList.remove('is-tutorial-target'));
   const visible = tutorialNeedsCompletion();
   show(tutorialGuide, visible);
-  if (!visible) return;
+  if (!visible) {
+    tutorialGuide.classList.remove('is-closing');
+    return;
+  }
 
   const welcome = !state.tutorialStarted;
   const view = tutorialView();
@@ -880,23 +887,70 @@ function renderTutorial() {
   }
 }
 
+function leaveTutorialWelcome(onFinished) {
+  if (tutorialWelcomeClosing) return;
+  tutorialWelcomeClosing = true;
+  tutorialGuide.classList.add('is-closing');
+  window.setTimeout(() => {
+    tutorialWelcomeClosing = false;
+    tutorialGuide.classList.remove('is-closing');
+    onFinished();
+  }, motionDuration(220));
+}
+
 function startTutorial() {
-  if (!tutorialNeedsCompletion()) return;
-  state.tutorialStarted = true;
-  state.tutorialStep = tutorialStepFromProgress();
-  if (state.tutorialStep === TUTORIAL_STEP.SERVE_CUSTOMER) spawnTutorialCustomer();
-  setMessage('新手教程开始：跟着高亮提示完成第一单。');
-  render();
+  if (!tutorialNeedsCompletion() || tutorialWelcomeClosing) return;
+  leaveTutorialWelcome(() => {
+    state.tutorialStarted = true;
+    state.tutorialStep = tutorialStepFromProgress();
+    if (state.tutorialStep === TUTORIAL_STEP.SERVE_CUSTOMER) spawnTutorialCustomer();
+    setMessage('新手教程开始：跟着高亮提示完成第一单。');
+    render();
+  });
 }
 
 function skipTutorial() {
-  if (!tutorialNeedsCompletion()) return;
-  finishTutorial({ skipped: true });
-  render();
+  if (!tutorialNeedsCompletion() || tutorialWelcomeClosing) return;
+  leaveTutorialWelcome(() => {
+    finishTutorial({ skipped: true });
+    render();
+  });
 }
 
 function motionDuration(duration) {
   return gameSettings.reducedMotion ? 1 : duration;
+}
+
+function openModal(element) {
+  const closeTimer = modalCloseTimers.get(element);
+  if (closeTimer !== undefined) {
+    window.clearTimeout(closeTimer);
+    modalCloseTimers.delete(element);
+  }
+  element.classList.remove('is-hidden', 'is-closing');
+}
+
+function closeModal(element, duration = 220, onClosed) {
+  if (element.classList.contains('is-hidden')) {
+    onClosed?.();
+    return;
+  }
+  if (element.classList.contains('is-closing')) return;
+
+  element.classList.add('is-closing');
+  const closeTimer = window.setTimeout(() => {
+    if (modalCloseTimers.get(element) !== closeTimer) return;
+    modalCloseTimers.delete(element);
+    element.classList.remove('is-closing');
+    element.classList.add('is-hidden');
+    onClosed?.();
+  }, motionDuration(duration));
+  modalCloseTimers.set(element, closeTimer);
+}
+
+function setModalVisibility(element, visible, duration = 220) {
+  if (visible) openModal(element);
+  else closeModal(element, duration);
 }
 
 function finishFlightOnAnimationEnd(element, animationName, onFinish) {
@@ -1088,6 +1142,7 @@ function finishDay({ early = false, reason = 'time' } = {}) {
   state.dayPhase = 'settlement';
   state.dayEndedEarly = early;
   state.daySummaryOpen = true;
+  daySummaryTransitioning = false;
   setMessage(reason === 'missing-fish'
     ? `没有足够的鱼完成订单，第 ${state.day} 天提前结束。`
     : early
@@ -1415,6 +1470,7 @@ function resumeShop() {
   state.dayTimerStartedAt = 0;
   state.dayEndedEarly = false;
   state.daySummaryOpen = false;
+  daySummaryTransitioning = false;
   state.shopOpen = true;
   state.shopPanelOpen = false;
   state.sashimiPickerOpen = false;
@@ -1450,6 +1506,7 @@ function pauseGame() {
   state.activeCut = null;
   state.activeShrimpCut = null;
   state.pauseSettingsOpen = false;
+  pauseOverlayClosing = false;
   pauseStartedAt = performance.now();
   state.gamePaused = true;
   pauseGameplayTimeouts();
@@ -1464,6 +1521,11 @@ function resumeGame() {
   pauseStartedAt = 0;
   state.gamePaused = false;
   state.pauseSettingsOpen = false;
+  pauseOverlayClosing = true;
+  gamePauseOverlay.setAttribute('aria-hidden', 'true');
+  closeModal(gamePauseOverlay, 220, () => {
+    pauseOverlayClosing = false;
+  });
   resumeGameplayTimeouts();
   setMessage('继续游戏。');
   render();
@@ -1504,20 +1566,25 @@ function exitGame() {
 }
 
 function blockPausedGameInput(event) {
-  if (!state.gamePaused || event.target.closest?.('#game-pause-overlay')) return;
+  if ((!state.gamePaused && !pauseOverlayClosing) || event.target.closest?.('#game-pause-overlay')) return;
   event.preventDefault();
   event.stopImmediatePropagation();
 }
 
 function blockShopPanelInput(event) {
   const shopEvent = event.target instanceof Node && ingredientShopPanel.contains(event.target);
-  if (!state.shopPanelOpen || shopEvent) return;
+  if ((!state.shopPanelOpen && !shopPanelClosing) || shopEvent) return;
   event.preventDefault();
   event.stopImmediatePropagation();
 }
 
 function blockSettledDayInput(event) {
   if (state.dayPhase !== 'settlement') return;
+  if (daySummaryTransitioning) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
   const target = event.target instanceof Node ? event.target : null;
   const allowed = target?.closest('#day-summary-overlay, #settlement-actions, #ingredient-shop-panel, #game-pause-button, #game-pause-overlay');
   if (allowed) return;
@@ -1565,6 +1632,7 @@ window.addEventListener('keydown', trapShopPanelFocus, true);
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   event.preventDefault();
+  if (daySummaryTransitioning || shopPanelClosing || pauseOverlayClosing) return;
   if (state.daySummaryOpen) {
     dismissDaySummary();
     return;
@@ -1866,7 +1934,7 @@ function renderIngredientShop() {
   const canUseShop = state.dayPhase === 'settlement' && !state.gamePaused && !tutorialNeedsCompletion();
   if (!canUseShop) state.shopPanelOpen = false;
   const isOpen = state.shopPanelOpen && canUseShop;
-  show(ingredientShopPanel, isOpen);
+  setModalVisibility(ingredientShopPanel, isOpen, 230);
   show(ingredientShopToggle, canUseShop);
   ingredientShopToggle.setAttribute('aria-expanded', String(isOpen));
   ingredientShopPanel.setAttribute('aria-hidden', String(!isOpen));
@@ -1928,15 +1996,8 @@ function renderIngredientShop() {
 
 function renderDaySummary() {
   const showSummary = state.dayPhase === 'settlement' && state.daySummaryOpen;
-  if (showSummary) {
-    if (daySummaryCloseTimer) {
-      window.clearTimeout(daySummaryCloseTimer);
-      daySummaryCloseTimer = null;
-    }
-    daySummaryOverlay.classList.remove('is-hidden', 'is-closing');
-  } else if (!daySummaryOverlay.classList.contains('is-closing')) {
-    daySummaryOverlay.classList.add('is-hidden');
-  }
+  if (showSummary) openModal(daySummaryOverlay);
+  else if (!daySummaryTransitioning) closeModal(daySummaryOverlay, 230);
   daySummaryOverlay.setAttribute('aria-hidden', String(!showSummary));
   daySummaryTitle.textContent = '今天结束啦';
   daySummaryNote.textContent = '今天的营业已经结束。';
@@ -1946,23 +2007,18 @@ function renderDaySummary() {
 function dismissDaySummary() {
   if (!state.daySummaryOpen) return;
   state.daySummaryOpen = false;
+  daySummaryTransitioning = true;
   daySummaryOverlay.setAttribute('aria-hidden', 'true');
-  daySummaryOverlay.classList.remove('is-hidden');
-  daySummaryOverlay.classList.add('is-closing');
-  if (daySummaryCloseTimer) window.clearTimeout(daySummaryCloseTimer);
-  daySummaryCloseTimer = window.setTimeout(() => {
-    daySummaryCloseTimer = null;
-    if (!state.daySummaryOpen) {
-      daySummaryOverlay.classList.remove('is-closing');
-      daySummaryOverlay.classList.add('is-hidden');
-    }
-  }, motionDuration(210));
+  closeModal(daySummaryOverlay, 230, () => {
+    daySummaryTransitioning = false;
+    render();
+    window.requestAnimationFrame(() => ingredientShopToggle.focus());
+  });
   render();
-  window.requestAnimationFrame(() => ingredientShopToggle.focus());
 }
 
 function toggleIngredientShop() {
-  if (state.gamePaused) return;
+  if (state.gamePaused || shopPanelClosing) return;
   if (state.shopPanelOpen) {
     closeIngredientShop();
     return;
@@ -1981,10 +2037,16 @@ function toggleIngredientShop() {
 }
 
 function closeIngredientShop() {
-  if (!state.shopPanelOpen) return;
+  if (!state.shopPanelOpen || shopPanelClosing) return;
   state.shopPanelOpen = false;
+  shopPanelClosing = true;
+  ingredientShopPanel.setAttribute('aria-hidden', 'true');
+  closeModal(ingredientShopPanel, 230, () => {
+    shopPanelClosing = false;
+    render();
+    window.requestAnimationFrame(() => ingredientShopToggle.focus());
+  });
   render();
-  window.requestAnimationFrame(() => ingredientShopToggle.focus());
 }
 
 function buyIngredient(ingredientId) {
@@ -2125,7 +2187,8 @@ function render() {
   stage.classList.toggle('is-game-paused', state.gamePaused);
   stage.classList.toggle('is-day-settled', state.dayPhase === 'settlement');
   stage.classList.toggle('is-reduced-motion', gameSettings.reducedMotion);
-  show(gamePauseOverlay, state.gamePaused);
+  setModalVisibility(gamePauseOverlay, state.gamePaused, 220);
+  gamePauseOverlay.setAttribute('aria-hidden', String(!state.gamePaused));
   show(gamePauseMenu, !state.pauseSettingsOpen);
   show(gameSettingsPanel, state.pauseSettingsOpen);
   gamePauseButton.textContent = state.gamePaused ? '继续游戏' : '暂停';
@@ -2149,7 +2212,7 @@ function render() {
   renderStorageLayouts();
   freezerButton.classList.toggle('is-active', state.sashimiPickerOpen);
   sashimiPicker.classList.remove('is-picked');
-  show(sashimiPicker, state.sashimiPickerOpen);
+  setModalVisibility(sashimiPicker, state.sashimiPickerOpen, 160);
   renderSashimiChoices();
   renderIngredientShop();
   renderDaySummary();
@@ -2171,9 +2234,10 @@ function render() {
   renderShrimpHeads();
   trashBin.classList.toggle('is-discarding', state.shrimpHeadDiscarding);
   show(pauseShopButton, servingDay && !tutorialNeedsCompletion());
-  show(settlementActions, state.dayPhase === 'settlement' && !state.daySummaryOpen);
-  show(openShopButton, state.dayPhase === 'settlement' && !state.daySummaryOpen);
-  show(goFishingButton, state.dayPhase === 'settlement' && !state.daySummaryOpen);
+  const showSettlementActions = state.dayPhase === 'settlement' && !state.daySummaryOpen && !daySummaryTransitioning;
+  show(settlementActions, showSettlementActions);
+  show(openShopButton, showSettlementActions);
+  show(goFishingButton, showSettlementActions);
   shopStatus.textContent = servingDay ? '营业中' : '今日结算';
   shopStatusDetail.textContent = servingDay
     ? tutorialNeedsCompletion()

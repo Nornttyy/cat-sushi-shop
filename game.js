@@ -8,6 +8,11 @@ const menuStage = document.querySelector('.main-menu-stage');
 const MENU_SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const requestedScene = new URLSearchParams(window.location.search).get('scene');
 let resetSaveDialogOpen = false;
+let resetSaveDialogCloseTimer = null;
+
+function menuModalDuration(duration) {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 1 : duration;
+}
 
 function canFishFromSavedDay() {
   try {
@@ -176,7 +181,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=time-day-v33-20260804';
+    kitchenScript.src = 'kitchen.js?v=modal-motion-v34-20260804';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -197,7 +202,7 @@ async function enterFishing() {
       fishingMarkupReady,
       fishingAssetWarmup,
       waitForMenuTransition(),
-      loadStylesheet('fishing-scene-style', 'fishing.css?v=fishing-tuna-v3-20260803'),
+      loadStylesheet('fishing-scene-style', 'fishing.css?v=modal-motion-v4-20260804'),
     ]);
     const fishingDocument = new DOMParser().parseFromString(fishingMarkup, 'text/html');
     const fishingStage = fishingDocument.querySelector('main');
@@ -207,7 +212,7 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'fishing.js?v=day-system-v8-20260804';
+    fishingScript.src = 'fishing.js?v=modal-motion-v9-20260804';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {
@@ -221,17 +226,29 @@ async function enterFishing() {
 startButton.addEventListener('click', enterKitchen);
 
 function openResetSaveDialog() {
+  if (resetSaveDialogCloseTimer !== null) {
+    window.clearTimeout(resetSaveDialogCloseTimer);
+    resetSaveDialogCloseTimer = null;
+  }
   resetSaveDialogOpen = true;
-  resetSaveDialog.classList.remove('is-hidden');
+  resetSaveDialog.classList.remove('is-hidden', 'is-closing');
+  resetSaveDialog.setAttribute('aria-hidden', 'false');
   resetSaveButton.setAttribute('aria-expanded', 'true');
   window.requestAnimationFrame(() => cancelResetSaveButton.focus());
 }
 
 function closeResetSaveDialog() {
+  if (!resetSaveDialogOpen || resetSaveDialog.classList.contains('is-closing')) return;
   resetSaveDialogOpen = false;
-  resetSaveDialog.classList.add('is-hidden');
+  resetSaveDialog.setAttribute('aria-hidden', 'true');
+  resetSaveDialog.classList.add('is-closing');
   resetSaveButton.setAttribute('aria-expanded', 'false');
-  window.requestAnimationFrame(() => resetSaveButton.focus());
+  resetSaveDialogCloseTimer = window.setTimeout(() => {
+    resetSaveDialogCloseTimer = null;
+    resetSaveDialog.classList.remove('is-closing');
+    resetSaveDialog.classList.add('is-hidden');
+    window.requestAnimationFrame(() => resetSaveButton.focus());
+  }, menuModalDuration(220));
 }
 
 function resetSave() {
