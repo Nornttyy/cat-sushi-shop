@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f4bd79" />
     <title>海边寿司店</title>
-    <link rel="stylesheet" href="style.css?v=modal-motion-v32-20260804" />
+    <link rel="stylesheet" href="style.css?v=wealth-board-v33-20260804" />
     <link rel="preload" as="image" href="assets/menu/sushi-shop-menu-background.jpg?v=menu-exterior-20260802b" fetchpriority="high" />
   </head>
   <body>
@@ -19,6 +19,10 @@
         <button id="start-button" class="main-menu-start" type="button">
           <span>开始游戏</span>
           <small>走进寿司店</small>
+        </button>
+        <button id="wealth-leaderboard-button" class="main-menu-ranking" type="button" aria-haspopup="dialog" aria-expanded="false">
+          <span>财富排行榜</span>
+          <small>看看店铺排第几名</small>
         </button>
         <button id="reset-save-button" class="main-menu-reset" type="button" aria-haspopup="dialog" aria-expanded="false">重置存档</button>
         <p id="save-reset-status" class="menu-save-status" aria-live="polite"></p>
@@ -34,6 +38,22 @@
           </div>
         </div>
       </section>
+      <section id="wealth-leaderboard-dialog" class="wealth-leaderboard-dialog is-hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="wealth-leaderboard-title" aria-describedby="wealth-leaderboard-description">
+        <div class="wealth-leaderboard-card">
+          <header class="wealth-leaderboard-heading">
+            <span>海边店主榜</span>
+            <b id="wealth-leaderboard-title">财富排行榜</b>
+            <p id="wealth-leaderboard-description">按累计营业额排序，看看你离榜首还有多远。</p>
+          </header>
+          <section class="wealth-leaderboard-hero" aria-label="我的财富成绩">
+            <span>我的累计营业额</span>
+            <strong id="wealth-leaderboard-total">¥0</strong>
+            <small id="wealth-leaderboard-rank">当前第 5 名</small>
+          </section>
+          <ol id="wealth-leaderboard-list" class="wealth-leaderboard-list" aria-label="财富排行榜列表"></ol>
+          <button id="close-wealth-leaderboard-button" class="wealth-leaderboard-close" type="button">知道了</button>
+        </div>
+      </section>
       <div class="menu-loading-screen" role="status" aria-live="polite" aria-label="加载中">
         <div class="menu-loading-sushi" aria-hidden="true">
           <img class="menu-loading-rice" src="assets/restaurant/kitchen-layers/optimized/rice-portion.png" alt="" />
@@ -43,6 +63,6 @@
         <span>加载中</span>
       </div>
     </main>
-    <script src="game.js?v=modal-motion-v40-20260804"></script>
+    <script src="game.js?v=wealth-board-v41-20260804"></script>
   </body>
 </html>

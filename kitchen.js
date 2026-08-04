@@ -350,6 +350,7 @@ const state = {
   gamePaused: false,
   pauseSettingsOpen: false,
   cash: 0,
+  lifetimeRevenue: 0,
   customers: [],
   customerSerial: 0,
 };
@@ -474,6 +475,7 @@ function buildSaveSnapshot() {
   return {
     version: SAVE_VERSION,
     cash: asStoredCount(state.cash, 9_999_999),
+    lifetimeRevenue: asStoredCount(state.lifetimeRevenue, 9_999_999),
     unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isKnownSushiId))],
     storageLevels: normalizeStorageLevels(state.storageLevels),
     teaUnlocked: Boolean(state.teaUnlocked),
@@ -550,6 +552,7 @@ function restoreGame() {
     const dayCustomersFinished = asStoredCount(saved.dayCustomersFinished, 9_999_999);
     const dayCustomersServed = Math.min(dayCustomersFinished, asStoredCount(saved.dayCustomersServed, 9_999_999));
     const dayIncome = asStoredCount(saved.dayIncome, 9_999_999);
+    const lifetimeRevenue = asStoredCount(saved.lifetimeRevenue ?? saved.cash, 9_999_999);
     const dayDuration = dayDurationForDay(day);
     const savedDayTime = Number(saved.dayTimeRemainingMs);
     const dayTimeRemainingMs = Number.isFinite(savedDayTime)
@@ -609,6 +612,7 @@ function restoreGame() {
       gamePaused: false,
       pauseSettingsOpen: false,
       cash: asStoredCount(saved.cash, 9_999_999),
+      lifetimeRevenue,
       customers: [],
       customerSerial: 0,
     });
@@ -2588,6 +2592,7 @@ function completeCustomerOrderItem(customer, item) {
   customerLeaveTimers.delete(customer.id);
   customer.served = true;
   state.cash += customer.price;
+  state.lifetimeRevenue = Math.min(9_999_999, state.lifetimeRevenue + customer.price);
   if (resolveDayCustomer(customer, { served: true })) state.dayIncome += customer.price;
   setMessage(`${customer.name}的整单完成，获得 ¥${customer.price}。`);
   render();

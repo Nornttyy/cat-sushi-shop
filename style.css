@@ -245,8 +245,8 @@ button { font: inherit; }
 @keyframes modal-pop-in { from { opacity: 0; transform: translate3d(0, 18px, 0) scale(.92); } 68% { opacity: 1; transform: translate3d(0, -2px, 0) scale(1.012); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 @keyframes modal-pop-out { from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } to { opacity: 0; transform: translate3d(0, 10px, 0) scale(.965); } }
 @keyframes pause-view-in { from { opacity: 0; transform: translate3d(12px, 0, 0) scale(.985); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
-.ingredient-shop-panel.is-closing, .day-summary-overlay.is-closing, .game-pause-overlay.is-closing, .save-reset-dialog.is-closing { pointer-events: none; animation: modal-backdrop-out 190ms cubic-bezier(.4, 0, .72, .24) both; }
-.ingredient-shop-panel.is-closing > .ingredient-shop-window, .day-summary-overlay.is-closing > .day-summary-card, .game-pause-overlay.is-closing > .game-pause-card, .save-reset-dialog.is-closing > .save-reset-card { animation: modal-pop-out 220ms cubic-bezier(.4, 0, .72, .24) both; }
+.ingredient-shop-panel.is-closing, .day-summary-overlay.is-closing, .game-pause-overlay.is-closing, .save-reset-dialog.is-closing, .wealth-leaderboard-dialog.is-closing { pointer-events: none; animation: modal-backdrop-out 190ms cubic-bezier(.4, 0, .72, .24) both; }
+.ingredient-shop-panel.is-closing > .ingredient-shop-window, .day-summary-overlay.is-closing > .day-summary-card, .game-pause-overlay.is-closing > .game-pause-card, .save-reset-dialog.is-closing > .save-reset-card, .wealth-leaderboard-dialog.is-closing > .wealth-leaderboard-card { animation: modal-pop-out 220ms cubic-bezier(.4, 0, .72, .24) both; }
 
 @media (max-height: 520px) {
   .ingredient-shop-panel { padding: 10px; }
@@ -386,6 +386,11 @@ button { font: inherit; }
 .main-menu-start:active { transform: translateY(5px); box-shadow: 0 1px 0 #9e4d37, inset 0 2px 0 rgb(255 247 211 / .56); }
 .main-menu-start span { font-size: clamp(18px, 2vw, 29px); }
 .main-menu-start small { font-size: clamp(10px, .95vw, 14px); font-weight: 800; opacity: .9; }
+.main-menu-ranking { display: inline-grid; gap: 2px; min-width: min(76%, 250px); margin: clamp(11px, 1.2vw, 16px) auto 0; padding: clamp(8px, .78vw, 12px) clamp(17px, 1.7vw, 27px); cursor: pointer; border: 3px solid #8a563e; border-radius: 15px; color: #704331; background: linear-gradient(145deg, #fff5d7, #f5d497); box-shadow: 0 4px 0 #bd8453, inset 0 2px 0 rgb(255 253 235 / .8); font-weight: 1000; transition: filter 140ms ease, transform 140ms ease, box-shadow 140ms ease; }
+.main-menu-ranking:hover { filter: brightness(1.05); transform: translateY(-2px); }
+.main-menu-ranking:active { transform: translateY(3px); box-shadow: 0 1px 0 #bd8453, inset 0 2px 0 rgb(255 253 235 / .8); }
+.main-menu-ranking span { font-size: clamp(14px, 1.45vw, 20px); }
+.main-menu-ranking small { color: #8c684f; font-size: clamp(9px, .83vw, 12px); font-weight: 900; }
 .main-menu-reset { display: block; width: fit-content; margin: clamp(12px, 1.3vw, 18px) auto 0; padding: clamp(7px, .7vw, 10px) clamp(15px, 1.45vw, 22px); cursor: pointer; border: 2px solid #8c5b46; border-radius: 999px; color: #784c3b; background: rgb(255 248 224 / .84); box-shadow: 0 3px 0 rgb(90 57 45 / .18); font-size: clamp(11px, 1.05vw, 15px); font-weight: 900; transition: filter 140ms ease, transform 140ms ease, box-shadow 140ms ease; }
 .main-menu-reset:hover { filter: brightness(1.05); transform: translateY(-1px); }
 .main-menu-reset:active { transform: translateY(2px); box-shadow: 0 1px 0 rgb(90 57 45 / .18); }
@@ -402,6 +407,31 @@ button { font: inherit; }
 .save-reset-actions button:active { transform: translateY(3px); box-shadow: 0 1px 0 #9e4d37; }
 .save-reset-cancel:active { box-shadow: 0 1px 0 #8291aa !important; }
 .save-reset-confirm:active { box-shadow: 0 1px 0 #95483f !important; }
+.wealth-leaderboard-dialog { position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; padding: 24px; background: rgb(45 30 28 / .58); backdrop-filter: blur(3px); animation: modal-backdrop-in 210ms cubic-bezier(.22, .8, .3, 1) both; will-change: opacity; }
+.wealth-leaderboard-card { display: grid; justify-items: center; gap: clamp(10px, 1vw, 15px); width: min(88%, 470px); max-height: min(84%, 650px); padding: clamp(20px, 2.2vw, 31px); overflow: auto; border: 4px solid #704331; border-radius: 24px; color: #704331; background: linear-gradient(145deg, #fff6df, #f4d9a8); box-shadow: 0 9px 0 #744631, 0 22px 44px rgb(38 24 21 / .34), inset 0 2px 0 rgb(255 255 255 / .74); text-align: center; animation: modal-pop-in 280ms cubic-bezier(.16, .92, .24, 1) both; scrollbar-color: #c88762 #f5e4c5; scrollbar-width: thin; will-change: opacity, transform; }
+.wealth-leaderboard-heading { display: grid; gap: 3px; }
+.wealth-leaderboard-heading > span { color: #d46e52; font-size: clamp(10px, .9vw, 13px); font-weight: 1000; letter-spacing: .14em; }
+.wealth-leaderboard-heading > b { color: #8c432d; font-size: clamp(28px, 3vw, 40px); font-weight: 1000; line-height: 1; }
+.wealth-leaderboard-heading > p { margin: 2px 0 0; color: #7d5b48; font-size: clamp(11px, .98vw, 14px); font-weight: 800; line-height: 1.4; }
+.wealth-leaderboard-hero { display: grid; justify-items: center; gap: 1px; width: min(100%, 330px); padding: clamp(10px, 1vw, 15px); border: 2px solid #b6774d; border-radius: 17px; color: #704331; background: linear-gradient(130deg, #ffe9ac, #f5c97d); box-shadow: inset 0 2px 0 rgb(255 251 224 / .75), 0 3px 0 rgb(141 82 53 / .18); }
+.wealth-leaderboard-hero > span { font-size: clamp(10px, .83vw, 12px); font-weight: 1000; letter-spacing: .08em; }
+.wealth-leaderboard-hero > strong { color: #be603e; font-size: clamp(26px, 2.7vw, 38px); font-weight: 1000; line-height: 1; text-shadow: 0 2px 0 rgb(255 247 217 / .8); }
+.wealth-leaderboard-hero > small { padding: 3px 9px; border-radius: 999px; color: #725040; background: rgb(255 249 225 / .78); font-size: clamp(10px, .83vw, 12px); font-weight: 1000; }
+.wealth-leaderboard-list { display: grid; gap: 7px; width: 100%; margin: 0; padding: 0; list-style: none; }
+.wealth-leaderboard-entry { display: grid; grid-template-columns: clamp(30px, 3vw, 40px) minmax(0, 1fr) auto; align-items: center; gap: 9px; min-height: 48px; padding: 6px 9px; border: 2px solid rgb(112 67 49 / .27); border-radius: 13px; color: #704331; background: rgb(255 252 237 / .8); box-shadow: 0 2px 0 rgb(112 67 49 / .1); text-align: left; }
+.wealth-leaderboard-entry.is-player { border-color: #c8704e; background: linear-gradient(115deg, #fff0c4, #ffdca6); box-shadow: 0 3px 0 rgb(190 96 62 / .2), inset 0 1px 0 rgb(255 255 255 / .72); }
+.wealth-leaderboard-rank { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border: 2px solid #8b5b42; border-radius: 999px; color: #704331; background: #f6dfb2; font-size: clamp(11px, .98vw, 14px); font-weight: 1000; }
+.wealth-leaderboard-rank.is-top-one { border-color: #b78129; color: #764716; background: #f6cf64; }
+.wealth-leaderboard-rank.is-top-two { border-color: #81909a; color: #4e5b63; background: #dce6ea; }
+.wealth-leaderboard-rank.is-top-three { border-color: #a9683b; color: #754025; background: #e9ae79; }
+.wealth-leaderboard-name { display: grid; gap: 1px; min-width: 0; }
+.wealth-leaderboard-name b { overflow: hidden; color: #704331; font-size: clamp(12px, 1.05vw, 16px); font-weight: 1000; text-overflow: ellipsis; white-space: nowrap; }
+.wealth-leaderboard-name span { color: #8c6a58; font-size: clamp(9px, .75vw, 11px); font-weight: 800; }
+.wealth-leaderboard-entry.is-player .wealth-leaderboard-name span { color: #b55f42; }
+.wealth-leaderboard-value { color: #c16542; font-size: clamp(13px, 1.15vw, 18px); font-weight: 1000; white-space: nowrap; }
+.wealth-leaderboard-close { width: min(100%, 220px); padding: clamp(9px, .9vw, 13px) clamp(18px, 1.8vw, 28px); cursor: pointer; border: 3px solid #704331; border-radius: 13px; color: #fff8df; background: linear-gradient(#f4ad60, #df744b); box-shadow: 0 4px 0 #9e4d37; font-size: clamp(13px, 1.1vw, 16px); font-weight: 1000; transition: transform 140ms cubic-bezier(.2, .8, .25, 1), filter 140ms ease, box-shadow 140ms ease; }
+.wealth-leaderboard-close:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.wealth-leaderboard-close:active { transform: translateY(3px); box-shadow: 0 1px 0 #9e4d37; }
 @media (max-width: 620px) { .main-menu-card { left: 7%; width: 52%; } .main-menu-kicker { letter-spacing: .03em; } .main-menu-title { font-size: clamp(32px, 8vw, 52px); } .main-menu-description { font-size: 11px; } .main-menu-start { min-width: 100%; padding-inline: 10px; } }
 
 @media (max-aspect-ratio: 1/1) {
@@ -410,5 +440,5 @@ button { font: inherit; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sashimi-picker, .ingredient-shop-panel, .ingredient-shop-window, .tutorial-guide.is-welcome, .tutorial-guide.is-welcome .tutorial-guide-card, .day-summary-overlay, .day-summary-card, .game-pause-overlay, .game-pause-card, .game-pause-view, .save-reset-dialog, .save-reset-card { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+  .sashimi-picker, .ingredient-shop-panel, .ingredient-shop-window, .tutorial-guide.is-welcome, .tutorial-guide.is-welcome .tutorial-guide-card, .day-summary-overlay, .day-summary-card, .game-pause-overlay, .game-pause-card, .game-pause-view, .save-reset-dialog, .save-reset-card, .wealth-leaderboard-dialog, .wealth-leaderboard-card { animation-duration: 1ms !important; transition-duration: 1ms !important; }
 }

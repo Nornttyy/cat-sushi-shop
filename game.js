@@ -1,17 +1,113 @@
 const startButton = document.querySelector('#start-button');
+const wealthLeaderboardButton = document.querySelector('#wealth-leaderboard-button');
 const resetSaveButton = document.querySelector('#reset-save-button');
 const saveResetStatus = document.querySelector('#save-reset-status');
 const resetSaveDialog = document.querySelector('#reset-save-dialog');
 const cancelResetSaveButton = document.querySelector('#cancel-reset-save-button');
 const confirmResetSaveButton = document.querySelector('#confirm-reset-save-button');
+const wealthLeaderboardDialog = document.querySelector('#wealth-leaderboard-dialog');
+const wealthLeaderboardTotal = document.querySelector('#wealth-leaderboard-total');
+const wealthLeaderboardRank = document.querySelector('#wealth-leaderboard-rank');
+const wealthLeaderboardList = document.querySelector('#wealth-leaderboard-list');
+const closeWealthLeaderboardButton = document.querySelector('#close-wealth-leaderboard-button');
 const menuStage = document.querySelector('.main-menu-stage');
 const MENU_SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const requestedScene = new URLSearchParams(window.location.search).get('scene');
 let resetSaveDialogOpen = false;
 let resetSaveDialogCloseTimer = null;
+let wealthLeaderboardDialogOpen = false;
+let wealthLeaderboardDialogCloseTimer = null;
+
+const WEALTH_RIVALS = Object.freeze([
+  { id: 'lighthouse', name: '灯塔食堂', revenue: 940 },
+  { id: 'tide', name: '潮汐小铺', revenue: 610 },
+  { id: 'seagull', name: '海鸥寿司屋', revenue: 360 },
+  { id: 'shell', name: '贝壳餐车', revenue: 150 },
+]);
 
 function menuModalDuration(duration) {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 1 : duration;
+}
+
+function storedAmount(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return 0;
+  return Math.min(9_999_999, Math.max(0, Math.floor(amount)));
+}
+
+function formatCurrency(value) {
+  return `¥${storedAmount(value).toLocaleString('zh-CN')}`;
+}
+
+function readWealthProfile() {
+  try {
+    const raw = window.localStorage.getItem(MENU_SAVE_KEY);
+    if (!raw) return { revenue: 0, cash: 0, day: 1 };
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== 'object' || saved.version !== 1) return { revenue: 0, cash: 0, day: 1 };
+    return {
+      revenue: storedAmount(saved.lifetimeRevenue ?? saved.cash),
+      cash: storedAmount(saved.cash),
+      day: Math.max(1, storedAmount(saved.day) || 1),
+    };
+  } catch {
+    return { revenue: 0, cash: 0, day: 1 };
+  }
+}
+
+function rankClass(rank) {
+  if (rank === 1) return 'is-top-one';
+  if (rank === 2) return 'is-top-two';
+  if (rank === 3) return 'is-top-three';
+  return '';
+}
+
+function renderWealthLeaderboard() {
+  const profile = readWealthProfile();
+  const entries = [
+    ...WEALTH_RIVALS.map((rival) => ({ ...rival, isPlayer: false })),
+    {
+      id: 'player',
+      name: '我的寿司店',
+      revenue: profile.revenue,
+      cash: profile.cash,
+      day: profile.day,
+      isPlayer: true,
+    },
+  ].sort((left, right) => (
+    right.revenue - left.revenue
+    || Number(right.isPlayer) - Number(left.isPlayer)
+    || left.name.localeCompare(right.name, 'zh-CN')
+  ));
+
+  const playerRank = entries.findIndex((entry) => entry.isPlayer) + 1;
+  wealthLeaderboardTotal.textContent = formatCurrency(profile.revenue);
+  wealthLeaderboardRank.textContent = `当前第 ${playerRank} 名`;
+  wealthLeaderboardList.replaceChildren();
+
+  entries.forEach((entry, index) => {
+    const rank = index + 1;
+    const row = document.createElement('li');
+    const rankBadge = document.createElement('span');
+    const name = document.createElement('div');
+    const title = document.createElement('b');
+    const detail = document.createElement('span');
+    const revenue = document.createElement('strong');
+
+    row.className = `wealth-leaderboard-entry${entry.isPlayer ? ' is-player' : ''}`;
+    rankBadge.className = `wealth-leaderboard-rank ${rankClass(rank)}`.trim();
+    rankBadge.textContent = String(rank);
+    title.textContent = entry.name;
+    detail.textContent = entry.isPlayer
+      ? `第 ${entry.day} 天 · 余额 ${formatCurrency(entry.cash)}`
+      : '附近店主';
+    name.className = 'wealth-leaderboard-name';
+    name.append(title, detail);
+    revenue.className = 'wealth-leaderboard-value';
+    revenue.textContent = formatCurrency(entry.revenue);
+    row.append(rankBadge, name, revenue);
+    wealthLeaderboardList.append(row);
+  });
 }
 
 function canFishFromSavedDay() {
@@ -181,7 +277,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=modal-motion-v34-20260804';
+    kitchenScript.src = 'kitchen.js?v=wealth-board-v35-20260804';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -225,7 +321,36 @@ async function enterFishing() {
 
 startButton.addEventListener('click', enterKitchen);
 
+function openWealthLeaderboard() {
+  if (resetSaveDialogOpen) return;
+  if (wealthLeaderboardDialogCloseTimer !== null) {
+    window.clearTimeout(wealthLeaderboardDialogCloseTimer);
+    wealthLeaderboardDialogCloseTimer = null;
+  }
+  renderWealthLeaderboard();
+  wealthLeaderboardDialogOpen = true;
+  wealthLeaderboardDialog.classList.remove('is-hidden', 'is-closing');
+  wealthLeaderboardDialog.setAttribute('aria-hidden', 'false');
+  wealthLeaderboardButton.setAttribute('aria-expanded', 'true');
+  window.requestAnimationFrame(() => closeWealthLeaderboardButton.focus());
+}
+
+function closeWealthLeaderboard() {
+  if (!wealthLeaderboardDialogOpen || wealthLeaderboardDialog.classList.contains('is-closing')) return;
+  wealthLeaderboardDialogOpen = false;
+  wealthLeaderboardDialog.setAttribute('aria-hidden', 'true');
+  wealthLeaderboardDialog.classList.add('is-closing');
+  wealthLeaderboardButton.setAttribute('aria-expanded', 'false');
+  wealthLeaderboardDialogCloseTimer = window.setTimeout(() => {
+    wealthLeaderboardDialogCloseTimer = null;
+    wealthLeaderboardDialog.classList.remove('is-closing');
+    wealthLeaderboardDialog.classList.add('is-hidden');
+    window.requestAnimationFrame(() => wealthLeaderboardButton.focus());
+  }, menuModalDuration(220));
+}
+
 function openResetSaveDialog() {
+  if (wealthLeaderboardDialogOpen) return;
   if (resetSaveDialogCloseTimer !== null) {
     window.clearTimeout(resetSaveDialogCloseTimer);
     resetSaveDialogCloseTimer = null;
@@ -261,6 +386,11 @@ function resetSave() {
   closeResetSaveDialog();
 }
 
+wealthLeaderboardButton.addEventListener('click', openWealthLeaderboard);
+closeWealthLeaderboardButton.addEventListener('click', closeWealthLeaderboard);
+wealthLeaderboardDialog.addEventListener('click', (event) => {
+  if (event.target === wealthLeaderboardDialog) closeWealthLeaderboard();
+});
 resetSaveButton.addEventListener('click', openResetSaveDialog);
 cancelResetSaveButton.addEventListener('click', closeResetSaveDialog);
 confirmResetSaveButton.addEventListener('click', resetSave);
@@ -268,10 +398,15 @@ resetSaveDialog.addEventListener('click', (event) => {
   if (event.target === resetSaveDialog) closeResetSaveDialog();
 });
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && resetSaveDialogOpen) {
+  if (event.key !== 'Escape') return;
+  if (wealthLeaderboardDialogOpen) {
     event.preventDefault();
-    closeResetSaveDialog();
+    closeWealthLeaderboard();
+    return;
   }
+  if (!resetSaveDialogOpen) return;
+  event.preventDefault();
+  closeResetSaveDialog();
 });
 
 if (requestedScene === 'kitchen' || requestedScene === 'fishing') {
