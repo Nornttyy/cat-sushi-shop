@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=procurement-shop-v29-20260804" />
+    <link rel="stylesheet" href="style.css?v=day-system-v30-20260804" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -13,7 +13,8 @@
       <img id="scene-background" class="kitchen-background" src="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" alt="海边寿司厨房" fetchpriority="high" decoding="async" />
       <header class="game-header">
         <div><span>海边寿司店</span><b id="stage-name">营业制作台</b></div>
-        <div class="order-card"><span id="shop-status">开门前</span><b id="shop-status-detail">自由备料</b></div>
+        <div class="day-card"><span id="day-label">第 1 天</span><b id="day-status">新手教程</b></div>
+        <div class="order-card"><span id="shop-status">营业中</span><b id="shop-status-detail">第一单新手教程</b></div>
         <div class="cash-card"><span>余额</span><b id="cash-value">¥0</b></div>
       </header>
 
@@ -26,7 +27,7 @@
             <div class="ingredient-shop-heading">
               <span>海边采购站</span>
               <b id="ingredient-shop-title">采购商店</b>
-              <p id="ingredient-shop-description">先解锁食材，再暂停营业去海边钓到它。</p>
+              <p id="ingredient-shop-description">解锁食材后，在每天结算时去海边钓到它。</p>
             </div>
             <div class="ingredient-shop-cash" aria-label="当前余额"><span>余额</span><b id="ingredient-shop-cash">¥0</b></div>
             <button id="ingredient-shop-close" class="ingredient-shop-close" type="button">返回制作台</button>
@@ -118,13 +119,27 @@
         </div>
       </aside>
 
+      <section id="day-summary-overlay" class="day-summary-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="day-summary-title" aria-describedby="day-summary-note">
+        <div class="day-summary-card">
+          <span id="day-summary-kicker">第 1 天结算</span>
+          <b id="day-summary-title">今天辛苦啦</b>
+          <div class="day-summary-stats">
+            <div><span>完成订单</span><b id="day-orders-value">0 / 4 单</b></div>
+            <div><span>今日收入</span><b id="day-income-value">¥0</b></div>
+          </div>
+          <p id="day-summary-note">补充食材后，再开始新的一天吧。</p>
+          <div class="day-summary-actions">
+            <button id="ingredient-shop-toggle" class="ingredient-shop-toggle" type="button" aria-controls="ingredient-shop-panel" aria-expanded="false">采购商店</button>
+            <button id="go-fishing-button" class="pause-secondary-button" type="button">去钓鱼</button>
+            <button id="open-shop-button" class="day-next-button" type="button">开始第 2 天</button>
+          </div>
+        </div>
+      </section>
+
       <div class="game-bottom-bar">
         <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击冰柜选择食材，把它放到切菜板。</span>
         <button id="game-pause-button" type="button" aria-pressed="false">暂停</button>
-        <button id="pause-shop-button" type="button">暂停营业</button>
-        <button id="open-shop-button" class="is-hidden" type="button">继续营业</button>
-        <button id="go-fishing-button" class="is-hidden" type="button">去钓鱼</button>
-        <button id="ingredient-shop-toggle" class="ingredient-shop-toggle is-hidden" type="button" aria-controls="ingredient-shop-panel" aria-expanded="false">采购商店</button>
+        <button id="pause-shop-button" class="is-hidden" type="button">提前打烊</button>
       </div>
       <section id="game-pause-overlay" class="game-pause-overlay is-hidden" role="dialog" aria-modal="true" aria-label="暂停菜单">
         <div class="game-pause-card">
@@ -152,6 +167,6 @@
         </div>
       </section>
     </main>
-    <script src="kitchen.js?v=procurement-shop-v31-20260804"></script>
+    <script src="kitchen.js?v=day-system-v32-20260804"></script>
   </body>
 </html>

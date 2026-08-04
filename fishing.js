@@ -114,6 +114,16 @@ function readSave() {
   }
 }
 
+function canFishFromSavedDay(save) {
+  if (!save || typeof save !== 'object') return false;
+  if (save.dayPhase === 'settlement') return true;
+
+  // A save from before daily business existed can only enter if it had
+  // already been paused. All current saves must finish the day first.
+  const hasSavedDay = Number.isFinite(Number(save.day)) && Number(save.day) >= 1;
+  return !hasSavedDay && save.shopOpen === false;
+}
+
 function getUnlockedFish(save) {
   const unlocked = Array.isArray(save.unlockedIngredients) ? save.unlockedIngredients : [];
   return FISH_IDS.filter((id) => unlocked.includes(id));
@@ -636,6 +646,10 @@ function handleSceneLaunch(event) {
 
 function initializeFishing() {
   const save = readSave();
+  if (!canFishFromSavedDay(save)) {
+    window.location.replace('index.html?scene=kitchen');
+    return;
+  }
   const inventory = save.inventory && typeof save.inventory === 'object' ? save.inventory : {};
   state.unlockedFish = getUnlockedFish(save);
   state.rawFish = normalizeRawFish(inventory.rawFish);

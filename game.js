@@ -9,6 +9,23 @@ const MENU_SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const requestedScene = new URLSearchParams(window.location.search).get('scene');
 let resetSaveDialogOpen = false;
 
+function canFishFromSavedDay() {
+  try {
+    const raw = window.localStorage.getItem(MENU_SAVE_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== 'object' || saved.version !== 1) return false;
+    if (saved.dayPhase === 'settlement') return true;
+
+    // Preserve access for a legacy save that was already paused before the
+    // day system existed. New saves must explicitly reach daily settlement.
+    const hasSavedDay = Number.isFinite(Number(saved.day)) && Number(saved.day) >= 1;
+    return !hasSavedDay && saved.shopOpen === false;
+  } catch {
+    return false;
+  }
+}
+
 // 这些素材会在主菜单停留时悄悄进入浏览器缓存，进制作台时就不会一张张跳出来。
 const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg',
@@ -159,7 +176,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=procurement-shop-v31-20260804';
+    kitchenScript.src = 'kitchen.js?v=day-system-v32-20260804';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -190,7 +207,7 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'fishing.js?v=tutorial-economy-v7-20260804';
+    fishingScript.src = 'fishing.js?v=day-system-v8-20260804';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {
@@ -242,6 +259,6 @@ document.addEventListener('keydown', (event) => {
 
 if (requestedScene === 'kitchen' || requestedScene === 'fishing') {
   window.history.replaceState({}, document.title, window.location.pathname);
-  if (requestedScene === 'kitchen') enterKitchen();
+  if (requestedScene === 'kitchen' || !canFishFromSavedDay()) enterKitchen();
   else enterFishing();
 }

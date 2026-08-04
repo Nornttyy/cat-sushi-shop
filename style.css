@@ -60,6 +60,7 @@ button { font: inherit; }
 .game-header b { font-size: clamp(13px, 1.35vw, 21px); }
 .order-card { text-align: right; }
 .cash-card { min-width: 8ch; text-align: center; }
+.day-card { min-width: 9ch; text-align: center; }
 
 .customer-queue { position: absolute; top: 14%; left: 12%; z-index: 1; display: flex; align-items: end; justify-content: flex-start; gap: clamp(24px, 7vw, 100px); width: 52%; height: 50%; pointer-events: none; }
 .customer-counter-front { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; background-color: #b46f3c; background-image: url('assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg'); background-position: center; background-size: 100% 100%; background-repeat: no-repeat; -webkit-clip-path: inset(46.5% 0 0); clip-path: inset(46.5% 0 0); }
@@ -274,6 +275,22 @@ button { font: inherit; }
 .tutorial-guide.is-welcome .tutorial-actions { justify-content: center; }
 .is-tutorial-target { outline: 3px dashed #fff2a9; outline-offset: 5px; animation: tutorial-target-pulse 960ms ease-in-out infinite; }
 @keyframes tutorial-target-pulse { 0%, 100% { outline-color: #fff2a9; outline-offset: 4px; filter: drop-shadow(0 0 4px rgb(255 219 105 / .78)); } 50% { outline-color: #ffbd62; outline-offset: 8px; filter: drop-shadow(0 0 10px rgb(255 199 91 / .96)); } }
+.day-summary-overlay { position: absolute; inset: 0; z-index: 74; display: grid; place-items: center; padding: 24px; background: rgb(42 29 25 / .5); backdrop-filter: blur(3px); animation: day-summary-in 260ms cubic-bezier(.2, .84, .22, 1) both; }
+.day-summary-card { display: grid; justify-items: center; gap: clamp(9px, 1vw, 15px); width: min(88%, 460px); padding: clamp(20px, 2.2vw, 32px); border: 4px solid var(--ink); border-radius: 24px; color: #704331; background: linear-gradient(145deg, #fff4d8, #f4d6a2); box-shadow: 0 9px 0 #744631, 0 22px 44px rgb(38 24 21 / .34), inset 0 2px 0 rgb(255 255 255 / .7); text-align: center; }
+.day-summary-card > span { color: #d46e52; font-size: clamp(11px, 1vw, 15px); font-weight: 1000; letter-spacing: .14em; }
+.day-summary-card > b { color: #8c432d; font-size: clamp(28px, 3vw, 42px); font-weight: 1000; line-height: 1.05; }
+.day-summary-card > p { margin: 0; max-width: 23em; font-size: clamp(12px, 1.08vw, 16px); font-weight: 800; line-height: 1.45; }
+.day-summary-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(8px, .9vw, 13px); width: 100%; }
+.day-summary-stats > div { display: grid; gap: 2px; min-width: 0; padding: clamp(8px, .9vw, 13px); border: 2px solid rgb(112 67 49 / .3); border-radius: 14px; background: rgb(255 251 235 / .8); box-shadow: inset 0 2px 0 rgb(255 255 255 / .72); }
+.day-summary-stats span { font-size: clamp(10px, .86vw, 13px); font-weight: 900; opacity: .72; }
+.day-summary-stats b { color: #d36f48; font-size: clamp(19px, 1.8vw, 27px); font-weight: 1000; }
+.day-summary-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(7px, .8vw, 12px); width: 100%; margin-top: 2px; }
+.day-summary-actions button { min-width: 0; padding: clamp(8px, .86vw, 12px) clamp(7px, .8vw, 12px); cursor: pointer; border: 3px solid #704331; border-radius: 12px; color: #fff8df; box-shadow: 0 4px 0 #9e4d37; font-size: clamp(11px, .98vw, 15px); font-weight: 1000; line-height: 1.15; transition: transform 140ms cubic-bezier(.2, .8, .25, 1), filter 140ms ease, box-shadow 140ms ease; }
+.day-summary-actions #go-fishing-button { color: #4b5671; background: linear-gradient(#dce6f1, #b9c8dc); box-shadow: 0 4px 0 #8291aa; }
+.day-summary-actions .day-next-button { background: linear-gradient(#f4ad60, #df744b); }
+.day-summary-actions button:active { transform: translateY(3px); box-shadow: 0 1px 0 #9e4d37; }
+.day-summary-actions #go-fishing-button:active { box-shadow: 0 1px 0 #8291aa; }
+@keyframes day-summary-in { from { opacity: 0; transform: translateY(10px) scale(.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .game-pause-overlay { position: absolute; inset: 0; z-index: 80; display: grid; place-items: center; padding: 24px; background: rgb(34 25 30 / .58); backdrop-filter: blur(3px); }
 .game-pause-card { width: min(88%, 340px); padding: clamp(22px, 2.4vw, 36px); border: 4px solid var(--ink); border-radius: 23px; color: #704331; background: #fff2d2; box-shadow: 0 9px 0 rgb(51 33 29 / .3); text-align: center; }
 .game-pause-view { display: grid; justify-items: center; gap: clamp(7px, .8vw, 12px); width: 100%; }
@@ -301,6 +318,7 @@ button { font: inherit; }
 @media (max-width: 680px) {
   .tutorial-guide-card { top: auto; right: 3%; bottom: 3%; left: 3%; width: auto; }
   .tutorial-guide.is-welcome .tutorial-guide-card { width: min(94%, 390px); }
+  .day-summary-actions { grid-template-columns: 1fr; }
 }
 
 .restaurant-stage { background: #54b8d6; }
