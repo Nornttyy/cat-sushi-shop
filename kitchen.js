@@ -584,6 +584,8 @@ const sashimiPicker = document.querySelector('#sashimi-picker');
 const sashimiChoices = Array.from(document.querySelectorAll('.sashimi-choice'));
 const ingredientShopToggle = document.querySelector('#ingredient-shop-toggle');
 const ingredientShopPanel = document.querySelector('#ingredient-shop-panel');
+const ingredientShopClose = document.querySelector('#ingredient-shop-close');
+const ingredientShopCash = document.querySelector('#ingredient-shop-cash');
 const ingredientShopItems = document.querySelector('#ingredient-shop-items');
 const storageUpgradeItems = document.querySelector('#storage-upgrade-items');
 const riceBin = document.querySelector('#rice-bin');
@@ -1141,6 +1143,7 @@ function pauseShop() {
 function resumeShop() {
   if (state.shopOpen) return;
   state.shopOpen = true;
+  state.shopPanelOpen = false;
   setMessage('继续营业，第一位客人马上就到。');
   render();
   scheduleCustomer(550);
@@ -1229,6 +1232,30 @@ function blockPausedGameInput(event) {
   event.stopImmediatePropagation();
 }
 
+function blockShopPanelInput(event) {
+  const shopEvent = event.target instanceof Node && ingredientShopPanel.contains(event.target);
+  if (!state.shopPanelOpen || shopEvent) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}
+
+function trapShopPanelFocus(event) {
+  if (!state.shopPanelOpen || event.key !== 'Tab') return;
+  const focusable = Array.from(ingredientShopPanel.querySelectorAll('button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'))
+    .filter((element) => !element.classList.contains('is-hidden'));
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
 function blockTutorialWelcomeInput(event) {
   const tutorialEvent = event.target instanceof Node && tutorialGuide.contains(event.target);
   if (!tutorialNeedsCompletion() || state.tutorialStarted || tutorialEvent) return;
@@ -1239,12 +1266,20 @@ function blockTutorialWelcomeInput(event) {
 stage.addEventListener('pointerdown', blockPausedGameInput, true);
 stage.addEventListener('click', blockPausedGameInput, true);
 stage.addEventListener('keydown', blockPausedGameInput, true);
+stage.addEventListener('pointerdown', blockShopPanelInput, true);
+stage.addEventListener('click', blockShopPanelInput, true);
+stage.addEventListener('keydown', blockShopPanelInput, true);
 window.addEventListener('pointerdown', blockTutorialWelcomeInput, true);
 window.addEventListener('keydown', blockTutorialWelcomeInput, true);
+window.addEventListener('keydown', trapShopPanelFocus, true);
 
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   event.preventDefault();
+  if (state.shopPanelOpen) {
+    closeIngredientShop();
+    return;
+  }
   toggleGamePause();
 }, true);
 
@@ -1535,10 +1570,14 @@ function renderStorageUpgrades() {
 }
 
 function renderIngredientShop() {
-  const isOpen = state.shopPanelOpen;
+  const canUseShop = !state.shopOpen && !state.gamePaused && !tutorialNeedsCompletion();
+  if (!canUseShop) state.shopPanelOpen = false;
+  const isOpen = state.shopPanelOpen && canUseShop;
   show(ingredientShopPanel, isOpen);
+  show(ingredientShopToggle, canUseShop);
   ingredientShopToggle.setAttribute('aria-expanded', String(isOpen));
-  ingredientShopToggle.textContent = isOpen ? '收起商店' : '食材商店';
+  ingredientShopPanel.setAttribute('aria-hidden', String(!isOpen));
+  ingredientShopCash.textContent = `¥${state.cash}`;
   if (!isOpen) {
     shopRenderSignature = '';
     return;
@@ -1596,12 +1635,32 @@ function renderIngredientShop() {
 
 function toggleIngredientShop() {
   if (state.gamePaused) return;
-  state.shopPanelOpen = !state.shopPanelOpen;
+  if (state.shopPanelOpen) {
+    closeIngredientShop();
+    return;
+  }
+  if (tutorialNeedsCompletion()) {
+    setMessage('完成或跳过新手教程后，再去采购。');
+    return;
+  }
+  if (state.shopOpen) {
+    setMessage('先暂停营业，送走客人后再去采购。');
+    return;
+  }
+  state.shopPanelOpen = true;
   render();
+  window.requestAnimationFrame(() => ingredientShopClose.focus());
+}
+
+function closeIngredientShop() {
+  if (!state.shopPanelOpen) return;
+  state.shopPanelOpen = false;
+  render();
+  window.requestAnimationFrame(() => ingredientShopToggle.focus());
 }
 
 function buyIngredient(ingredientId) {
-  if (state.gamePaused) return;
+  if (state.gamePaused || state.shopOpen) return;
   const shopItem = shopItemFor(ingredientId);
   if (!shopItem || isShopItemUnlocked(shopItem)) return;
   const itemName = shopItemName(shopItem);
@@ -1626,7 +1685,7 @@ function buyIngredient(ingredientId) {
 }
 
 function buyStorageUpgrade(storageId) {
-  if (state.gamePaused) return;
+  if (state.gamePaused || state.shopOpen) return;
   const upgrade = storageUpgradeFor(storageId);
   if (!upgrade || storageUpgradeIsMaxed(upgrade)) return;
   if (upgrade.requiresTea && !isTeaUnlocked()) {
@@ -1780,24 +1839,38 @@ function render() {
   shopStatusDetail.textContent = state.shopOpen
     ? firstCustomer ? `${firstCustomer.name}：${orderSummary(pendingOrderItems(firstCustomer))}` : '等待第一位客人'
     : '可捕鱼或补货';
-  show(machineCup, state.cupOnMachine);
+  const teaUnlocked = isTeaUnlocked();
+  if (!teaUnlocked && (state.cupOnMachine || state.drinkPouring || state.incomingDrinks)) {
+    state.cupOnMachine = false;
+    state.drinkPouring = false;
+    state.incomingDrinks = 0;
+    state.drinkVersion += 1;
+  }
+  show(drinkMachine, teaUnlocked);
+  show(cupStation, teaUnlocked);
+  show(drinkRack, teaUnlocked);
+  show(machineCup, teaUnlocked && state.cupOnMachine);
+  drinkMachine.setAttribute('aria-hidden', String(!teaUnlocked));
+  cupStation.setAttribute('aria-hidden', String(!teaUnlocked));
+  drinkRack.setAttribute('aria-hidden', String(!teaUnlocked));
+  machineCup.setAttribute('aria-hidden', String(!teaUnlocked));
   const machineCupSource = state.drinkPouring
     ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
     : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
   if (machineCup.getAttribute('src') !== machineCupSource) machineCup.src = machineCupSource;
   machineCup.classList.toggle('is-filling', state.drinkPouring);
   drinkMachine.classList.toggle('is-pouring', state.drinkPouring);
-  const teaUnlocked = isTeaUnlocked();
-  drinkMachine.classList.toggle('is-locked', !teaUnlocked);
-  cupStation.classList.toggle('is-locked', !teaUnlocked);
-  drinkMachine.setAttribute('aria-disabled', String(!teaUnlocked));
-  cupStation.setAttribute('aria-disabled', String(!teaUnlocked));
-  drinkMachine.title = teaUnlocked ? '点击接茶' : '先在食材商店购买茶饮配方';
-  cupStation.title = teaUnlocked ? '拖出空杯' : '先在食材商店购买茶饮配方';
+  drinkMachine.classList.remove('is-locked');
+  cupStation.classList.remove('is-locked');
+  drinkMachine.setAttribute('aria-disabled', 'false');
+  cupStation.setAttribute('aria-disabled', 'false');
+  drinkMachine.title = '点击接茶';
+  cupStation.title = '拖出空杯';
   renderSlices();
   renderStockRack(riceRack, state.riceStored - state.incomingRice, 'stored-rice', `${KITCHEN_ASSET_PATH}rice-portion.png`, '一团米饭');
   renderSushiRack();
-  renderDrinks();
+  if (teaUnlocked) renderDrinks();
+  else drinkRack.replaceChildren();
   renderCustomers();
   renderTutorial();
 }
@@ -2158,6 +2231,10 @@ function deliverDrinkToCustomer(customerId) {
 freezerButton.addEventListener('click', openSashimiPicker);
 sashimiChoices.forEach((choice) => choice.addEventListener('pointerdown', dragSashimiFromPicker));
 ingredientShopToggle.addEventListener('click', toggleIngredientShop);
+ingredientShopClose.addEventListener('click', closeIngredientShop);
+ingredientShopPanel.addEventListener('click', (event) => {
+  if (event.target === ingredientShopPanel) closeIngredientShop();
+});
 riceBin.addEventListener('click', takeRice);
 cupStation.addEventListener('pointerdown', prepareCupDrag);
 

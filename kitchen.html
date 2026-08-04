@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=tutorial-guide-position-v28-20260804" />
+    <link rel="stylesheet" href="style.css?v=procurement-shop-v29-20260804" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -20,13 +20,23 @@
       <section id="customer-queue" class="customer-queue" aria-label="正在等待的客人"></section>
       <div class="customer-counter-front" aria-hidden="true"></div>
 
-      <section class="ingredient-shop" aria-label="食材商店">
-        <button id="ingredient-shop-toggle" class="ingredient-shop-toggle" type="button" aria-expanded="false">食材商店</button>
-        <div id="ingredient-shop-panel" class="ingredient-shop-panel is-hidden">
-          <div class="ingredient-shop-heading"><b>食材商店</b><span>购买鱼种后，去钓鱼获得食材</span></div>
-          <div id="ingredient-shop-items" class="ingredient-shop-items"></div>
-          <section class="storage-upgrade-section" aria-label="库存扩容">
-            <div class="storage-upgrade-heading"><b>库存扩容</b><span>寿司、鱼片和茶水可以堆叠更多</span></div>
+      <section id="ingredient-shop-panel" class="ingredient-shop-panel is-hidden" role="dialog" aria-modal="true" aria-labelledby="ingredient-shop-title" aria-describedby="ingredient-shop-description">
+        <div class="ingredient-shop-window">
+          <header class="ingredient-shop-header">
+            <div class="ingredient-shop-heading">
+              <span>海边采购站</span>
+              <b id="ingredient-shop-title">采购商店</b>
+              <p id="ingredient-shop-description">先解锁食材，再暂停营业去海边钓到它。</p>
+            </div>
+            <div class="ingredient-shop-cash" aria-label="当前余额"><span>余额</span><b id="ingredient-shop-cash">¥0</b></div>
+            <button id="ingredient-shop-close" class="ingredient-shop-close" type="button">返回制作台</button>
+          </header>
+          <section class="ingredient-shop-section" aria-labelledby="ingredient-shop-food-title">
+            <div class="ingredient-shop-section-heading"><b id="ingredient-shop-food-title">食材解锁</b><span>购买后，在钓鱼时才会遇到新鱼种。</span></div>
+            <div id="ingredient-shop-items" class="ingredient-shop-items"></div>
+          </section>
+          <section class="storage-upgrade-section ingredient-shop-section" aria-labelledby="storage-upgrade-title">
+            <div class="ingredient-shop-section-heading"><b id="storage-upgrade-title">库存扩容</b><span>寿司、鱼片和茶水都能存得更多。</span></div>
             <div id="storage-upgrade-items" class="storage-upgrade-items"></div>
           </section>
         </div>
@@ -114,6 +124,7 @@
         <button id="pause-shop-button" type="button">暂停营业</button>
         <button id="open-shop-button" class="is-hidden" type="button">继续营业</button>
         <button id="go-fishing-button" class="is-hidden" type="button">去钓鱼</button>
+        <button id="ingredient-shop-toggle" class="ingredient-shop-toggle is-hidden" type="button" aria-controls="ingredient-shop-panel" aria-expanded="false">采购商店</button>
       </div>
       <section id="game-pause-overlay" class="game-pause-overlay is-hidden" role="dialog" aria-modal="true" aria-label="暂停菜单">
         <div class="game-pause-card">
@@ -141,6 +152,6 @@
         </div>
       </section>
     </main>
-    <script src="kitchen.js?v=tutorial-economy-v30-20260804"></script>
+    <script src="kitchen.js?v=procurement-shop-v31-20260804"></script>
   </body>
 </html>
