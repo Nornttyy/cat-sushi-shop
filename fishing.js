@@ -731,7 +731,7 @@ function returnToKitchen() {
   resultOverlay.setAttribute('aria-hidden', 'true');
   resultOverlay.classList.add('is-closing');
   resultCloseTimer = window.setTimeout(() => {
-    window.location.assign('index.html?scene=kitchen');
+    window.location.assign('./?scene=kitchen');
   }, fishingModalDuration(220));
 }
 
@@ -744,7 +744,7 @@ function handleSceneLaunch(event) {
 function initializeFishing() {
   const save = readSave();
   if (!canFishFromSavedDay(save)) {
-    window.location.replace('index.html?scene=kitchen');
+    window.location.replace('./?scene=kitchen');
     return;
   }
   const inventory = save.inventory && typeof save.inventory === 'object' ? save.inventory : {};

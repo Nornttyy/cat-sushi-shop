@@ -1942,7 +1942,7 @@ function goFishing() {
     setMessage('进度还在保存，等一下再去钓鱼。');
     return;
   }
-  window.location.assign('index.html?scene=fishing');
+  window.location.assign('./?scene=fishing');
 }
 
 function pauseGame() {
@@ -2023,7 +2023,7 @@ function exitGame() {
   stage.classList.add('is-exiting-game');
   exitLoadingOverlay.setAttribute('aria-hidden', 'false');
   const exitDelay = 900;
-  window.setTimeout(() => window.location.assign('index.html?returning=1'), exitDelay);
+  window.setTimeout(() => window.location.assign('./?returning=1'), exitDelay);
 }
 
 function blockPausedGameInput(event) {
