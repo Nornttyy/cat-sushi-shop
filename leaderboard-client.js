@@ -5,6 +5,23 @@
   const ORDER_QUEUE_KEY = 'seaside-sushi-shop.online-order-queue.v1';
   const MAX_QUEUED_ORDERS = 160;
   const REQUEST_TIMEOUT_MS = 22_000;
+  const SCOREABLE_SUSHI_IDS = new Set([
+    'tamago',
+    'salmon',
+    'shrimp',
+    'tuna',
+    'mackerel',
+    'seabream',
+    'eel',
+    'uni',
+    'roe',
+    'platter-salmon',
+    'platter-tuna',
+    'platter-shrimp',
+    'platter-mackerel',
+    'platter-seabream',
+    'platter-mixed',
+  ]);
   let flushPromise = null;
 
   function readStoredJson(key, fallback) {
@@ -60,7 +77,7 @@
     return orderItems
       .map((item) => {
         if (item?.type === 'tea') return { type: 'tea' };
-        if (item?.type === 'sushi' && ['tamago', 'salmon', 'shrimp', 'tuna'].includes(item.id)) {
+        if (item?.type === 'sushi' && SCOREABLE_SUSHI_IDS.has(item.id)) {
           return { type: 'sushi', id: item.id };
         }
         return null;

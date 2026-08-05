@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=sushi-menu-v84-20260805" />
+    <link rel="stylesheet" href="style.css?v=sushi-menu-v85-20260805" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -26,7 +26,7 @@
             <div class="ingredient-shop-heading">
               <span>海边采购站</span>
               <b id="ingredient-shop-title">采购商店</b>
-              <p id="ingredient-shop-description">解锁食材后，在每天结算时去海边钓到它。</p>
+              <p id="ingredient-shop-description">购买新鱼种后去海边钓到它；配方与盘具会直接加入制作台。</p>
             </div>
             <div class="ingredient-shop-cash" aria-label="当前余额"><span>余额</span><b id="ingredient-shop-cash">¥0</b></div>
             <button id="ingredient-shop-close" class="ingredient-shop-close" type="button">返回制作台</button>
@@ -82,6 +82,16 @@
               <span class="sashimi-choice-name">玉子烧</span>
               <small class="sashimi-stock sashimi-stock-unlimited">无限</small>
             </button>
+            <button id="select-uni" class="sashimi-choice" type="button" data-ingredient-id="uni" aria-label="选择海胆军舰食材">
+              <img src="assets/restaurant/kitchen-layers/optimized/uni-loin.png" alt="" draggable="false" decoding="async" />
+              <span class="sashimi-choice-name">海胆军舰</span>
+              <small class="sashimi-stock sashimi-stock-unlimited">无限</small>
+            </button>
+            <button id="select-roe" class="sashimi-choice" type="button" data-ingredient-id="roe" aria-label="选择鱼籽军舰食材">
+              <img src="assets/restaurant/kitchen-layers/optimized/roe-loin.png" alt="" draggable="false" decoding="async" />
+              <span class="sashimi-choice-name">鱼籽军舰</span>
+              <small class="sashimi-stock sashimi-stock-unlimited">无限</small>
+            </button>
           </div>
         </section>
 
@@ -106,6 +116,11 @@
           <div id="slice-rack" class="slice-rack" aria-label="切好的寿司配料"></div>
           <div id="rice-rack" class="stock-rack rice-rack" aria-label="已存米饭"></div>
           <div id="sushi-rack" class="stock-rack sushi-rack" aria-label="已做寿司"></div>
+        </section>
+
+        <section id="platter-station" class="station platter-station is-hidden" aria-label="刺身拼盘盘子，拖入三片同种鱼或三种不同鱼片制作拼盘">
+          <img src="assets/restaurant/kitchen-layers/optimized/plate-stack.png" alt="刺身拼盘盘子" draggable="false" decoding="async" />
+          <div id="platter-slice-preview" class="platter-slice-preview" aria-hidden="true"></div>
         </section>
 
         <button id="rice-bin" class="station rice-station" type="button" aria-label="点击从饭盒拿一团米饭">
@@ -188,7 +203,7 @@
       </div>
     </main>
     <script src="audio.js?v=material-foley-v4-20260805"></script>
-    <script src="leaderboard-client.js?v=online-board-v1-20260804"></script>
-    <script src="kitchen.js?v=sushi-menu-v83-20260805"></script>
+    <script src="leaderboard-client.js?v=online-board-v2-20260805"></script>
+    <script src="kitchen.js?v=sushi-menu-v85-20260805"></script>
   </body>
 </html>

@@ -21,7 +21,23 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'http://127.0.0.1:8766',
 ];
 const ORDER_CATALOG = Object.freeze({
-  sushi: Object.freeze({ tamago: 3, salmon: 4, shrimp: 5, tuna: 6 }),
+  sushi: Object.freeze({
+    tamago: 3,
+    salmon: 4,
+    shrimp: 5,
+    tuna: 6,
+    mackerel: 7,
+    seabream: 10,
+    eel: 14,
+    uni: 12,
+    roe: 10,
+    'platter-salmon': 14,
+    'platter-tuna': 20,
+    'platter-shrimp': 17,
+    'platter-mackerel': 23,
+    'platter-seabream': 32,
+    'platter-mixed': 20,
+  }),
   tea: 3,
 });
 

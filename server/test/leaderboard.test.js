@@ -103,3 +103,53 @@ test('the API creates players, records each order once, and returns shared ranks
   assert.equal(firstLeaderboard.body.me.rank, 2);
   assert.equal(firstLeaderboard.body.entries.length, 2);
 });
+
+test('the API accepts and scores every new gunkan and sashimi platter order', async (context) => {
+  const app = await startTestServer();
+  context.after(app.close);
+
+  const session = await json(app.baseUrl, '/v1/anonymous-sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  const headers = {
+    Authorization: `Bearer ${session.body.token}`,
+    'Content-Type': 'application/json',
+  };
+
+  const gunkanAndFirstPlatters = await json(app.baseUrl, '/v1/orders', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      eventId: 'order-event-new-dishes-01',
+      items: [
+        { type: 'sushi', id: 'uni' },
+        { type: 'sushi', id: 'roe' },
+        { type: 'sushi', id: 'platter-salmon' },
+        { type: 'sushi', id: 'platter-tuna' },
+      ],
+    }),
+  });
+  assert.equal(gunkanAndFirstPlatters.response.status, 200);
+  assert.equal(gunkanAndFirstPlatters.body.accepted, true);
+  assert.equal(gunkanAndFirstPlatters.body.addedRevenue, 56);
+
+  const remainingPlatters = await json(app.baseUrl, '/v1/orders', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      eventId: 'order-event-new-dishes-02',
+      items: [
+        { type: 'sushi', id: 'platter-shrimp' },
+        { type: 'sushi', id: 'platter-mackerel' },
+        { type: 'sushi', id: 'platter-seabream' },
+        { type: 'sushi', id: 'platter-mixed' },
+      ],
+    }),
+  });
+  assert.equal(remainingPlatters.response.status, 200);
+  assert.equal(remainingPlatters.body.accepted, true);
+  assert.equal(remainingPlatters.body.addedRevenue, 92);
+  assert.equal(remainingPlatters.body.me.revenue, 148);
+});

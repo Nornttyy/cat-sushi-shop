@@ -26,6 +26,8 @@ const TUTORIAL_STEP_COUNT = 6;
 const SHRIMP_BATCH_SIZE = 4;
 const SHRIMP_HEAD_CUT_X = 0.5;
 const RAW_FISH_IDS = ['salmon', 'tuna', 'shrimp', 'mackerel', 'seabream', 'eel'];
+const PLATTER_FISH_IDS = ['salmon', 'tuna', 'shrimp', 'mackerel', 'seabream'];
+const RECIPE_IDS = Object.freeze(['nori', 'uni-gunkan', 'roe-gunkan', 'sashimi-platter']);
 const MAX_RAW_FISH = Number.MAX_SAFE_INTEGER;
 const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
@@ -38,7 +40,11 @@ const SHOP_ITEMS = [
   { id: 'shrimp', price: 260 },
   { id: 'tuna', price: 350 },
   { id: 'mackerel', price: 480, minimumDay: 3 },
+  { id: 'nori', name: '紫菜配方', asset: 'nori-sheets.png', price: 420, minimumDay: 4, kind: 'recipe', recipeId: 'nori' },
+  { id: 'roe-gunkan', name: '鱼籽军舰配方', asset: 'roe-gunkan.png', price: 900, minimumDay: 6, kind: 'recipe', recipeId: 'roe-gunkan', requiresRecipe: 'nori' },
   { id: 'seabream', price: 780, minimumDay: 7 },
+  { id: 'uni-gunkan', name: '海胆军舰配方', asset: 'uni-gunkan.png', price: 1180, minimumDay: 8, kind: 'recipe', recipeId: 'uni-gunkan', requiresRecipe: 'nori' },
+  { id: 'sashimi-platter', name: '刺身拼盘盘具', asset: 'plate-stack.png', price: 1100, minimumDay: 9, kind: 'recipe', recipeId: 'sashimi-platter' },
   { id: 'eel', price: 1250, minimumDay: 12 },
 ];
 const STORAGE_UPGRADES = [
@@ -176,6 +182,32 @@ const SUSHI_TYPES = {
     nigiri: 'eel-nigiri.png',
     price: 14,
   },
+  uni: {
+    id: 'uni',
+    name: '海胆军舰',
+    pickerName: '海胆食材',
+    boardName: '海胆食材盒',
+    loin: 'uni-loin.png',
+    slice: 'uni-slice.png',
+    nigiri: 'uni-gunkan.png',
+    price: 12,
+    kind: 'gunkan',
+    recipeId: 'uni-gunkan',
+    requiresRecipe: 'nori',
+  },
+  roe: {
+    id: 'roe',
+    name: '鱼籽军舰',
+    pickerName: '鱼籽食材',
+    boardName: '鱼籽食材碗',
+    loin: 'roe-loin.png',
+    slice: 'roe-slice.png',
+    nigiri: 'roe-gunkan.png',
+    price: 10,
+    kind: 'gunkan',
+    recipeId: 'roe-gunkan',
+    requiresRecipe: 'nori',
+  },
   tamago: {
     id: 'tamago',
     name: '玉子烧',
@@ -188,6 +220,15 @@ const SUSHI_TYPES = {
   },
 };
 const SUSHI_TYPE_LIST = Object.values(SUSHI_TYPES);
+const PLATTER_TYPES = Object.freeze({
+  'platter-salmon': { id: 'platter-salmon', name: '三文鱼刺身拼盘', nigiri: 'sashimi-platter-salmon.png', price: 14, kind: 'platter' },
+  'platter-tuna': { id: 'platter-tuna', name: '金枪鱼刺身拼盘', nigiri: 'sashimi-platter-tuna.png', price: 20, kind: 'platter' },
+  'platter-shrimp': { id: 'platter-shrimp', name: '甜虾刺身拼盘', nigiri: 'sashimi-platter-shrimp.png', price: 17, kind: 'platter' },
+  'platter-mackerel': { id: 'platter-mackerel', name: '鲭鱼刺身拼盘', nigiri: 'sashimi-platter-mackerel.png', price: 23, kind: 'platter' },
+  'platter-seabream': { id: 'platter-seabream', name: '真鲷刺身拼盘', nigiri: 'sashimi-platter-seabream.png', price: 32, kind: 'platter' },
+  'platter-mixed': { id: 'platter-mixed', name: '精选三拼', nigiri: 'sashimi-platter-mixed.png', price: 20, kind: 'platter' },
+});
+const PLATTER_TYPE_LIST = Object.values(PLATTER_TYPES);
 const TEA_ORDER_ITEM = {
   type: 'tea',
   id: 'tea',
@@ -208,22 +249,34 @@ function sushiTypeFor(id) {
   return SUSHI_TYPES[id] ?? SUSHI_TYPES.salmon;
 }
 
+function dishFor(id) {
+  return PLATTER_TYPES[id] ?? sushiTypeFor(id);
+}
+
 function sushiAsset(id, asset) {
   return `${KITCHEN_ASSET_PATH}${sushiTypeFor(id)[asset]}`;
+}
+
+function dishAsset(id, asset = 'nigiri') {
+  return `${KITCHEN_ASSET_PATH}${dishFor(id)[asset]}`;
 }
 
 function sushiName(id) {
   return sushiTypeFor(id).name;
 }
 
+function dishDisplayName(dish) {
+  return dish.kind === 'gunkan' || dish.kind === 'platter' ? dish.name : `${dish.name}寿司`;
+}
+
 function orderItemName(item) {
-  return item.type === 'tea' ? TEA_ORDER_ITEM.name : `${sushiName(item.id)}寿司`;
+  return item.type === 'tea' ? TEA_ORDER_ITEM.name : dishDisplayName(dishFor(item.id));
 }
 
 function orderItemAsset(item) {
   return item.type === 'tea'
     ? `${KITCHEN_ASSET_PATH}${TEA_ORDER_ITEM.asset}`
-    : sushiAsset(item.id, 'nigiri');
+    : dishAsset(item.id, 'nigiri');
 }
 
 function pendingOrderItems(customer) {
@@ -240,7 +293,7 @@ function orderSummary(items) {
 }
 
 function createCustomerOrder(template = CUSTOMER_CATALOG[0]) {
-  const remainingServings = new Map(orderableSushiTypes().map(({ sushiType, servings }) => [sushiType.id, servings]));
+  const remainingServings = new Map(orderableDishTypes().map(({ dish, servings }) => [dish.id, servings]));
   const orderItems = [];
 
   // 逃单客只会要一份基础寿司，确保第 7 天起无论玩家买了什么都能应对。
@@ -265,7 +318,7 @@ function createCustomerOrder(template = CUSTOMER_CATALOG[0]) {
       : 1 + (Math.random() < 0.58 ? 1 : 0) + (remainingServings.size > 1 && Math.random() < 0.18 ? 1 : 0);
 
   for (let index = 0; index < sushiCount; index += 1) {
-    const orderPool = unlockedSushiTypes().filter((sushiType) => (remainingServings.get(sushiType.id) ?? 0) > 0);
+    const orderPool = orderableDishTypes().map(({ dish }) => dish).filter((dish) => (remainingServings.get(dish.id) ?? 0) > 0);
     const sushi = orderPool[Math.floor(Math.random() * orderPool.length)] ?? SUSHI_TYPES.tamago;
     orderItems.push({ type: 'sushi', id: sushi.id, price: sushi.price, fulfilled: false });
     if (Number.isFinite(remainingServings.get(sushi.id))) {
@@ -289,12 +342,23 @@ function isIngredientUnlocked(id) {
   return state.unlockedIngredients.includes(id);
 }
 
+function isRecipeUnlocked(id) {
+  return state.unlockedRecipes.includes(id);
+}
+
 function isTeaUnlocked() {
   return state.teaUnlocked;
 }
 
+function isSushiTypeUnlocked(sushiType) {
+  if (!sushiType || sushiType.kind === 'platter') return false;
+  if (sushiType.recipeId && !isRecipeUnlocked(sushiType.recipeId)) return false;
+  if (sushiType.requiresRecipe && !isRecipeUnlocked(sushiType.requiresRecipe)) return false;
+  return sushiType.recipeId ? true : isIngredientUnlocked(sushiType.id);
+}
+
 function unlockedSushiTypes() {
-  return SUSHI_TYPE_LIST.filter((sushiType) => isIngredientUnlocked(sushiType.id));
+  return SUSHI_TYPE_LIST.filter(isSushiTypeUnlocked);
 }
 
 function needsFishing(id) {
@@ -338,9 +402,23 @@ function availableSushiServings(id) {
   return Math.max(0, total - pendingOrders);
 }
 
-function orderableSushiTypes() {
+function availableDishServings(id) {
+  const dish = dishFor(id);
+  const pendingOrders = state.customers.reduce((total, customer) => {
+    if (customer.served || customer.leaving) return total;
+    return total + pendingOrderItems(customer).filter((item) => item.type === 'sushi' && item.id === id).length;
+  }, 0);
+  if (dish.kind === 'platter') {
+    const finishedPlatters = state.sushiTypes.filter((dishId) => dishId === id).length;
+    return Math.max(0, finishedPlatters - pendingOrders);
+  }
+  return availableSushiServings(id);
+}
+
+function orderableDishTypes() {
   return unlockedSushiTypes()
-    .map((sushiType) => ({ sushiType, servings: availableSushiServings(sushiType.id) }))
+    .concat(isRecipeUnlocked('sashimi-platter') ? PLATTER_TYPE_LIST : [])
+    .map((dish) => ({ dish, servings: availableDishServings(dish.id) }))
     .filter((entry) => entry.servings > 0);
 }
 
@@ -362,7 +440,9 @@ function shopItemFor(id) {
 }
 
 function isShopItemUnlocked(shopItem) {
-  return shopItem.id === 'tea' ? isTeaUnlocked() : isIngredientUnlocked(shopItem.id);
+  if (shopItem.id === 'tea') return isTeaUnlocked();
+  if (shopItem.kind === 'recipe') return isRecipeUnlocked(shopItem.recipeId);
+  return isIngredientUnlocked(shopItem.id);
 }
 
 function shopItemUnlockDay(shopItem) {
@@ -375,6 +455,10 @@ function isShopItemAvailable(shopItem) {
 
 function shopItemName(shopItem) {
   return shopItem.name ?? sushiName(shopItem.id);
+}
+
+function recipeName(recipeId) {
+  return SHOP_ITEMS.find((shopItem) => shopItem.recipeId === recipeId)?.name ?? '前置配方';
 }
 
 function storageUpgradeFor(id) {
@@ -471,6 +555,9 @@ const state = {
   sashimiPickerOpen: false,
   shopPanelOpen: false,
   unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS],
+  unlockedRecipes: [],
+  platterAssembly: [],
+  platterMaking: false,
   rawFish: { salmon: 0, tuna: 0, shrimp: 0, mackerel: 0, seabream: 0, eel: 0 },
   storageLevels: normalizeStorageLevels({}),
   teaUnlocked: false,
@@ -601,15 +688,38 @@ function normalizeRawFish(value) {
   return Object.fromEntries(RAW_FISH_IDS.map((id) => [id, asStoredCount(source[id], MAX_RAW_FISH)]));
 }
 
-function isKnownSushiId(id) {
-  return typeof id === 'string' && Boolean(SUSHI_TYPES[id]);
+function isKnownDishId(id) {
+  return typeof id === 'string' && Boolean(PLATTER_TYPES[id] || SUSHI_TYPES[id]);
 }
 
-function savedSushiTypes(value, unlockedIngredients, max) {
+function isIngredientId(id) {
+  const sushiType = SUSHI_TYPES[id];
+  return Boolean(sushiType && !sushiType.recipeId);
+}
+
+function normalizeUnlockedRecipes(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((id) => RECIPE_IDS.includes(id)))];
+}
+
+function canRestoreDish(id, unlockedIngredients, unlockedRecipes) {
+  const dish = dishFor(id);
+  if (dish.kind === 'platter') return unlockedRecipes.includes('sashimi-platter');
+  if (dish.recipeId && !unlockedRecipes.includes(dish.recipeId)) return false;
+  if (dish.requiresRecipe && !unlockedRecipes.includes(dish.requiresRecipe)) return false;
+  return dish.recipeId ? true : unlockedIngredients.includes(dish.id);
+}
+
+function savedSushiTypes(value, unlockedIngredients, unlockedRecipes, max) {
   if (!Array.isArray(value)) return [];
   return value
-    .filter((id) => isKnownSushiId(id) && unlockedIngredients.includes(id))
+    .filter((id) => isKnownDishId(id) && canRestoreDish(id, unlockedIngredients, unlockedRecipes))
     .slice(0, max);
+}
+
+function savedPlatterAssembly(value, unlockedRecipes) {
+  if (!unlockedRecipes.includes('sashimi-platter') || !Array.isArray(value)) return [];
+  return value.filter((id) => PLATTER_FISH_IDS.includes(id)).slice(0, 2);
 }
 
 function hasUnsettledSaveState() {
@@ -621,6 +731,7 @@ function hasUnsettledSaveState() {
     || state.incomingSushi
     || state.incomingDrinks
     || state.drinkPouring
+    || state.platterMaking
     || state.salmonOnBoard
     || state.shrimpOnBoard
     || state.shrimpHeads.length
@@ -636,7 +747,8 @@ function buildSaveSnapshot() {
     version: SAVE_VERSION,
     cash: asStoredCount(state.cash, 9_999_999),
     lifetimeRevenue: asStoredCount(state.lifetimeRevenue, 9_999_999),
-    unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isKnownSushiId))],
+    unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isIngredientId))],
+    unlockedRecipes: normalizeUnlockedRecipes(state.unlockedRecipes),
     storageLevels: normalizeStorageLevels(state.storageLevels),
     teaUnlocked: Boolean(state.teaUnlocked),
     tutorialCompleted: Boolean(state.tutorialCompleted),
@@ -653,6 +765,7 @@ function buildSaveSnapshot() {
       sliceTypes: state.sliceTypes.slice(0, stableSliceCount),
       rice: Math.max(0, state.riceStored - state.incomingRice),
       sushiTypes: state.sushiTypes.slice(0, stableSushiCount),
+      platterAssembly: savedPlatterAssembly(state.platterAssembly, state.unlockedRecipes),
       tea: Math.max(0, state.drinksStored - state.incomingDrinks),
     },
   };
@@ -691,14 +804,16 @@ function restoreGame() {
     if (!saved || typeof saved !== 'object' || saved.version !== SAVE_VERSION) return false;
 
     const savedUnlocks = Array.isArray(saved.unlockedIngredients)
-      ? saved.unlockedIngredients.filter(isKnownSushiId)
+      ? saved.unlockedIngredients.filter(isIngredientId)
       : [];
     const unlockedIngredients = [...new Set([...INITIAL_UNLOCKED_INGREDIENTS, ...savedUnlocks])];
+    const unlockedRecipes = normalizeUnlockedRecipes(saved.unlockedRecipes);
     const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
     const storageLevels = normalizeStorageLevels(saved.storageLevels);
     const rawFish = normalizeRawFish(inventory.rawFish);
-    const sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, storageCapacityFor('slices', storageLevels));
-    const sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, storageCapacityFor('sushi', storageLevels));
+    const sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, unlockedRecipes, storageCapacityFor('slices', storageLevels));
+    const sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, unlockedRecipes, storageCapacityFor('sushi', storageLevels));
+    const platterAssembly = savedPlatterAssembly(inventory.platterAssembly, unlockedRecipes);
     const teaUnlocked = Boolean(saved.teaUnlocked);
     // Old saves predate the tutorial. Keep their owners in the game instead of
     // putting an established shop back through a first-day lesson.
@@ -751,6 +866,9 @@ function restoreGame() {
       sashimiPickerOpen: false,
       shopPanelOpen: false,
       unlockedIngredients,
+      unlockedRecipes,
+      platterAssembly,
+      platterMaking: false,
       rawFish,
       storageLevels,
       teaUnlocked,
@@ -814,6 +932,8 @@ const trashBin = document.querySelector('#trash-bin');
 const sliceRack = document.querySelector('#slice-rack');
 const riceRack = document.querySelector('#rice-rack');
 const sushiRack = document.querySelector('#sushi-rack');
+const platterStation = document.querySelector('#platter-station');
+const platterSlicePreview = document.querySelector('#platter-slice-preview');
 const gamePauseButton = document.querySelector('#game-pause-button');
 const gamePauseOverlay = document.querySelector('#game-pause-overlay');
 const gamePauseMenu = document.querySelector('#game-pause-menu');
@@ -1282,6 +1402,8 @@ function clearInProgressKitchenWork() {
   state.incomingDrinks = 0;
   state.slicesReady = state.sliceTypes.length;
   state.sushiStored = state.sushiTypes.length;
+  if (state.platterMaking) state.platterAssembly = [];
+  state.platterMaking = false;
   state.cupOnMachine = false;
   state.drinkPouring = false;
   state.salmonOnBoard = false;
@@ -1355,6 +1477,7 @@ function kitchenWorkIsInFlight() {
     || state.incomingSushi
     || state.incomingDrinks
     || state.drinkPouring
+    || state.platterMaking
     || state.salmonOnBoard
     || state.shrimpOnBoard
     || state.shrimpHeads.length
@@ -1922,6 +2045,7 @@ function playSushiMakingAnimation(ingredientId) {
 function makeSushi(ingredientId = 'salmon') {
   if (state.gamePaused) return;
   const sushiType = sushiTypeFor(ingredientId);
+  const finishedDishName = dishDisplayName(sushiType);
   if (state.incomingSlices) {
     setMessage('等鱼片滑到旁边再制作寿司。');
     return;
@@ -1955,7 +2079,7 @@ function makeSushi(ingredientId = 'salmon') {
   const sushiGrid = storageGridFor('sushi');
   const makingSushi = playSushiMakingAnimation(sushiType.id);
   playSound('sushi');
-  setMessage(`正在捏制${sushiType.name}寿司。`);
+  setMessage(`正在制作${finishedDishName}。`);
   render();
   setGameplayTimeout(() => {
     makingSushi.maker.remove();
@@ -1972,12 +2096,142 @@ function makeSushi(ingredientId = 'salmon') {
       displayScale: 1.12,
       onFinish: () => {
         state.incomingSushi = Math.max(0, state.incomingSushi - 1);
-        setMessage(`${sushiType.name}寿司做好了，已放进寿司架。`);
+        setMessage(`${finishedDishName}做好了，已放进寿司架。`);
         render();
         if (!state.incomingSushi) scheduleSave();
       },
     });
   }, motionDuration(420));
+}
+
+function platterDishIdFor(ingredients) {
+  if (ingredients.length !== 3) return null;
+  const uniqueIngredients = [...new Set(ingredients)];
+  if (uniqueIngredients.length === 1) return `platter-${uniqueIngredients[0]}`;
+  return uniqueIngredients.length === 3 ? 'platter-mixed' : null;
+}
+
+function platterNextSliceAllowed(ingredientId) {
+  if (!PLATTER_FISH_IDS.includes(ingredientId)) return false;
+  const current = state.platterAssembly;
+  if (current.length < 2) return true;
+  const unique = [...new Set(current)];
+  if (unique.length === 1) return ingredientId === unique[0];
+  return !unique.includes(ingredientId);
+}
+
+function platterRuleMessage(ingredientId) {
+  if (!PLATTER_FISH_IDS.includes(ingredientId)) return '刺身拼盘只能使用三文鱼、金枪鱼、甜虾、鲭鱼或真鲷鱼片。';
+  const unique = [...new Set(state.platterAssembly)];
+  if (state.platterAssembly.length === 2 && unique.length === 1) return `这盘已经是${sushiName(unique[0])}拼盘，再放一片相同鱼片就能完成。`;
+  if (state.platterAssembly.length === 2) return '精选三拼的最后一片要换成第三种不同的鱼。';
+  return '把鱼片拖进盘子。三片同种鱼会做成单品拼盘，三种不同鱼会做成精选三拼。';
+}
+
+function renderPlatterStation() {
+  const platterUnlocked = isRecipeUnlocked('sashimi-platter');
+  show(platterStation, platterUnlocked);
+  platterStation.classList.toggle('is-building', platterUnlocked && state.platterAssembly.length > 0);
+  platterStation.classList.toggle('is-making', state.platterMaking);
+  platterStation.setAttribute('aria-label', state.platterAssembly.length
+    ? `刺身拼盘盘子，已放入 ${state.platterAssembly.length} / 3 片鱼。${platterRuleMessage(state.platterAssembly.at(-1))}`
+    : '刺身拼盘盘子，拖入三片同种鱼或三种不同鱼片制作拼盘');
+  platterSlicePreview.replaceChildren();
+  state.platterAssembly.forEach((ingredientId) => {
+    const image = document.createElement('img');
+    image.src = sushiAsset(ingredientId, 'slice');
+    image.alt = '';
+    image.draggable = false;
+    platterSlicePreview.append(image);
+  });
+}
+
+function addSliceToPlatter(ingredientId) {
+  if (!isRecipeUnlocked('sashimi-platter')) {
+    setMessage('先在采购商店购买刺身拼盘盘具。');
+    render();
+    return false;
+  }
+  if (state.platterMaking) {
+    setMessage('这盘刺身正在滑进寿司架，稍等一下。');
+    return false;
+  }
+  if (!platterNextSliceAllowed(ingredientId)) {
+    setMessage(platterRuleMessage(ingredientId));
+    render();
+    return false;
+  }
+  if (state.platterAssembly.length >= 3) {
+    setMessage('盘子已经满了。');
+    return false;
+  }
+  const sliceIndex = state.sliceTypes.indexOf(ingredientId);
+  if (sliceIndex === -1) {
+    setMessage('这片鱼已经不在鱼片架里了。');
+    render();
+    return false;
+  }
+  const nextAssembly = [...state.platterAssembly, ingredientId];
+  const completedDishId = platterDishIdFor(nextAssembly);
+  if (nextAssembly.length === 3 && !completedDishId) {
+    setMessage('一盘刺身只能是三片同种鱼，或刚好三种不同鱼。');
+    render();
+    return false;
+  }
+  if (completedDishId && state.sushiStored >= storageCapacityFor('sushi')) {
+    setMessage('寿司架满了，先出餐再完成刺身拼盘。');
+    return false;
+  }
+
+  state.sliceTypes.splice(sliceIndex, 1);
+  state.slicesReady = state.sliceTypes.length;
+  state.platterAssembly = nextAssembly;
+  playSound('place');
+
+  if (!completedDishId) {
+    setMessage(`已放入第 ${nextAssembly.length} 片${sushiName(ingredientId)}。${platterRuleMessage(ingredientId)}`);
+    render();
+    scheduleSave();
+    return true;
+  }
+
+  const platterDish = dishFor(completedDishId);
+  const sourceRect = platterStation.getBoundingClientRect();
+  const targetRect = sushiRack.getBoundingClientRect();
+  const targetIndex = state.sushiStored;
+  const sushiGrid = storageGridFor('sushi');
+  const assemblyVersion = state.flightVersion;
+  state.sushiStored += 1;
+  state.incomingSushi += 1;
+  state.sushiTypes.push(completedDishId);
+  state.platterMaking = true;
+  playStationMotion(platterStation, 'is-making', motionDuration(520));
+  playSound('sushi');
+  setMessage(`正在摆好${platterDish.name}。`);
+  render();
+  setGameplayTimeout(() => {
+    if (assemblyVersion !== state.flightVersion) return;
+    flyCompletedItem({
+      className: 'sushi',
+      src: dishAsset(completedDishId, 'nigiri'),
+      sourceRect,
+      targetRect,
+      targetIndex,
+      columns: sushiGrid.columns,
+      rows: sushiGrid.rows,
+      gap: 0.04,
+      displayScale: 1.16,
+      onFinish: () => {
+        state.incomingSushi = Math.max(0, state.incomingSushi - 1);
+        state.platterAssembly = [];
+        state.platterMaking = false;
+        setMessage(`${platterDish.name}做好了，已放进寿司架。`);
+        render();
+        if (!state.incomingSushi) scheduleSave();
+      },
+    });
+  }, motionDuration(160));
+  return true;
 }
 
 function renderSlices() {
@@ -2019,7 +2273,7 @@ function renderSushiRack() {
   existingItems.slice(displayedTypes.length).forEach((item) => item.remove());
 
   displayedTypes.forEach((ingredientId, index) => {
-    const sushiType = sushiTypeFor(ingredientId);
+    const sushiType = dishFor(ingredientId);
     let item = existingItems[index];
     if (!item) {
       item = document.createElement('button');
@@ -2031,10 +2285,10 @@ function renderSushiRack() {
     }
     const image = item.querySelector('img');
     item.dataset.ingredientId = sushiType.id;
-    item.setAttribute('aria-label', `第 ${index + 1} 份${sushiType.name}寿司，拖给顾客或垃圾桶`);
-    const nextSource = sushiAsset(sushiType.id, 'nigiri');
+    item.setAttribute('aria-label', `第 ${index + 1} 份${dishDisplayName(sushiType)}，拖给顾客或垃圾桶`);
+    const nextSource = dishAsset(sushiType.id, 'nigiri');
     if (image.getAttribute('src') !== nextSource) image.src = nextSource;
-    image.alt = `${sushiType.name}寿司`;
+    image.alt = dishDisplayName(sushiType);
     image.draggable = false;
   });
 }
@@ -2089,7 +2343,8 @@ function renderDrinks() {
 function renderSashimiChoices() {
   sashimiChoices.forEach((choice) => {
     const ingredientId = choice.dataset.ingredientId;
-    const unlocked = isIngredientUnlocked(ingredientId);
+    const sushiType = sushiTypeFor(ingredientId);
+    const unlocked = isSushiTypeUnlocked(sushiType);
     const stocked = hasRawFish(ingredientId);
     const stockLabel = choice.querySelector('[data-fish-stock]');
     show(choice, unlocked);
@@ -2098,14 +2353,19 @@ function renderSashimiChoices() {
     if (stockLabel && needsFishing(ingredientId)) stockLabel.textContent = `库存 ${rawFishCount(ingredientId)}`;
     choice.title = unlocked
       ? stocked
-        ? needsFishing(ingredientId) ? `鱼篓库存：${rawFishCount(ingredientId)}` : '玉子烧无限供应'
+        ? needsFishing(ingredientId) ? `鱼篓库存：${rawFishCount(ingredientId)}` : `${sushiType.name}配方已解锁，可无限制作`
         : `库存为 0，今天结算后去钓鱼获得${sushiName(ingredientId)}`
-      : '先在食材商店购买这个鱼种';
+      : sushiType.requiresRecipe && !isRecipeUnlocked(sushiType.requiresRecipe)
+        ? `先购买${recipeName(sushiType.requiresRecipe)}`
+        : sushiType.recipeId
+          ? `先购买${recipeName(sushiType.recipeId)}`
+          : '先在食材商店购买这个鱼种';
   });
 }
 
 function shopPreviewAsset(ingredientId) {
-  if (ingredientId === 'tea') return `${KITCHEN_ASSET_PATH}tea-cup-ready.png`;
+  const shopItem = shopItemFor(ingredientId);
+  if (shopItem?.asset) return `${KITCHEN_ASSET_PATH}${shopItem.asset}`;
   return ingredientId === 'shrimp'
     ? `${KITCHEN_ASSET_PATH}shrimp-whole.png`
     : sushiAsset(ingredientId, 'loin');
@@ -2188,6 +2448,7 @@ function renderIngredientShop() {
     state.cash,
     state.teaUnlocked ? 1 : 0,
     state.unlockedIngredients.join(','),
+    state.unlockedRecipes.join(','),
     ...STORAGE_UPGRADES.map((upgrade) => storageLevelFor(upgrade.id)),
   ].join('|');
   if (nextSignature === shopRenderSignature) return;
@@ -2200,6 +2461,7 @@ function renderIngredientShop() {
     const available = isShopItemAvailable(shopItem);
     const unlockDay = shopItemUnlockDay(shopItem);
     const isFish = needsFishing(shopItem.id);
+    const prerequisiteMet = !shopItem.requiresRecipe || isRecipeUnlocked(shopItem.requiresRecipe);
     const canAfford = state.cash >= shopItem.price;
     const item = document.createElement('article');
     const image = document.createElement('img');
@@ -2208,22 +2470,26 @@ function renderIngredientShop() {
     const price = document.createElement('span');
     const button = document.createElement('button');
 
-    item.className = `ingredient-shop-item${unlocked ? ' is-owned' : ''}${available ? '' : ' is-locked'}`;
+    item.className = `ingredient-shop-item${unlocked ? ' is-owned' : ''}${available && prerequisiteMet ? '' : ' is-locked'}`;
     image.src = shopPreviewAsset(shopItem.id);
     image.alt = itemName;
     image.draggable = false;
     name.textContent = itemName;
     price.textContent = unlocked
       ? isFish ? '已解锁 · 去钓鱼' : '已购买'
-      : available ? `¥${shopItem.price}` : `第 ${unlockDay} 天解锁`;
+      : !available ? `第 ${unlockDay} 天解锁`
+        : !prerequisiteMet ? `先购买${recipeName(shopItem.requiresRecipe)}`
+          : `¥${shopItem.price}`;
     detail.append(name, price);
 
     button.type = 'button';
-    button.disabled = unlocked || !available || !canAfford;
+    button.disabled = unlocked || !available || !prerequisiteMet || !canAfford;
     button.textContent = unlocked
       ? isFish ? '钓点已开放' : '已购买'
       : !available
         ? `第 ${unlockDay} 天解锁`
+        : !prerequisiteMet
+          ? `先买${recipeName(shopItem.requiresRecipe)}`
         : canAfford
         ? `购买 ¥${shopItem.price}`
         : `余额不足 ¥${shopItem.price}`;
@@ -2231,6 +2497,8 @@ function renderIngredientShop() {
       ? isFish ? '已解锁：每天结算后可以去钓鱼获得' : '这个项目已经解锁'
       : !available
         ? `第 ${unlockDay} 天起可以购买${itemName}`
+        : !prerequisiteMet
+          ? `先购买${recipeName(shopItem.requiresRecipe)}，再购买${itemName}`
         : canAfford ? `购买${itemName}` : `余额不足，还差 ¥${shopItem.price - state.cash}`;
     button.addEventListener('click', () => buyIngredient(shopItem.id));
     item.append(image, detail, button);
@@ -2308,6 +2576,11 @@ function buyIngredient(ingredientId) {
     render();
     return;
   }
+  if (shopItem.requiresRecipe && !isRecipeUnlocked(shopItem.requiresRecipe)) {
+    setMessage(`先购买${recipeName(shopItem.requiresRecipe)}，再购买${itemName}。`);
+    render();
+    return;
+  }
   if (state.cash < shopItem.price) {
     setMessage(`余额不足，还差 ¥${shopItem.price - state.cash} 才能购买${itemName}。`);
     render();
@@ -2318,6 +2591,15 @@ function buyIngredient(ingredientId) {
   if (ingredientId === 'tea') {
     state.teaUnlocked = true;
     setMessage('茶饮配方已解锁，饮品机和顾客订单都会出现茶。');
+  } else if (shopItem.kind === 'recipe') {
+    state.unlockedRecipes = [...new Set([...state.unlockedRecipes, shopItem.recipeId])];
+    const recipeMessages = {
+      nori: '紫菜配方已解锁，海胆军舰和鱼籽军舰可以制作了。',
+      'uni-gunkan': '海胆军舰配方已解锁，可从冰柜选择海胆食材制作。',
+      'roe-gunkan': '鱼籽军舰配方已解锁，可从冰柜选择鱼籽食材制作。',
+      'sashimi-platter': '刺身拼盘盘具已放到操作台：三片同种鱼做单品拼盘，三种不同鱼做精选三拼。',
+    };
+    setMessage(recipeMessages[shopItem.recipeId] ?? `${itemName}已解锁。`);
   } else {
     state.unlockedIngredients = [...state.unlockedIngredients, ingredientId];
     setMessage(`${sushiName(ingredientId)}钓点已开放。它不会直接加入冰柜，每天结算后去钓鱼获得。`);
@@ -2568,6 +2850,7 @@ function render() {
     '拖到垃圾桶丢弃',
   );
   renderSushiRack();
+  renderPlatterStation();
   if (teaUnlocked) renderDrinks();
   else drinkRack.replaceChildren();
   renderCustomers();
@@ -2621,6 +2904,7 @@ function clearIngredientDrag() {
   assemblyStation.classList.remove('is-drop-target');
   drinkMachine.classList.remove('is-drop-target');
   riceRack.classList.remove('is-drop-target');
+  platterStation.classList.remove('is-drop-target');
   trashBin.classList.remove('is-drop-target');
   customerQueue.querySelector('.customer.is-drop-target')?.classList.remove('is-drop-target');
   ingredientDrag = null;
@@ -2633,6 +2917,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
   if (ingredientDrag) return;
   const ingredientId = requestedIngredientId ?? source.dataset.ingredientId ?? 'salmon';
   const sushiType = sushiTypeFor(ingredientId);
+  const dish = dishFor(ingredientId);
   const isCustomerDelivery = type === 'serve' || type === 'serve-drink';
 
   const preview = document.createElement('img');
@@ -2651,7 +2936,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
         ? `${KITCHEN_ASSET_PATH}tea-cup-empty.png`
         : type === 'serve-drink'
           ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
-          : sushiAsset(sushiType.id, 'nigiri');
+          : dishAsset(dish.id, 'nigiri');
   preview.alt = '';
   preview.draggable = false;
   stage.append(preview);
@@ -2665,7 +2950,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
     preview,
     target,
     targetCustomerId: targetCustomer?.id ?? null,
-    ingredientId: sushiType.id,
+    ingredientId: isCustomerDelivery ? dish.id : sushiType.id,
     shrimpHeadId: source.dataset.shrimpHeadId ?? null,
     stageRect,
     pointerX: event.clientX,
@@ -2686,6 +2971,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
           ? target?.closest('.customer')
           : riceRack;
   dropTarget?.classList.add('is-drop-target');
+  if (type === 'slice' && isRecipeUnlocked('sashimi-platter') && !state.platterMaking) platterStation.classList.add('is-drop-target');
   if (canDropInTrash(type)) trashBin.classList.add('is-drop-target');
   moveDragPreview(event);
   setMessage(type === 'ingredient'
@@ -2695,7 +2981,9 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
       : type === 'cup' ? '把空杯拖到饮品机。'
         : type === 'serve-drink' ? '把茶拖给顾客，或拖进垃圾桶丢弃。'
         : type === 'serve' ? '把寿司拖给顾客，或拖进垃圾桶丢弃。'
-          : `把${sushiType.name}片拖到米饭架。`);
+          : isRecipeUnlocked('sashimi-platter')
+            ? `把${sushiType.name}片拖到米饭架做寿司，或拖到盘子做刺身拼盘。`
+            : `把${sushiType.name}片拖到米饭架。`);
 }
 
 function createShrimpBatch() {
@@ -2738,8 +3026,9 @@ function openSashimiPicker() {
 
 function dragSashimiFromPicker(event) {
   const ingredientId = event.currentTarget.dataset.ingredientId;
-  if (!isIngredientUnlocked(ingredientId)) {
-    setMessage('这个食材还没有解锁，去食材商店购买吧。');
+  const sushiType = sushiTypeFor(ingredientId);
+  if (!isSushiTypeUnlocked(sushiType)) {
+    setMessage(sushiType.recipeId ? `先在采购商店购买${recipeName(sushiType.recipeId)}。` : '这个食材还没有解锁，去食材商店购买吧。');
     return;
   }
   if (!hasRawFish(ingredientId)) {
@@ -2748,7 +3037,6 @@ function dragSashimiFromPicker(event) {
     return;
   }
   if (!canSelectSashimi(ingredientId)) return;
-  const sushiType = sushiTypeFor(ingredientId);
   state.sashimiPickerOpen = false;
   sashimiPicker.classList.add('is-picked');
   startIngredientDrag(event, 'ingredient', sushiType.id);
@@ -2816,11 +3104,16 @@ function prepareSliceDrag(event) {
     setMessage('等米饭滑进米饭架再制作寿司。');
     return;
   }
-  if (!state.riceStored) {
+  if (state.platterMaking) {
+    setMessage('刺身拼盘正在做好，等它滑进寿司架再继续。');
+    return;
+  }
+  const canUsePlatter = isRecipeUnlocked('sashimi-platter');
+  if (!state.riceStored && !canUsePlatter) {
     setMessage('先点击饭盒拿一团米饭。');
     return;
   }
-  if (state.sushiStored >= storageCapacityFor('sushi')) {
+  if (state.sushiStored >= storageCapacityFor('sushi') && !canUsePlatter) {
     setMessage('寿司架满了，先出餐再继续制作。');
     return;
   }
@@ -2932,11 +3225,11 @@ function completeCustomerOrderItem(customer, item) {
 function deliverSushiToCustomer(ingredientId, customerId) {
   const customer = state.customers.find((waitingCustomer) => waitingCustomer.id === customerId && !waitingCustomer.served && !waitingCustomer.leaving);
   if (!customer || !state.sushiStored) return false;
-  const sushiType = sushiTypeFor(ingredientId);
+  const sushiType = dishFor(ingredientId);
   const matchingOrderItem = pendingOrderItems(customer).find((item) => item.type === 'sushi' && item.id === sushiType.id);
   if (!matchingOrderItem) {
     const remaining = pendingOrderItems(customer);
-    setMessage(`这位客人还需要${orderSummary(remaining)}，这份${sushiType.name}寿司不能交付。`);
+    setMessage(`这位客人还需要${orderSummary(remaining)}，这份${dishDisplayName(sushiType)}不能交付。`);
     render();
     return false;
   }
@@ -3005,6 +3298,7 @@ function discardDraggedItem(type, { ingredientId, sourceRect, src, fromClientX, 
   }
 
   const sushiType = sushiTypeFor(ingredientId);
+  const dish = dishFor(ingredientId);
   let label = '';
   let discarded = false;
 
@@ -3026,13 +3320,13 @@ function discardDraggedItem(type, { ingredientId, sourceRect, src, fromClientX, 
     }
     label = '米饭';
   } else if (type === 'serve') {
-    const index = state.sushiTypes.indexOf(sushiType.id);
+    const index = state.sushiTypes.indexOf(dish.id);
     if (index !== -1) {
       state.sushiTypes.splice(index, 1);
       state.sushiStored = state.sushiTypes.length;
       discarded = true;
     }
-    label = `${sushiType.name}寿司`;
+    label = dishDisplayName(dish);
   } else if (type === 'serve-drink') {
     if (state.drinksStored > 0) {
       state.drinksStored -= 1;
@@ -3096,8 +3390,13 @@ function discardWorkInProgress() {
     const firstHead = shrimpHeadRack.querySelector('.shrimp-head');
     discardShrimpHead(firstHead?.getBoundingClientRect() ?? trashBin.getBoundingClientRect(), firstHead?.dataset.shrimpHeadId);
     return;
+  } else if (state.platterAssembly.length && !state.platterMaking) {
+    const removedIngredient = state.platterAssembly.pop();
+    sourceRect = platterStation.getBoundingClientRect();
+    src = sushiAsset(removedIngredient, 'slice');
+    label = `盘中的${sushiName(removedIngredient)}鱼片`;
   } else {
-    setMessage('把米饭、鱼片、寿司、茶或食材拖进垃圾桶；点击垃圾桶也能清空菜板上的食材。');
+    setMessage('把米饭、鱼片、寿司、茶或食材拖进垃圾桶；点击垃圾桶也能清空菜板或盘中的刺身。');
     return;
   }
 
@@ -3132,6 +3431,7 @@ window.addEventListener('pointerup', (event) => {
   if (!ingredientDrag || event.pointerId !== ingredientDrag.pointerId) return;
   const { type, source, target, targetCustomerId, ingredientId, shrimpHeadId, preview } = ingredientDrag;
   const sushiType = sushiTypeFor(ingredientId);
+  const dish = dishFor(ingredientId);
   const isCustomerDelivery = type === 'serve' || type === 'serve-drink';
   const sourceRect = source.getBoundingClientRect();
   const previewSrc = preview.currentSrc || preview.src;
@@ -3144,6 +3444,10 @@ window.addEventListener('pointerup', (event) => {
       isDrink: type === 'serve-drink',
     }
     : null;
+  const droppedOnPlatter = type === 'slice'
+    && isRecipeUnlocked('sashimi-platter')
+    && !state.platterMaking
+    && pointIsInside(event, platterStation);
   const destination = type === 'ingredient'
     ? boardStation
     : type === 'cup'
@@ -3152,7 +3456,7 @@ window.addEventListener('pointerup', (event) => {
         ? null
         : isCustomerDelivery
           ? target
-          : riceRack;
+          : droppedOnPlatter ? platterStation : riceRack;
   const droppedInTrash = canDropInTrash(type) && pointIsInsideTrash(event);
   const accepted = droppedInTrash || Boolean(destination && pointIsInside(event, destination));
   if (source.hasPointerCapture(event.pointerId)) source.releasePointerCapture(event.pointerId);
@@ -3166,7 +3470,9 @@ window.addEventListener('pointerup', (event) => {
           : type === 'cup' ? '把空杯拖到饮品机里，或拖进垃圾桶。'
             : type === 'serve-drink' ? '把茶拖到顾客身上，或拖进垃圾桶。'
               : type === 'serve' ? '把寿司拖到顾客身上，或拖进垃圾桶。'
-                : `把${sushiType.name}片拖到米饭架里，或拖进垃圾桶。`);
+                : isRecipeUnlocked('sashimi-platter')
+                  ? `把${sushiType.name}片拖到米饭架做寿司，或拖到盘子做刺身拼盘。`
+                  : `把${sushiType.name}片拖到米饭架里，或拖进垃圾桶。`);
     render();
     return;
   }
@@ -3184,7 +3490,7 @@ window.addEventListener('pointerup', (event) => {
   }
 
   if (type === 'serve') {
-    if (deliverSushiToCustomer(sushiType.id, targetCustomerId)) playCustomerDeliveryFlight(deliveryFlight);
+    if (deliverSushiToCustomer(dish.id, targetCustomerId)) playCustomerDeliveryFlight(deliveryFlight);
     return;
   }
 
@@ -3214,6 +3520,9 @@ window.addEventListener('pointerup', (event) => {
     state.cupOnMachine = true;
     playSound('place');
     setMessage('空杯放好了，点击饮品机接饮料。');
+  } else if (type === 'slice' && destination === platterStation) {
+    addSliceToPlatter(sushiType.id);
+    return;
   } else {
     makeSushi(sushiType.id);
     return;
@@ -3584,12 +3893,13 @@ window.addEventListener('pagehide', () => {
 });
 
 function preloadInteractionAssets() {
-  const assetNames = new Set(['rice-portion.png', 'tea-cup-ready.png', 'shrimp-whole.png', 'shrimp-head.png', 'trash-bin.png']);
+  const assetNames = new Set(['rice-portion.png', 'tea-cup-ready.png', 'shrimp-whole.png', 'shrimp-head.png', 'trash-bin.png', 'nori-sheets.png', 'plate-stack.png']);
   SUSHI_TYPE_LIST.forEach((sushiType) => {
     assetNames.add(sushiType.loin);
     assetNames.add(sushiType.slice);
     assetNames.add(sushiType.nigiri);
   });
+  PLATTER_TYPE_LIST.forEach((platter) => assetNames.add(platter.nigiri));
   const assetUrls = [
     ...Array.from(assetNames, (name) => `${KITCHEN_ASSET_PATH}${name}`),
     ...CUSTOMER_CATALOG.map((customer) => `${CUSTOMER_ASSET_PATH}${customer.avatar}`),

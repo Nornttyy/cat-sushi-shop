@@ -156,6 +156,8 @@ const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/mackerel-loin.png',
   'assets/restaurant/kitchen-layers/optimized/seabream-loin.png',
   'assets/restaurant/kitchen-layers/optimized/eel-loin.png',
+  'assets/restaurant/kitchen-layers/optimized/uni-loin.png',
+  'assets/restaurant/kitchen-layers/optimized/roe-loin.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-whole.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-head.png',
   'assets/restaurant/kitchen-layers/optimized/tamago-loin.png',
@@ -170,6 +172,8 @@ const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/seabream-slice.png',
   'assets/restaurant/kitchen-layers/optimized/eel-slice.png',
   'assets/restaurant/kitchen-layers/optimized/tamago-slice.png',
+  'assets/restaurant/kitchen-layers/optimized/uni-slice.png',
+  'assets/restaurant/kitchen-layers/optimized/roe-slice.png',
   'assets/restaurant/kitchen-layers/optimized/salmon-nigiri.png',
   'assets/restaurant/kitchen-layers/optimized/tuna-nigiri.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-nigiri.png',
@@ -177,6 +181,16 @@ const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/seabream-nigiri.png',
   'assets/restaurant/kitchen-layers/optimized/eel-nigiri.png',
   'assets/restaurant/kitchen-layers/optimized/tamago-nigiri.png',
+  'assets/restaurant/kitchen-layers/optimized/nori-sheets.png',
+  'assets/restaurant/kitchen-layers/optimized/uni-gunkan.png',
+  'assets/restaurant/kitchen-layers/optimized/roe-gunkan.png',
+  'assets/restaurant/kitchen-layers/optimized/plate-stack.png',
+  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-salmon.png',
+  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-tuna.png',
+  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-shrimp.png',
+  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-mackerel.png',
+  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-seabream.png',
+  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-mixed.png',
   'assets/restaurant/kitchen-layers/optimized/drink-machine-opaque.png',
   'assets/restaurant/kitchen-layers/optimized/cup-station.png',
   'assets/restaurant/kitchen-layers/optimized/tea-cup-empty.png',
@@ -314,7 +328,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=sushi-menu-v83-20260805';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v85-20260805';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
