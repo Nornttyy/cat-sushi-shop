@@ -111,11 +111,11 @@ button { font: inherit; }
 .fish-station[data-upgrade-level="3"] > img { filter: drop-shadow(0 0 11px rgb(176 236 248 / .92)) saturate(1.2) brightness(1.06); }
 .freezer-button { position: absolute; inset: 0; z-index: 1; padding: 0; cursor: pointer; border: 0; background: transparent; touch-action: manipulation; }
 .freezer-button:hover, .freezer-button.is-active { filter: brightness(1.04); }
-.sashimi-picker { position: absolute; bottom: 82%; left: -30%; z-index: 4; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5%; width: 160%; padding: 6%; border: 2px solid #704331; border-radius: 12px; background: #fff1d1; box-shadow: 0 4px 0 rgb(90 57 45 / .25); animation: sashimi-picker-in 190ms cubic-bezier(.22, .9, .28, 1) both; transition: opacity 150ms ease, transform 150ms cubic-bezier(.32, .8, .28, 1); will-change: opacity, transform; }
+.sashimi-picker { position: absolute; bottom: 82%; left: 0; z-index: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; width: 230%; padding: 5px; border: 2px solid #704331; border-radius: 12px; background: #fff1d1; box-shadow: 0 4px 0 rgb(90 57 45 / .25); animation: sashimi-picker-in 190ms cubic-bezier(.22, .9, .28, 1) both; transition: opacity 150ms ease, transform 150ms cubic-bezier(.32, .8, .28, 1); will-change: opacity, transform; }
 .sashimi-picker.is-picked, .sashimi-picker.is-closing { opacity: 0; pointer-events: none; transform: translate3d(0, 7px, 0) scale(.94); animation: none; }
-.sashimi-choice { display: grid; grid-template-columns: 1fr; gap: 3px; width: 100%; padding: 5%; cursor: pointer; border: 0; border-radius: 8px; color: #704331; background: #ffe2a3; font-size: clamp(8px, .75vw, 12px); font-weight: 900; line-height: 1.15; }
+.sashimi-choice { display: grid; grid-template-columns: 1fr; gap: 2px; width: 100%; padding: 5%; cursor: pointer; border: 0; border-radius: 8px; color: #704331; background: #ffe2a3; font-size: clamp(8px, .66vw, 11px); font-weight: 900; line-height: 1.15; }
 .sashimi-choice:hover { filter: brightness(1.06); transform: translateY(-1px); }
-.sashimi-choice img { width: 100%; height: clamp(24px, 3vw, 43px); object-fit: contain; }
+.sashimi-choice img { width: 100%; height: clamp(22px, 2.55vw, 37px); object-fit: contain; }
 .sashimi-choice-name { display: block; }
 .sashimi-stock { display: inline-grid; justify-self: center; padding: 1px 4px; border-radius: 999px; color: #704331; background: rgb(255 248 222 / .76); font-size: .84em; font-weight: 1000; line-height: 1.1; }
 .sashimi-stock-unlimited { color: #50844f; }
@@ -123,6 +123,7 @@ button { font: inherit; }
 .sashimi-choice:disabled { cursor: not-allowed; filter: saturate(.38) opacity(.68); }
 .sashimi-choice:disabled:hover { filter: saturate(.38) opacity(.68); transform: none; }
 .sashimi-choice.is-dragging { opacity: 0; }
+.sashimi-choice:last-child:nth-child(7) { grid-column: 2; }
 @keyframes sashimi-picker-in { from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.92); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 
 .board-station { left: 24.8%; top: 64%; width: 18%; height: 23%; }
@@ -264,6 +265,7 @@ button { font: inherit; }
 .storage-upgrade-section { border-top: 2px dashed rgb(112 67 49 / .3); }
 .ingredient-shop-item { display: grid; grid-template-columns: clamp(40px, 4.4vw, 66px) minmax(0, 1fr); align-items: center; gap: 5px clamp(7px, .7vw, 11px); min-height: clamp(64px, 7.5vw, 104px); padding: clamp(6px, .72vw, 11px); border: 2px solid rgb(112 67 49 / .3); border-radius: 13px; background: linear-gradient(145deg, #fffdf1, #fff0cd); box-shadow: 0 3px 0 rgb(112 67 49 / .12); }
 .ingredient-shop-item.is-owned, .storage-upgrade-item.is-maxed { background: linear-gradient(145deg, #edf7df, #d8ecbc); }
+.ingredient-shop-item.is-locked { filter: saturate(.52) opacity(.82); }
 .ingredient-shop-item > img { grid-row: span 2; display: block; width: 100%; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 2px 1px rgb(90 57 45 / .22)); }
 .ingredient-shop-item > div { display: grid; gap: 2px; min-width: 0; color: #704331; }
 .ingredient-shop-item b { overflow: hidden; font-size: clamp(11px, .95vw, 15px); font-weight: 1000; text-overflow: ellipsis; white-space: nowrap; }

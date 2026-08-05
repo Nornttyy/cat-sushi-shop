@@ -25,7 +25,7 @@ const TUTORIAL_STEP = Object.freeze({
 const TUTORIAL_STEP_COUNT = 6;
 const SHRIMP_BATCH_SIZE = 4;
 const SHRIMP_HEAD_CUT_X = 0.5;
-const RAW_FISH_IDS = ['salmon', 'tuna', 'shrimp'];
+const RAW_FISH_IDS = ['salmon', 'tuna', 'shrimp', 'mackerel', 'seabream', 'eel'];
 const MAX_RAW_FISH = Number.MAX_SAFE_INTEGER;
 const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
@@ -37,6 +37,9 @@ const SHOP_ITEMS = [
   { id: 'salmon', price: 180 },
   { id: 'shrimp', price: 260 },
   { id: 'tuna', price: 350 },
+  { id: 'mackerel', price: 480, minimumDay: 3 },
+  { id: 'seabream', price: 780, minimumDay: 7 },
+  { id: 'eel', price: 1250, minimumDay: 12 },
 ];
 const STORAGE_UPGRADES = [
   {
@@ -142,6 +145,36 @@ const SUSHI_TYPES = {
     slice: 'shrimp-slice.png',
     nigiri: 'shrimp-nigiri.png',
     price: 5,
+  },
+  mackerel: {
+    id: 'mackerel',
+    name: '鲭鱼',
+    pickerName: '鲭鱼刺身',
+    boardName: '大鲭鱼块',
+    loin: 'mackerel-loin.png',
+    slice: 'mackerel-slice.png',
+    nigiri: 'mackerel-nigiri.png',
+    price: 7,
+  },
+  seabream: {
+    id: 'seabream',
+    name: '真鲷',
+    pickerName: '真鲷刺身',
+    boardName: '大真鲷块',
+    loin: 'seabream-loin.png',
+    slice: 'seabream-slice.png',
+    nigiri: 'seabream-nigiri.png',
+    price: 10,
+  },
+  eel: {
+    id: 'eel',
+    name: '蒲烧鳗鱼',
+    pickerName: '鳗鱼蒲烧',
+    boardName: '大蒲烧鳗鱼',
+    loin: 'eel-loin.png',
+    slice: 'eel-slice.png',
+    nigiri: 'eel-nigiri.png',
+    price: 14,
   },
   tamago: {
     id: 'tamago',
@@ -332,6 +365,14 @@ function isShopItemUnlocked(shopItem) {
   return shopItem.id === 'tea' ? isTeaUnlocked() : isIngredientUnlocked(shopItem.id);
 }
 
+function shopItemUnlockDay(shopItem) {
+  return Math.max(1, Math.floor(Number(shopItem?.minimumDay) || 1));
+}
+
+function isShopItemAvailable(shopItem) {
+  return state.day >= shopItemUnlockDay(shopItem);
+}
+
 function shopItemName(shopItem) {
   return shopItem.name ?? sushiName(shopItem.id);
 }
@@ -430,7 +471,7 @@ const state = {
   sashimiPickerOpen: false,
   shopPanelOpen: false,
   unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS],
-  rawFish: { salmon: 0, tuna: 0, shrimp: 0 },
+  rawFish: { salmon: 0, tuna: 0, shrimp: 0, mackerel: 0, seabream: 0, eel: 0 },
   storageLevels: normalizeStorageLevels({}),
   teaUnlocked: false,
   tutorialCompleted: false,
@@ -2143,6 +2184,7 @@ function renderIngredientShop() {
   }
 
   const nextSignature = [
+    state.day,
     state.cash,
     state.teaUnlocked ? 1 : 0,
     state.unlockedIngredients.join(','),
@@ -2155,6 +2197,8 @@ function renderIngredientShop() {
   SHOP_ITEMS.forEach((shopItem) => {
     const itemName = shopItemName(shopItem);
     const unlocked = isShopItemUnlocked(shopItem);
+    const available = isShopItemAvailable(shopItem);
+    const unlockDay = shopItemUnlockDay(shopItem);
     const isFish = needsFishing(shopItem.id);
     const canAfford = state.cash >= shopItem.price;
     const item = document.createElement('article');
@@ -2164,26 +2208,30 @@ function renderIngredientShop() {
     const price = document.createElement('span');
     const button = document.createElement('button');
 
-    item.className = `ingredient-shop-item${unlocked ? ' is-owned' : ''}`;
+    item.className = `ingredient-shop-item${unlocked ? ' is-owned' : ''}${available ? '' : ' is-locked'}`;
     image.src = shopPreviewAsset(shopItem.id);
     image.alt = itemName;
     image.draggable = false;
     name.textContent = itemName;
     price.textContent = unlocked
       ? isFish ? '已解锁 · 去钓鱼' : '已购买'
-      : `¥${shopItem.price}`;
+      : available ? `¥${shopItem.price}` : `第 ${unlockDay} 天解锁`;
     detail.append(name, price);
 
     button.type = 'button';
-    button.disabled = unlocked || !canAfford;
+    button.disabled = unlocked || !available || !canAfford;
     button.textContent = unlocked
       ? isFish ? '钓点已开放' : '已购买'
-      : canAfford
+      : !available
+        ? `第 ${unlockDay} 天解锁`
+        : canAfford
         ? `购买 ¥${shopItem.price}`
         : `余额不足 ¥${shopItem.price}`;
     button.title = unlocked
       ? isFish ? '已解锁：每天结算后可以去钓鱼获得' : '这个项目已经解锁'
-      : canAfford ? `购买${itemName}` : `余额不足，还差 ¥${shopItem.price - state.cash}`;
+      : !available
+        ? `第 ${unlockDay} 天起可以购买${itemName}`
+        : canAfford ? `购买${itemName}` : `余额不足，还差 ¥${shopItem.price - state.cash}`;
     button.addEventListener('click', () => buyIngredient(shopItem.id));
     item.append(image, detail, button);
     ingredientShopItems.append(item);
@@ -2255,6 +2303,11 @@ function buyIngredient(ingredientId) {
   const shopItem = shopItemFor(ingredientId);
   if (!shopItem || isShopItemUnlocked(shopItem)) return;
   const itemName = shopItemName(shopItem);
+  if (!isShopItemAvailable(shopItem)) {
+    setMessage(`${itemName}会在第 ${shopItemUnlockDay(shopItem)} 天开放。`);
+    render();
+    return;
+  }
   if (state.cash < shopItem.price) {
     setMessage(`余额不足，还差 ¥${shopItem.price - state.cash} 才能购买${itemName}。`);
     render();

@@ -153,6 +153,9 @@ const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/salmon-loin.png',
   'assets/restaurant/kitchen-layers/optimized/tuna-loin.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-loin.png',
+  'assets/restaurant/kitchen-layers/optimized/mackerel-loin.png',
+  'assets/restaurant/kitchen-layers/optimized/seabream-loin.png',
+  'assets/restaurant/kitchen-layers/optimized/eel-loin.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-whole.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-head.png',
   'assets/restaurant/kitchen-layers/optimized/tamago-loin.png',
@@ -163,10 +166,16 @@ const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/salmon-slice.png',
   'assets/restaurant/kitchen-layers/optimized/tuna-slice.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-slice.png',
+  'assets/restaurant/kitchen-layers/optimized/mackerel-slice.png',
+  'assets/restaurant/kitchen-layers/optimized/seabream-slice.png',
+  'assets/restaurant/kitchen-layers/optimized/eel-slice.png',
   'assets/restaurant/kitchen-layers/optimized/tamago-slice.png',
   'assets/restaurant/kitchen-layers/optimized/salmon-nigiri.png',
   'assets/restaurant/kitchen-layers/optimized/tuna-nigiri.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-nigiri.png',
+  'assets/restaurant/kitchen-layers/optimized/mackerel-nigiri.png',
+  'assets/restaurant/kitchen-layers/optimized/seabream-nigiri.png',
+  'assets/restaurant/kitchen-layers/optimized/eel-nigiri.png',
   'assets/restaurant/kitchen-layers/optimized/tamago-nigiri.png',
   'assets/restaurant/kitchen-layers/optimized/drink-machine-opaque.png',
   'assets/restaurant/kitchen-layers/optimized/cup-station.png',
@@ -185,8 +194,12 @@ const fishingAssetSources = [
   'assets/fishing-v2/fisherman.png',
   'assets/fishing-v2/basket.png',
   'assets/fishing-v2/bobber.png',
+  'assets/fishing-v2/golden-fishing-hook.png',
   'assets/fishing-v2/salmon.png',
   'assets/fishing-v2/tuna-whole.png',
+  'assets/fishing-v2/mackerel.png',
+  'assets/fishing-v2/seabream.png',
+  'assets/fishing-v2/eel.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-whole.png',
 ];
 
@@ -301,7 +314,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=settings-clean-v81-20260805';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v83-20260805';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -323,7 +336,7 @@ async function enterFishing() {
       fishingMarkupReady,
       fishingAssetWarmup,
       waitForMenuTransition(),
-      loadStylesheet('fishing-scene-style', 'fishing.css?v=modal-motion-v4-20260804'),
+      loadStylesheet('fishing-scene-style', 'fishing.css?v=sushi-menu-v6-20260805'),
     ]);
     const fishingDocument = new DOMParser().parseFromString(fishingMarkup, 'text/html');
     const fishingStage = fishingDocument.querySelector('main');
@@ -333,7 +346,7 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'fishing.js?v=soft-foley-v74-20260805';
+    fishingScript.src = 'fishing.js?v=sushi-menu-v76-20260805';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {
