@@ -9,6 +9,10 @@ const CUSTOMER_WAIT_MS = 75000;
 const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
 const CUSTOMER_EXIT_MS = 820;
 const SLICE_FLIGHT_STAGGER_MS = 70;
+const SPECIAL_ORDER_MINIMUM_DAY = 3;
+const SPECIAL_ORDER_SPAWN_CHANCE = 0.36;
+const SPECIAL_ORDER_BONUS_RATE = 0.18;
+const SPECIAL_ORDER_BONUS_MAX = 8;
 const DRINK_TYPES = Object.freeze({
   tea: Object.freeze({ id: 'tea', name: '茶', price: 3, asset: 'tea-cup-ready.png' }),
   'yuzu-soda': Object.freeze({ id: 'yuzu-soda', name: '柚子苏打', price: 5, asset: 'yuzu-soda-ready.png' }),
@@ -283,12 +287,23 @@ const PLATTER_TYPES = Object.freeze({
 const PLATTER_TYPE_LIST = Object.values(PLATTER_TYPES);
 const CUSTOMER_CATALOG = Object.freeze([
   Object.freeze({ avatar: 'customer-summer.png', customerType: 'standard', minimumDay: 1, patienceMultiplier: 1 }),
+  Object.freeze({ avatar: 'customer-sailor.png', customerType: 'standard', minimumDay: 3, patienceMultiplier: 1.04 }),
+  Object.freeze({ avatar: 'customer-student.png', customerType: 'impatient', minimumDay: 5, patienceMultiplier: 0.64 }),
+  Object.freeze({ avatar: 'customer-artist.png', customerType: 'large-order', minimumDay: 8, patienceMultiplier: 1.14 }),
   Object.freeze({ avatar: 'customer-beggar.png', customerType: 'beggar', minimumDay: 7, patienceMultiplier: 0.86 }),
   Object.freeze({ avatar: 'customer-fisher.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'salmon', patienceMultiplier: 1.16 }),
   Object.freeze({ avatar: 'customer-rush.png', customerType: 'impatient', minimumDay: 12, patienceMultiplier: 0.58 }),
   Object.freeze({ avatar: 'customer-feast.png', customerType: 'large-order', minimumDay: 12, patienceMultiplier: 1.18 }),
   Object.freeze({ avatar: 'customer-regular.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'tuna', patienceMultiplier: 1.2 }),
 ]);
+const SPECIAL_CUSTOMER_TEMPLATE = Object.freeze({
+  avatar: 'customer-vip.png',
+  customerType: 'special',
+  minimumDay: SPECIAL_ORDER_MINIMUM_DAY,
+  patienceMultiplier: 1.08,
+  specialOrder: true,
+});
+const CUSTOMER_TEMPLATES = Object.freeze([...CUSTOMER_CATALOG, SPECIAL_CUSTOMER_TEMPLATE]);
 
 function sushiTypeFor(id) {
   return SUSHI_TYPES[id] ?? SUSHI_TYPES.salmon;
@@ -357,9 +372,65 @@ function orderSummary(items) {
   return Array.from(counts, ([name, count]) => count > 1 ? `${name}×${count}` : name).join('、');
 }
 
+function orderItemsPrice(items) {
+  return items.reduce((total, item) => total + Math.max(0, Number(item?.price) || 0), 0);
+}
+
+function isSpecialOrderCustomer(customer) {
+  return Boolean(customer?.specialOrder || customer?.customerType === 'special');
+}
+
+function specialOrderBonusFor(items) {
+  const basePrice = orderItemsPrice(items);
+  return Math.max(1, Math.min(SPECIAL_ORDER_BONUS_MAX, Math.round(basePrice * SPECIAL_ORDER_BONUS_RATE)));
+}
+
+function normalizedSpecialOrderBonus(value, orderItems) {
+  const savedBonus = Number(value);
+  if (Number.isFinite(savedBonus)) {
+    return Math.min(SPECIAL_ORDER_BONUS_MAX, Math.max(0, Math.floor(savedBonus)));
+  }
+  return specialOrderBonusFor(orderItems);
+}
+
+function customerOrderPrice(customer, orderItems = customer?.orderItems ?? []) {
+  if (customer?.customerType === 'beggar') return 0;
+  const bonus = isSpecialOrderCustomer(customer)
+    ? normalizedSpecialOrderBonus(customer?.specialBonus, orderItems)
+    : 0;
+  return orderItemsPrice(orderItems) + bonus;
+}
+
+function createSpecialCustomerOrder() {
+  const remainingServings = new Map(orderableDishTypes().map(({ dish, servings }) => [dish.id, servings]));
+  const orderItems = [];
+
+  // 特别订单至少有两份寿司；选择池只包含当前能够完成的菜品。
+  for (let index = 0; index < 2; index += 1) {
+    const orderPool = orderableDishTypes()
+      .map(({ dish }) => dish)
+      .filter((dish) => (remainingServings.get(dish.id) ?? 0) > 0);
+    const dish = orderPool[Math.floor(Math.random() * orderPool.length)] ?? SUSHI_TYPES.tamago;
+    orderItems.push({ type: 'sushi', id: dish.id, price: dish.price, fulfilled: false });
+    if (Number.isFinite(remainingServings.get(dish.id))) {
+      remainingServings.set(dish.id, Math.max(0, remainingServings.get(dish.id) - 1));
+    }
+  }
+
+  const availableDrinks = unlockedDrinkTypes();
+  if (availableDrinks.length && Math.random() < 0.62) {
+    const drink = availableDrinks[Math.floor(Math.random() * availableDrinks.length)] ?? DRINK_TYPES.tea;
+    orderItems.push({ type: 'drink', id: drink.id, price: drink.price, fulfilled: false });
+  }
+
+  return orderItems;
+}
+
 function createCustomerOrder(template = CUSTOMER_CATALOG[0]) {
   const remainingServings = new Map(orderableDishTypes().map(({ dish, servings }) => [dish.id, servings]));
   const orderItems = [];
+
+  if (isSpecialOrderCustomer(template)) return createSpecialCustomerOrder();
 
   // 逃单客只会要一份基础寿司，确保第 7 天起无论玩家买了什么都能应对。
   if (template.customerType === 'beggar') {
@@ -531,6 +602,21 @@ function customerTemplateCanOrder(template) {
 function nextCustomerTemplate() {
   const eligible = CUSTOMER_CATALOG.filter(customerTemplateCanOrder);
   return eligible[state.customerSerial % eligible.length] ?? CUSTOMER_CATALOG[0];
+}
+
+function canSpawnSpecialOrderToday() {
+  return state.day >= SPECIAL_ORDER_MINIMUM_DAY && state.specialOrderDay !== state.day;
+}
+
+function shouldSpawnSpecialCustomer() {
+  if (!canSpawnSpecialOrderToday()) return false;
+  if (state.customers.some((customer) => isSpecialOrderCustomer(customer) && !customer.leaving)) return false;
+
+  // A normal customer can still arrive first, but once the day is well under
+  // way the remaining special slot is guaranteed to be offered.
+  const elapsed = Math.max(0, dayDurationForDay(state.day) - dayTimeRemaining());
+  const isDue = elapsed >= dayDurationForDay(state.day) * 0.56;
+  return isDue || Math.random() < SPECIAL_ORDER_SPAWN_CHANCE;
 }
 
 function shopItemFor(id) {
@@ -721,6 +807,7 @@ const state = {
   lifetimeRevenue: 0,
   customers: [],
   customerSerial: 0,
+  specialOrderDay: 0,
 };
 
 let lastSavedSnapshot = '';
@@ -883,8 +970,9 @@ function normalizedTutorialStep(value) {
 
 function customerTemplateForSavedCustomer(customer) {
   if (!customer || typeof customer !== 'object') return CUSTOMER_CATALOG[0];
-  return CUSTOMER_CATALOG.find((template) => template.customerType === customer.customerType && template.avatar === customer.avatar)
-    ?? CUSTOMER_CATALOG.find((template) => template.customerType === customer.customerType)
+  if (customer.specialOrder) return SPECIAL_CUSTOMER_TEMPLATE;
+  return CUSTOMER_TEMPLATES.find((template) => template.customerType === customer.customerType && template.avatar === customer.avatar)
+    ?? CUSTOMER_TEMPLATES.find((template) => template.customerType === customer.customerType)
     ?? CUSTOMER_CATALOG[0];
 }
 
@@ -927,6 +1015,10 @@ function savedWaitingCustomers() {
         minimumDay: template.minimumDay,
         favoriteSushiId: template.favoriteSushiId ?? null,
         patienceMultiplier: template.patienceMultiplier,
+        specialOrder: isSpecialOrderCustomer(customer),
+        specialBonus: isSpecialOrderCustomer(customer)
+          ? normalizedSpecialOrderBonus(customer.specialBonus, customer.orderItems ?? [])
+          : 0,
         orderItems: customer.orderItems ?? [],
         remainingPatienceMs: isTutorialCustomer ? null : Math.max(0, Math.ceil(waitDuration - elapsed)),
         tutorial: isTutorialCustomer,
@@ -954,11 +1046,20 @@ function restoredWaitingCustomers(value, { unlockedIngredients, unlockedRecipes,
     let id = typeof savedCustomer?.id === 'string' && savedCustomer.id ? savedCustomer.id.slice(0, 80) : `restored-${index}`;
     if (seenIds.has(id)) id = `restored-${index}`;
     seenIds.add(id);
-    return {
+    const specialOrder = Boolean(template.specialOrder || savedCustomer?.specialOrder || template.customerType === 'special');
+    const specialBonus = specialOrder
+      ? normalizedSpecialOrderBonus(savedCustomer?.specialBonus, orderItems)
+      : 0;
+    const restoredCustomer = {
       ...template,
+      specialOrder,
+      specialBonus,
+    };
+    return {
+      ...restoredCustomer,
       id,
       orderItems,
-      price: template.customerType === 'beggar' ? 0 : orderItems.reduce((total, item) => total + item.price, 0),
+      price: customerOrderPrice(restoredCustomer, orderItems),
       arrivedAt: isTutorialCustomer ? now : now - (waitDuration - remainingPatienceMs),
       served: false,
       leaving: false,
@@ -1011,6 +1112,9 @@ function buildSaveSnapshot() {
     dayEndedEarly: Boolean(state.dayEndedEarly),
     shopOpen: Boolean(state.shopOpen),
     customerSerial: Math.max(0, Math.floor(state.customerSerial)),
+    // Keep the once-per-day special-order rule after a refresh, while old
+    // saves without this field remain valid.
+    specialOrderDay: state.specialOrderDay === state.day ? state.day : 0,
     customers: savedWaitingCustomers(),
     inventory: {
       rawFish: normalizeRawFish(state.rawFish),
@@ -1109,6 +1213,12 @@ function restoreGame() {
     const tutorialCustomerId = tutorialStarted
       ? customers.find((customer) => customer.tutorial)?.id ?? null
       : null;
+    const savedSpecialOrderDay = asStoredCount(saved.specialOrderDay, 9_999);
+    const specialOrderDay = savedSpecialOrderDay === day
+      ? day
+      : customers.some(isSpecialOrderCustomer)
+        ? day
+        : 0;
 
     Object.assign(state, {
       salmonOnBoard: false,
@@ -1173,6 +1283,7 @@ function restoreGame() {
       lifetimeRevenue,
       customers,
       customerSerial: asStoredCount(saved.customerSerial, 9_999_999),
+      specialOrderDay,
     });
     return true;
   } catch {
@@ -1913,7 +2024,8 @@ function appendCustomerOrderItem(order, item) {
 function customerOrderSignature(customer) {
   const status = customer.served ? 'served' : customer.leaving ? 'leaving' : 'waiting';
   const items = (customer.orderItems ?? []).map((item) => `${item.type}:${isDrinkOrderItem(item) ? drinkIdForOrderItem(item) : item.id}:${item.fulfilled ? 1 : 0}`);
-  return `${status}|${items.join('|')}`;
+  const special = isSpecialOrderCustomer(customer) ? `special:${normalizedSpecialOrderBonus(customer.specialBonus, customer.orderItems ?? [])}` : 'standard';
+  return `${status}|${special}|${items.join('|')}`;
 }
 
 function updateCustomerCard(card, customer) {
@@ -1927,11 +2039,14 @@ function updateCustomerCard(card, customer) {
   const avatarSrc = `${CUSTOMER_ASSET_PATH}${customer.avatar}`;
   if (avatar.getAttribute('src') !== avatarSrc) avatar.src = avatarSrc;
   const isBeggar = customer.customerType === 'beggar';
+  const isSpecialOrder = isSpecialOrderCustomer(customer);
   const canEvictBeggar = isBeggar && !customer.served && !customer.leaving && isServingDay() && !state.gamePaused;
   avatar.alt = canEvictBeggar
     ? '逃单客，点击驱逐'
     : isBeggar && customer.fledWithoutPay
       ? '逃单客正在离开'
+      : isSpecialOrder
+        ? '正在等待特别订单的顾客'
       : '正在等待点寿司的顾客';
   avatar.tabIndex = canEvictBeggar ? 0 : -1;
   avatar.setAttribute('role', canEvictBeggar ? 'button' : 'img');
@@ -1940,6 +2055,7 @@ function updateCustomerCard(card, customer) {
   card.classList.toggle('is-impatient', customer.customerType === 'impatient');
   card.classList.toggle('is-large-order', customer.customerType === 'large-order');
   card.classList.toggle('is-regular', customer.customerType === 'regular');
+  card.classList.toggle('is-special-order', isSpecialOrder);
   card.classList.toggle('is-serving', Boolean(customer.served));
   card.classList.toggle('is-leaving', Boolean(customer.leaving));
   receivedSushi.classList.add('is-hidden');
@@ -1947,7 +2063,7 @@ function updateCustomerCard(card, customer) {
   if (order.dataset.signature !== signature) {
     order.replaceChildren();
     order.dataset.signature = signature;
-    order.setAttribute('aria-label', `订单：${orderSummary(orderItems)}`);
+    order.setAttribute('aria-label', `${isSpecialOrder ? '特别订单：' : '订单：'}${orderSummary(orderItems)}`);
 
     if (customer.served) {
       order.append(customer.fledWithoutPay ? '逃单了' : '谢谢！');
@@ -2037,13 +2153,17 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
   customerSpawnTimer = setGameplayTimeout(() => {
     customerSpawnTimer = null;
     if (tutorialNeedsCompletion() || !isServingDay() || state.gamePaused || state.customers.length >= MAX_WAITING_CUSTOMERS) return;
-    const template = nextCustomerTemplate();
+    const isSpecialOrder = shouldSpawnSpecialCustomer();
+    const template = isSpecialOrder ? SPECIAL_CUSTOMER_TEMPLATE : nextCustomerTemplate();
     const orderItems = createCustomerOrder(template);
+    const specialBonus = isSpecialOrder ? specialOrderBonusFor(orderItems) : 0;
     const customer = {
       ...template,
       id: `${state.customerSerial}-${Date.now()}`,
       orderItems,
-      price: template.customerType === 'beggar' ? 0 : orderItems.reduce((total, item) => total + item.price, 0),
+      specialOrder: isSpecialOrder,
+      specialBonus,
+      price: customerOrderPrice({ ...template, specialOrder: isSpecialOrder, specialBonus }, orderItems),
       arrivedAt: gameplayNow(),
       served: false,
       leaving: false,
@@ -2051,13 +2171,17 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
       dayResolved: false,
     };
     state.customerSerial += 1;
+    if (isSpecialOrder) state.specialOrderDay = state.day;
     state.customers.push(customer);
     customerLeaveTimers.set(customer.id, setGameplayTimeout(() => customerLeaves(customer.id), customerWaitDuration(customer)));
     playSound('customerIn');
     setMessage(template.customerType === 'beggar'
       ? '逃单客出现了，点击他可以驱逐。'
+      : isSpecialOrder
+        ? `特别订单来了，完成${orderSummary(orderItems)}可额外获得 ¥${specialBonus}。`
       : `有客人来了，想要${orderSummary(orderItems)}。`);
     render();
+    scheduleSave();
     scheduleCustomer();
   }, delay);
 }
@@ -2112,6 +2236,7 @@ function resumeShop() {
     state.dayCustomersServed = 0;
     state.dayIncome = 0;
     state.dayTimeRemainingMs = dayDurationForDay(state.day);
+    state.specialOrderDay = 0;
   }
   state.dayPhase = 'service';
   state.dayTimerStarted = false;
@@ -3682,12 +3807,19 @@ function completeCustomerOrderItem(customer, item) {
   }
 
   customer.served = true;
-  state.cash += customer.price;
-  state.lifetimeRevenue = Math.min(9_999_999, state.lifetimeRevenue + customer.price);
-  if (resolveDayCustomer(customer, { served: true })) state.dayIncome += customer.price;
+  const orderPrice = customerOrderPrice(customer);
+  customer.price = orderPrice;
+  state.cash += orderPrice;
+  state.lifetimeRevenue = Math.min(9_999_999, state.lifetimeRevenue + orderPrice);
+  if (resolveDayCustomer(customer, { served: true })) state.dayIncome += orderPrice;
   window.SeasideSushiLeaderboard?.recordOrder(customer.orderItems);
   playSound('cash');
-  setMessage(`订单完成，获得 ¥${customer.price}。`);
+  const specialBonus = isSpecialOrderCustomer(customer)
+    ? normalizedSpecialOrderBonus(customer.specialBonus, customer.orderItems)
+    : 0;
+  setMessage(specialBonus
+    ? `特别订单完成，获得 ¥${orderPrice}（奖励 ¥${specialBonus}）。`
+    : `订单完成，获得 ¥${orderPrice}。`);
   render();
   scheduleSave();
   fadeOutCustomer(customer, { holdMs: 420 });
@@ -4408,7 +4540,7 @@ function preloadInteractionAssets() {
   PLATTER_TYPE_LIST.forEach((platter) => assetNames.add(platter.nigiri));
   const assetUrls = [
     ...Array.from(assetNames, (name) => `${KITCHEN_ASSET_PATH}${name}`),
-    ...CUSTOMER_CATALOG.map((customer) => `${CUSTOMER_ASSET_PATH}${customer.avatar}`),
+    ...CUSTOMER_TEMPLATES.map((customer) => `${CUSTOMER_ASSET_PATH}${customer.avatar}`),
   ];
   assetUrls.forEach((src) => {
     const image = new Image();

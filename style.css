@@ -88,6 +88,14 @@ button { font: inherit; }
 .customer.is-beggar:not(.is-serving):not(.is-leaving) .customer-avatar:focus-visible { outline: 3px solid #ffe1a3; outline-offset: 4px; border-radius: 38%; }
 .customer.is-large-order .customer-order { max-width: 13em; background: #fff0c8; }
 .customer.is-regular .customer-order { background: #f5f0df; }
+.customer.is-special-order { z-index: 1; }
+.customer.is-special-order .customer-avatar { filter: drop-shadow(0 5px 2px rgb(76 47 34 / .2)) drop-shadow(0 0 9px rgb(255 213 111 / .78)); }
+.customer.is-special-order.is-drop-target .customer-avatar { filter: brightness(1.08) drop-shadow(0 0 11px rgb(255 232 145 / .96)); }
+.customer.is-special-order .customer-order { max-width: 14em; padding-top: 10px; border-color: #9a6233; background: linear-gradient(135deg, #fff7d8, #ffe8a8); box-shadow: 0 3px 0 rgb(120 75 39 / .28), 0 0 0 2px rgb(255 231 151 / .72); }
+.customer.is-special-order .customer-order::before { content: '特别单'; position: absolute; top: -10px; left: 9px; z-index: 3; padding: 2px 6px; border: 1px solid #81512f; border-radius: 999px; color: #754323; background: #ffd76a; box-shadow: 0 1px 0 rgb(90 57 45 / .2); font-size: .62em; font-weight: 1000; letter-spacing: .04em; line-height: 1.2; }
+.customer.is-special-order .customer-order::after { border-color: #9a6233; background: #ffe8a8; }
+.customer.is-special-order .customer-wait { border-color: rgb(157 105 43 / .72); background: #fff0bb; }
+.customer.is-special-order .customer-wait > i { background: linear-gradient(90deg, #e8bd56, #e99462 72%, #d76b58); }
 .customer-received-sushi { position: absolute; bottom: 43%; left: 50%; z-index: 4; width: 31%; height: auto; object-fit: contain; transform: translateX(-50%) rotate(-4deg); filter: drop-shadow(0 3px 2px rgb(59 39 28 / .25)); }
 @keyframes customer-enter { 0% { opacity: 0; transform: translate3d(82px, 10px, 0) scale(.9); } 68% { opacity: 1; transform: translate3d(-4px, 0, 0) scale(1.012); } 100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 @keyframes customer-thank { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(0, -4px, 0) scale(1.025); } }
