@@ -30,7 +30,7 @@ const MAX_RAW_FISH = Number.MAX_SAFE_INTEGER;
 const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
 const SETTINGS_KEY = 'seaside-sushi-shop.settings.v1';
-const DEFAULT_SOUND_VOLUME = 0.32;
+const DEFAULT_SOUND_VOLUME = 0.48;
 const INITIAL_UNLOCKED_INGREDIENTS = ['tamago'];
 const SHOP_ITEMS = [
   { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready.png', price: 120 },
@@ -517,7 +517,7 @@ function resumeGameplayTimeouts() {
 function normalizedSoundVolume(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return DEFAULT_SOUND_VOLUME;
-  return Math.min(0.55, Math.max(0, parsed));
+  return Math.min(0.8, Math.max(0, parsed));
 }
 
 function syncSoundSettings() {

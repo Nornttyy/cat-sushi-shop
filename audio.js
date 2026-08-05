@@ -6,12 +6,17 @@
   // load, while random offsets and tiny variations keep repeated actions from
   // sounding like the same sampled "ding" every time.
   const SETTINGS_KEY = 'seaside-sushi-shop.settings.v1';
-  const DEFAULT_VOLUME = 0.32;
+  const DEFAULT_VOLUME = 0.48;
   const MIN_GAIN = 0.0001;
+  // Kitchen sounds need enough body to be heard over a phone speaker. This
+  // lifts the whole material mix before a soft limiter catches sharp peaks,
+  // so the result is fuller rather than brighter or more piercing.
+  const FOLEY_GAIN = 1.8;
   const effectCooldowns = new Map();
   const noiseBuffers = new Map();
   let audioContext = null;
   let masterGain = null;
+  let foleyGain = null;
   let foleyCompressor = null;
   let hasUserGesture = false;
   let settings = readStoredSettings();
@@ -30,7 +35,7 @@
 
   function normalizedVolume(value) {
     const parsed = Number(value);
-    return Number.isFinite(parsed) ? clamp(parsed, 0, 0.7) : DEFAULT_VOLUME;
+    return Number.isFinite(parsed) ? clamp(parsed, 0, 0.8) : DEFAULT_VOLUME;
   }
 
   function readStoredSettings() {
@@ -54,19 +59,23 @@
     try {
       audioContext = new AudioContextConstructor();
       masterGain = audioContext.createGain();
+      foleyGain = audioContext.createGain();
       foleyCompressor = audioContext.createDynamicsCompressor();
-      foleyCompressor.threshold.value = -24;
-      foleyCompressor.knee.value = 14;
-      foleyCompressor.ratio.value = 4;
-      foleyCompressor.attack.value = 0.004;
-      foleyCompressor.release.value = 0.16;
+      foleyCompressor.threshold.value = -18;
+      foleyCompressor.knee.value = 22;
+      foleyCompressor.ratio.value = 5;
+      foleyCompressor.attack.value = 0.006;
+      foleyCompressor.release.value = 0.22;
+      foleyGain.gain.value = FOLEY_GAIN;
       masterGain.gain.value = settings.enabled ? settings.volume : 0;
-      masterGain.connect(foleyCompressor);
-      foleyCompressor.connect(audioContext.destination);
+      foleyGain.connect(foleyCompressor);
+      foleyCompressor.connect(masterGain);
+      masterGain.connect(audioContext.destination);
       return audioContext;
     } catch {
       audioContext = null;
       masterGain = null;
+      foleyGain = null;
       foleyCompressor = null;
       return null;
     }
@@ -112,7 +121,7 @@
     envelope.gain.exponentialRampToValueAtTime(safePeak, start + safeAttack);
     envelope.gain.setValueAtTime(safePeak, releaseStart);
     envelope.gain.exponentialRampToValueAtTime(MIN_GAIN, start + safeDuration);
-    envelope.connect(masterGain);
+    envelope.connect(foleyGain);
     return envelope;
   }
 
