@@ -191,6 +191,10 @@ function setInstruction(text, speechText = text) {
   speech.textContent = speechText;
 }
 
+function playSound(effect) {
+  window.SeasideSushiAudio?.play(effect);
+}
+
 function catchableFish() {
   return state.unlockedFish;
 }
@@ -540,6 +544,7 @@ function hookTarget(target) {
   target.element.style.setProperty('--fish-y', '35px');
   fishingHook.append(target.element);
   state.phase = 'retracting';
+  playSound('hook');
   setInstruction(`钩住了${FISH_CATALOG[target.type].name}，正在拉回鱼篓！`, '抓住了，慢慢收回来！');
   renderControls();
 }
@@ -547,6 +552,7 @@ function hookTarget(target) {
 function startRetracting() {
   if (state.phase !== 'extending') return;
   state.phase = 'retracting';
+  playSound('reel');
   setInstruction('没有抓到鱼，钩子正在收回。', '这次空钩了，再瞄准一点。');
   renderControls();
 }
@@ -569,6 +575,7 @@ function awardCaughtFish(target) {
   state.rawFish = nextRawFish;
   state.sessionCatch[type] += 1;
   state.totalCaught += 1;
+  playSound('splash');
   showCatch(type);
   setInstruction(`鱼篓里多了 1 份${FISH_CATALOG[type].name}。钩子继续摆动吧！`, '新鲜食材到手，再抓一条！');
   return true;
@@ -665,6 +672,7 @@ function castHook() {
   state.phase = 'extending';
   state.hookToken += 1;
   state.angle = clamp(state.angle, SWING_MIN_ANGLE, SWING_MAX_ANGLE);
+  playSound('cast');
   setInstruction('钩子已经射出，碰到鱼会自动拉回。', '瞄得不错，看看能不能钩住！');
   renderControls();
 }
@@ -677,6 +685,7 @@ function finishFishing() {
   }
   state.ended = true;
   stopAnimationLoop();
+  playSound('finish');
   const total = state.totalCaught;
   resultCatchCount.textContent = total;
   resultTitle.textContent = total ? '这次钓得不错！' : '下次一定会抓到！';
@@ -687,6 +696,7 @@ function finishFishing() {
 
 function returnToKitchen() {
   if (resultCloseTimer !== null) return;
+  playSound('ui');
   backToKitchenButton.disabled = true;
   resultOverlay.setAttribute('aria-hidden', 'true');
   resultOverlay.classList.add('is-closing');

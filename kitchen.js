@@ -30,6 +30,7 @@ const MAX_RAW_FISH = Number.MAX_SAFE_INTEGER;
 const SAVE_KEY = 'seaside-sushi-shop.save.v1';
 const SAVE_VERSION = 1;
 const SETTINGS_KEY = 'seaside-sushi-shop.settings.v1';
+const DEFAULT_SOUND_VOLUME = 0.32;
 const INITIAL_UNLOCKED_INGREDIENTS = ['tamago'];
 const SHOP_ITEMS = [
   { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready.png', price: 120 },
@@ -457,7 +458,7 @@ const state = {
 
 let lastSavedSnapshot = '';
 let saveTimer = null;
-let gameSettings = { reducedMotion: false };
+let gameSettings = { reducedMotion: false, soundEnabled: true, soundVolume: DEFAULT_SOUND_VOLUME };
 let accumulatedPausedTime = 0;
 let pauseStartedAt = 0;
 const gameplayTimeouts = new Set();
@@ -513,16 +514,35 @@ function resumeGameplayTimeouts() {
   [...gameplayTimeouts].forEach((timer) => armGameplayTimeout(timer));
 }
 
+function normalizedSoundVolume(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULT_SOUND_VOLUME;
+  return Math.min(0.55, Math.max(0, parsed));
+}
+
+function syncSoundSettings() {
+  window.SeasideSushiAudio?.configure({
+    enabled: gameSettings.soundEnabled,
+    volume: gameSettings.soundVolume,
+  });
+}
+
 function restoreGameSettings() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(SETTINGS_KEY));
-    if (saved && typeof saved === 'object') gameSettings.reducedMotion = Boolean(saved.reducedMotion);
+    if (saved && typeof saved === 'object') {
+      gameSettings.reducedMotion = Boolean(saved.reducedMotion);
+      gameSettings.soundEnabled = saved.soundEnabled !== false;
+      gameSettings.soundVolume = normalizedSoundVolume(saved.soundVolume);
+    }
   } catch {
-    gameSettings = { reducedMotion: false };
+    gameSettings = { reducedMotion: false, soundEnabled: true, soundVolume: DEFAULT_SOUND_VOLUME };
   }
+  syncSoundSettings();
 }
 
 function saveGameSettings() {
+  syncSoundSettings();
   try {
     window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(gameSettings));
   } catch {
@@ -762,6 +782,9 @@ const resumeGameButton = document.querySelector('#resume-game-button');
 const openGameSettingsButton = document.querySelector('#open-game-settings-button');
 const closeGameSettingsButton = document.querySelector('#close-game-settings-button');
 const motionSettingButton = document.querySelector('#motion-setting-button');
+const soundSettingButton = document.querySelector('#sound-setting-button');
+const soundVolumeSetting = document.querySelector('#sound-volume-setting');
+const soundVolumeValue = document.querySelector('#sound-volume-value');
 const exitGameButton = document.querySelector('#exit-game-button');
 const exitLoadingOverlay = document.querySelector('#exit-loading-overlay');
 const openShopButton = document.querySelector('#open-shop-button');
@@ -804,6 +827,10 @@ function show(element, visible) {
 
 function setMessage(text) {
   message.textContent = text;
+}
+
+function playSound(effect) {
+  window.SeasideSushiAudio?.play(effect);
 }
 
 function tutorialNeedsCompletion() {
@@ -1249,6 +1276,7 @@ function finishDay({ early = false, reason = 'time' } = {}) {
     : early
       ? '暂时打烊。'
       : `第 ${state.day} 天时间到了。`);
+  if (!early) playSound('dayEnd');
   render();
   window.requestAnimationFrame(() => {
     if (state.daySummaryOpen) daySummaryDismissButton.focus();
@@ -1568,6 +1596,7 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
     state.customerSerial += 1;
     state.customers.push(customer);
     customerLeaveTimers.set(customer.id, setGameplayTimeout(() => customerLeaves(customer.id), customerWaitDuration(customer)));
+    playSound('customerIn');
     setMessage(template.customerType === 'beggar'
       ? '逃单客出现了，点击他可以驱逐。'
       : `有客人来了，想要${orderSummary(orderItems)}。`);
@@ -1581,6 +1610,7 @@ function customerLeaves(customerId) {
   customerLeaveTimers.delete(customerId);
   if (!customer || customer.served || customer.leaving || state.gamePaused) return;
   resolveDayCustomer(customer);
+  playSound('customerOut');
   setMessage('有位客人等太久离开了。');
   fadeOutCustomer(customer);
 }
@@ -1593,6 +1623,7 @@ function evictBeggar(customerId) {
   if (leaveTimer) clearGameplayTimeout(leaveTimer);
   customerLeaveTimers.delete(customer.id);
   resolveDayCustomer(customer);
+  playSound('customerOut');
   setMessage('已驱逐逃单客。');
   fadeOutCustomer(customer);
   scheduleSave();
@@ -1625,6 +1656,7 @@ function resumeShop() {
   state.shopOpen = true;
   state.shopPanelOpen = false;
   state.sashimiPickerOpen = false;
+  playSound('dayStart');
   setMessage(continuingCurrentDay ? `继续第 ${state.day} 天营业。` : `第 ${state.day} 天开始营业。`);
   render();
   startDayClock();
@@ -1693,6 +1725,7 @@ function toggleGamePause() {
 function openGameSettings() {
   if (!state.gamePaused) return;
   state.pauseSettingsOpen = true;
+  playSound('ui');
   render();
   window.requestAnimationFrame(() => motionSettingButton.focus());
 }
@@ -1700,12 +1733,27 @@ function openGameSettings() {
 function closeGameSettings() {
   if (!state.gamePaused) return;
   state.pauseSettingsOpen = false;
+  playSound('ui');
   render();
   window.requestAnimationFrame(() => openGameSettingsButton.focus());
 }
 
 function toggleReducedMotion() {
   gameSettings.reducedMotion = !gameSettings.reducedMotion;
+  saveGameSettings();
+  playSound('ui');
+  render();
+}
+
+function toggleSoundEffects() {
+  gameSettings.soundEnabled = !gameSettings.soundEnabled;
+  saveGameSettings();
+  if (gameSettings.soundEnabled) playSound('ui');
+  render();
+}
+
+function updateSoundVolume(event) {
+  gameSettings.soundVolume = normalizedSoundVolume(Number(event.currentTarget.value) / 100);
   saveGameSettings();
   render();
 }
@@ -1874,6 +1922,7 @@ function makeSushi(ingredientId = 'salmon') {
   const animationVersion = state.flightVersion;
   const sushiGrid = storageGridFor('sushi');
   const makingSushi = playSushiMakingAnimation(sushiType.id);
+  playSound('sushi');
   setMessage(`正在捏制${sushiType.name}寿司。`);
   render();
   setGameplayTimeout(() => {
@@ -2191,6 +2240,7 @@ function toggleIngredientShop() {
     return;
   }
   state.shopPanelOpen = true;
+  playSound('ui');
   render();
   window.requestAnimationFrame(() => ingredientShopClose.focus());
 }
@@ -2199,6 +2249,7 @@ function closeIngredientShop() {
   if (!state.shopPanelOpen || shopPanelClosing) return;
   state.shopPanelOpen = false;
   shopPanelClosing = true;
+  playSound('ui');
   ingredientShopPanel.setAttribute('aria-hidden', 'true');
   closeModal(ingredientShopPanel, 230, () => {
     shopPanelClosing = false;
@@ -2219,6 +2270,7 @@ function buyIngredient(ingredientId) {
     return;
   }
   state.cash -= shopItem.price;
+  playSound('purchase');
   if (ingredientId === 'tea') {
     state.teaUnlocked = true;
     setMessage('茶饮配方已解锁，饮品机和顾客订单都会出现茶。');
@@ -2253,6 +2305,7 @@ function buyStorageUpgrade(storageId) {
   const nextLevel = storageLevelFor(storageId) + 1;
   state.cash -= price;
   state.storageLevels = { ...state.storageLevels, [storageId]: nextLevel };
+  playSound('purchase');
   setMessage(`${upgrade.name}已升级：${storageUpgradeValueLabel(upgrade, previousValue)} → ${storageUpgradeValueLabel(upgrade, storageUpgradeValue(upgrade))}。`);
   if (!saveGame()) scheduleSave();
   render();
@@ -2381,6 +2434,13 @@ function render() {
   gamePauseButton.setAttribute('aria-pressed', String(state.gamePaused));
   motionSettingButton.textContent = gameSettings.reducedMotion ? '已关闭' : '已开启';
   motionSettingButton.setAttribute('aria-pressed', String(!gameSettings.reducedMotion));
+  soundSettingButton.textContent = gameSettings.soundEnabled ? '已开启' : '已关闭';
+  soundSettingButton.setAttribute('aria-pressed', String(gameSettings.soundEnabled));
+  const soundPercent = Math.round(gameSettings.soundVolume * 100);
+  soundVolumeSetting.value = String(soundPercent);
+  soundVolumeSetting.disabled = !gameSettings.soundEnabled;
+  soundVolumeSetting.setAttribute('aria-valuetext', `${soundPercent}%`);
+  soundVolumeValue.textContent = `${soundPercent}%`;
   const backgroundSource = `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
   if (sceneBackground.getAttribute('src') !== backgroundSource) sceneBackground.src = backgroundSource;
   sceneBackground.alt = '海边寿司店后台';
@@ -2630,6 +2690,7 @@ function openSashimiPicker() {
   if (state.gamePaused) return;
   if (!canSelectSashimi()) return;
   state.sashimiPickerOpen = !state.sashimiPickerOpen;
+  playSound(state.sashimiPickerOpen ? 'freezer' : 'ui');
   setMessage(state.sashimiPickerOpen ? '选择一种食材。' : '已收起食材选择。');
   render();
 }
@@ -2661,6 +2722,7 @@ function takeRice() {
     return;
   }
   playStationMotion(riceBin, 'is-dispensing', motionDuration(420));
+  playSound('rice');
   state.riceStored += 1;
   state.incomingRice += 1;
   const sourceRect = riceBin.getBoundingClientRect();
@@ -2806,6 +2868,7 @@ function completeCustomerOrderItem(customer, item) {
     customer.served = true;
     customer.fledWithoutPay = true;
     resolveDayCustomer(customer);
+    playSound('customerOut');
     setMessage('逃单客拿走食物跑掉了，没有留下钱。');
     render();
     scheduleSave();
@@ -2818,6 +2881,7 @@ function completeCustomerOrderItem(customer, item) {
   state.lifetimeRevenue = Math.min(9_999_999, state.lifetimeRevenue + customer.price);
   if (resolveDayCustomer(customer, { served: true })) state.dayIncome += customer.price;
   window.SeasideSushiLeaderboard?.recordOrder(customer.orderItems);
+  playSound('cash');
   setMessage(`订单完成，获得 ¥${customer.price}。`);
   render();
   scheduleSave();
@@ -2843,6 +2907,7 @@ function deliverSushiToCustomer(ingredientId, customerId) {
   }
   state.sushiTypes.splice(storedIndex, 1);
   state.sushiStored = state.sushiTypes.length;
+  playSound('serve');
   completeCustomerOrderItem(customer, matchingOrderItem);
   return true;
 }
@@ -2859,6 +2924,7 @@ function deliverDrinkToCustomer(customerId) {
   }
 
   state.drinksStored = Math.max(0, state.drinksStored - 1);
+  playSound('serve');
   completeCustomerOrderItem(customer, matchingOrderItem);
   return true;
 }
@@ -2945,6 +3011,7 @@ function discardDraggedItem(type, { ingredientId, sourceRect, src, fromClientX, 
 
   playStationMotion(trashBin, 'is-discarding', motionDuration(620));
   playTrashFlight({ src, fromClientX, fromClientY, sourceRect });
+  playSound('trash');
   setMessage(`${label}已经丢进垃圾桶。`);
   render();
   if (!hasUnsettledSaveState()) saveGame();
@@ -3000,6 +3067,7 @@ function discardWorkInProgress() {
     fromClientX: sourceRect.left + (sourceRect.width / 2),
     fromClientY: sourceRect.top + (sourceRect.height / 2),
   });
+  playSound('trash');
   setMessage(`${label}已经丢进垃圾桶。`);
   render();
   if (!hasUnsettledSaveState()) saveGame();
@@ -3097,11 +3165,13 @@ window.addEventListener('pointerup', (event) => {
     state.cutLines = [false, false, false];
     state.activeCut = null;
     state.activeShrimpCut = null;
+    playSound('place');
     setMessage(sushiType.id === 'shrimp'
       ? '4 只甜虾已放到切菜板。沿每只虾头旁的竖向虚线向下滑动，就能逐只去头。'
       : `${sushiType.boardName}已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。`);
   } else if (type === 'cup') {
     state.cupOnMachine = true;
+    playSound('place');
     setMessage('空杯放好了，点击饮品机接饮料。');
   } else {
     makeSushi(sushiType.id);
@@ -3232,6 +3302,7 @@ function discardShrimpHead(sourceRect, headId) {
 
   state.shrimpHeads = state.shrimpHeads.filter((shrimpHead) => shrimpHead.id !== headId);
   state.shrimpHeadDiscarding = true;
+  playSound('trash');
   setMessage('正在把虾头丢进垃圾桶。');
   render();
   stage.append(head);
@@ -3262,6 +3333,7 @@ function finishCutLine(index) {
   const completed = state.cutLines.filter(Boolean).length;
   state.salmonOnBoard = completed < CUT_LINES.length;
   if (!state.salmonOnBoard) state.boardIngredientId = null;
+  playSound('chop');
   setMessage(completed < CUT_LINES.length ? `切好一片${sushiType.name}，继续切下一条虚线。` : `最后两片${sushiType.name}切好了！`);
   render();
   sliceOrigins.forEach((origin, offset) => {
@@ -3298,6 +3370,7 @@ function finishShrimpPrep(shrimpId, sourceElement) {
   state.sliceTypes.push('shrimp');
   state.incomingSlices += 1;
   const remaining = state.shrimpBatch.filter((batchItem) => !batchItem.cut).length;
+  playSound('shrimp');
   setMessage(remaining
     ? `一只甜虾处理好了，还剩 ${remaining} 只；虾头记得逐个拖进垃圾桶。`
     : '这批甜虾都处理好了，先把所有虾头拖进垃圾桶，才能拿下一批。');
@@ -3406,6 +3479,7 @@ drinkMachine.addEventListener('click', () => {
   if (state.drinkPouring) return;
   state.drinkPouring = true;
   const version = state.drinkVersion;
+  playSound('teaStart');
   setMessage('正在接茶。');
   render();
   setGameplayTimeout(() => {
@@ -3417,6 +3491,7 @@ drinkMachine.addEventListener('click', () => {
     state.drinkPouring = false;
     state.drinksStored += 1;
     state.incomingDrinks += 1;
+    playSound('teaReady');
     setMessage('茶做好了，已放进饮料架。');
     render();
     const drinkGrid = storageGridFor('drinks');
@@ -3443,6 +3518,8 @@ resumeGameButton.addEventListener('click', resumeGame);
 openGameSettingsButton.addEventListener('click', openGameSettings);
 closeGameSettingsButton.addEventListener('click', closeGameSettings);
 motionSettingButton.addEventListener('click', toggleReducedMotion);
+soundSettingButton.addEventListener('click', toggleSoundEffects);
+soundVolumeSetting.addEventListener('input', updateSoundVolume);
 exitGameButton.addEventListener('click', exitGame);
 openShopButton.addEventListener('click', resumeShop);
 goFishingButton.addEventListener('click', goFishing);

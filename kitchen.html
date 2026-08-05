@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=trash-all-v67-20260805" />
+    <link rel="stylesheet" href="style.css?v=soft-foley-v71-20260805" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -152,6 +152,17 @@
               <span>动态效果</span>
               <button id="motion-setting-button" type="button" aria-pressed="true">已开启</button>
             </div>
+            <div class="game-setting-row">
+              <span>音效</span>
+              <button id="sound-setting-button" type="button" aria-pressed="true">已开启</button>
+            </div>
+            <label class="game-setting-row game-volume-setting" for="sound-volume-setting">
+              <span>音量</span>
+              <span class="game-volume-control">
+                <input id="sound-volume-setting" type="range" min="0" max="55" value="32" step="1" aria-label="音效音量" />
+                <output id="sound-volume-value" for="sound-volume-setting">32%</output>
+              </span>
+            </label>
             <button id="close-game-settings-button" class="pause-secondary-button" type="button">返回</button>
           </section>
         </div>
@@ -165,7 +176,8 @@
         <span>正在返回</span>
       </div>
     </main>
+    <script src="audio.js?v=soft-foley-v1-20260805"></script>
     <script src="leaderboard-client.js?v=online-board-v1-20260804"></script>
-    <script src="kitchen.js?v=trash-all-v68-20260805"></script>
+    <script src="kitchen.js?v=soft-foley-v72-20260805"></script>
   </body>
 </html>

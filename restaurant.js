@@ -2,6 +2,7 @@ const backroomDoor = document.querySelector('#backroom-door');
 
 async function enterBackroom() {
   backroomDoor.disabled = true;
+  window.SeasideSushiAudio?.play('ui');
 
   try {
     const response = await fetch('kitchen.html', { cache: 'no-cache' });
@@ -15,7 +16,7 @@ async function enterBackroom() {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=trash-all-v68-20260805';
+    kitchenScript.src = 'kitchen.js?v=soft-foley-v72-20260805';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {

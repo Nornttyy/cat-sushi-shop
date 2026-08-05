@@ -287,6 +287,11 @@ button { font: inherit; }
   .ingredient-shop-heading b { font-size: clamp(15px, 1.4vw, 19px); }
   .ingredient-shop-items, .storage-upgrade-items { gap: 4px; }
   .ingredient-shop-item { min-height: 54px; padding: 5px; }
+  .game-pause-overlay { padding: 10px; }
+  .game-pause-card { max-height: 94%; min-height: 0; padding: 14px 20px; overflow: auto; }
+  .game-pause-view { gap: 5px; }
+  .game-setting-row { padding: 6px 9px; }
+  .game-pause-card button { padding-top: 7px; padding-bottom: 7px; }
 }
 
 .game-bottom-bar { position: absolute; top: 13.5%; right: 2%; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: clamp(6px, 1vw, 14px); max-width: min(48%, 570px); }
@@ -341,6 +346,11 @@ button { font: inherit; }
 .game-setting-row button { min-width: 0; margin: 0; padding: 5px 10px; border-width: 2px; border-radius: 9px; color: #fff8df; background: #70af77; box-shadow: 0 2px 0 #4f8860; font-size: clamp(11px, .9vw, 13px); }
 .game-setting-row button[aria-pressed="false"] { background: #bf846c; box-shadow: 0 2px 0 #955e4d; }
 .game-setting-row button:active { box-shadow: none; }
+.game-volume-setting { cursor: default; }
+.game-volume-control { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
+.game-volume-control input { width: min(112px, 33vw); accent-color: #d97959; cursor: pointer; }
+.game-volume-control input:disabled { cursor: not-allowed; opacity: .46; }
+.game-volume-control output { min-width: 2.7em; color: #9a5942; font-size: clamp(11px, .95vw, 13px); font-variant-numeric: tabular-nums; text-align: right; }
 .kitchen-stage.is-game-paused > :not(.game-pause-overlay):not(.kitchen-exit-loading), .kitchen-stage.is-game-paused > :not(.game-pause-overlay):not(.kitchen-exit-loading) * { animation-play-state: paused !important; }
 .menu-loading-screen.kitchen-exit-loading { z-index: 90; }
 .kitchen-stage.is-exiting-game { pointer-events: none; }

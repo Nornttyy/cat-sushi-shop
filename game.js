@@ -279,6 +279,7 @@ async function enterKitchen(event) {
   const button = event?.currentTarget ?? startButton;
   if (menuStage.classList.contains('is-entering-game')) return;
 
+  window.SeasideSushiAudio?.play('ui');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
   menuStage.classList.add('is-entering-game');
@@ -300,7 +301,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=trash-all-v68-20260805';
+    kitchenScript.src = 'kitchen.js?v=soft-foley-v72-20260805';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -314,6 +315,7 @@ async function enterKitchen(event) {
 
 async function enterFishing() {
   if (menuStage.classList.contains('is-entering-game')) return;
+  window.SeasideSushiAudio?.play('ui');
   menuStage.classList.add('is-entering-game', 'is-loading-game');
 
   try {
@@ -331,7 +333,7 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'fishing.js?v=shop-equipment-v62-20260805';
+    fishingScript.src = 'fishing.js?v=soft-foley-v74-20260805';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {
