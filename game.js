@@ -222,20 +222,42 @@ const fishingAssetSources = [
   'assets/fishing-v2/seabream.png',
   'assets/fishing-v2/eel.png',
   'assets/restaurant/kitchen-layers/optimized/shrimp-whole.png',
+  'assets/restaurant/kitchen-layers/optimized/tuna-loin.png',
 ];
 
 function preloadImage(source) {
-  const image = new Image();
-  image.decoding = 'async';
-  image.src = source;
-
-  if (typeof image.decode === 'function') {
-    return image.decode().catch(() => undefined);
-  }
-
   return new Promise((resolve) => {
-    image.addEventListener('load', resolve, { once: true });
-    image.addEventListener('error', resolve, { once: true });
+    const image = new Image();
+    let settled = false;
+
+    image.decoding = 'async';
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      image.removeEventListener('load', handleLoad);
+      image.removeEventListener('error', finish);
+      resolve();
+    };
+    const handleLoad = () => {
+      if (typeof image.decode !== 'function') {
+        finish();
+        return;
+      }
+      // `decode()` is only reliable after the network resource has loaded.
+      // Calling it immediately after assigning `src` can reject early on slow
+      // devices, which used to make the loader believe every image was ready.
+      image.decode().catch(() => undefined).then(finish);
+    };
+
+    image.addEventListener('load', handleLoad, { once: true });
+    image.addEventListener('error', finish, { once: true });
+    image.src = source;
+
+    // Cached images can finish before listeners are processed in some webviews.
+    if (image.complete) {
+      if (image.naturalWidth > 0) handleLoad();
+      else finish();
+    }
   });
 }
 
@@ -318,7 +340,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=sushi-menu-v90-20260805';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v92-20260805';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -350,7 +372,7 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'fishing.js?v=sushi-menu-v76-20260805';
+    fishingScript.src = 'fishing.js?v=sushi-menu-v92-20260805';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {

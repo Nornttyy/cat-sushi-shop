@@ -165,12 +165,12 @@ function rawFishStorageIsFull() {
 function readSave() {
   try {
     const raw = window.localStorage.getItem(SAVE_KEY);
-    if (!raw) return { version: SAVE_VERSION, tutorialCompleted: false, inventory: {} };
+    if (!raw) return null;
     const saved = JSON.parse(raw);
-    if (!saved || typeof saved !== 'object' || saved.version !== SAVE_VERSION) return { version: SAVE_VERSION, tutorialCompleted: false, inventory: {} };
+    if (!saved || typeof saved !== 'object' || saved.version !== SAVE_VERSION) return null;
     return saved;
   } catch {
-    return { version: SAVE_VERSION, inventory: {} };
+    return null;
   }
 }
 
@@ -189,22 +189,31 @@ function getUnlockedFish(save) {
   return FISH_IDS.filter((id) => unlocked.includes(id));
 }
 
-function persistRawFish(nextRawFish) {
+function persistCaughtFish(type) {
   try {
     const saved = readSave();
+    // A stale fishing tab must never recreate a reset or incompatible save.
+    // It also cannot add fish after another tab has started a new day.
+    if (!saved || !canFishFromSavedDay(saved)) return { ok: false, reason: 'stale' };
     const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
+    const latestRawFish = normalizeRawFish(inventory.rawFish);
+    const latestCapacity = rawFishCapacityFromSave(saved);
+    if (rawFishTotal(latestRawFish) >= latestCapacity) {
+      return { ok: false, reason: 'full', rawFish: latestRawFish, capacity: latestCapacity };
+    }
+    latestRawFish[type] += 1;
     const nextSave = {
       ...saved,
       version: SAVE_VERSION,
       inventory: {
         ...inventory,
-        rawFish: normalizeRawFish(nextRawFish),
+        rawFish: latestRawFish,
       },
     };
     window.localStorage.setItem(SAVE_KEY, JSON.stringify(nextSave));
-    return true;
+    return { ok: true, rawFish: latestRawFish, capacity: latestCapacity };
   } catch {
-    return false;
+    return { ok: false, reason: 'storage' };
   }
 }
 
@@ -596,13 +605,26 @@ function awardCaughtFish(target) {
   }
   const type = target.type;
 
-  const nextRawFish = { ...state.rawFish, [type]: state.rawFish[type] + 1 };
-  if (!persistRawFish(nextRawFish)) {
+  const persistedCatch = persistCaughtFish(type);
+  if (!persistedCatch.ok) {
+    if (persistedCatch.reason === 'full') {
+      state.rawFish = persistedCatch.rawFish;
+      state.rawFishCapacity = persistedCatch.capacity;
+      setInstruction('冰柜已经装满了，先回店里加工一些生鱼。', '冰柜满啦，先回店里加工吧！');
+      renderControls();
+      return false;
+    }
+    if (persistedCatch.reason === 'stale') {
+      setInstruction('店铺进度已在别处变更，回店后再继续钓鱼。', '这趟钓鱼已经过期了，先回店看看吧。');
+      renderControls();
+      return false;
+    }
     setInstruction('抓到了鱼，但鱼篓没能保存。检查浏览器存储后再试。', '这条鱼没记下来，再来一次吧。');
     return false;
   }
 
-  state.rawFish = nextRawFish;
+  state.rawFish = persistedCatch.rawFish;
+  state.rawFishCapacity = persistedCatch.capacity;
   state.sessionCatch[type] += 1;
   state.totalCaught += 1;
   playSound('splash');
@@ -792,6 +814,13 @@ window.addEventListener('pagehide', () => {
   stopAnimationLoop();
   if (popTimer) window.clearTimeout(popTimer);
   if (resultCloseTimer) window.clearTimeout(resultCloseTimer);
-}, { once: true });
+});
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted || state.ended) return;
+  syncHookAnchor();
+  updateTargets(0);
+  renderHook();
+  startAnimationLoop();
+});
 
 initializeFishing();

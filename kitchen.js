@@ -874,9 +874,102 @@ function savedPlatterAssembly(value, unlockedRecipes) {
   return value.filter((id) => PLATTER_FISH_IDS.includes(id)).slice(0, 2);
 }
 
+function normalizedTutorialStep(value) {
+  const step = Number(value);
+  return Number.isInteger(step) && step >= TUTORIAL_STEP.WELCOME && step <= TUTORIAL_STEP.SERVE_CUSTOMER
+    ? step
+    : TUTORIAL_STEP.WELCOME;
+}
+
+function customerTemplateForSavedCustomer(customer) {
+  if (!customer || typeof customer !== 'object') return CUSTOMER_CATALOG[0];
+  return CUSTOMER_CATALOG.find((template) => template.customerType === customer.customerType && template.avatar === customer.avatar)
+    ?? CUSTOMER_CATALOG.find((template) => template.customerType === customer.customerType)
+    ?? CUSTOMER_CATALOG[0];
+}
+
+function savedCustomerOrderItems(value, unlockedIngredients, unlockedRecipes, unlockedDrinks) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    if (!item || typeof item !== 'object') return null;
+    if (isDrinkOrderItem(item)) {
+      const drinkId = drinkIdForOrderItem(item);
+      if (!unlockedDrinks.includes(drinkId)) return null;
+      return {
+        type: 'drink',
+        id: drinkId,
+        price: drinkFor(drinkId).price,
+        fulfilled: Boolean(item.fulfilled),
+      };
+    }
+    if (item.type !== 'sushi' || !isKnownDishId(item.id) || !canRestoreDish(item.id, unlockedIngredients, unlockedRecipes)) return null;
+    return {
+      type: 'sushi',
+      id: item.id,
+      price: dishFor(item.id).price,
+      fulfilled: Boolean(item.fulfilled),
+    };
+  }).filter(Boolean).slice(0, 4);
+}
+
+function savedWaitingCustomers() {
+  return state.customers
+    .filter((customer) => customer && !customer.served && !customer.leaving && customer.day === state.day)
+    .map((customer, index) => {
+      const template = customerTemplateForSavedCustomer(customer);
+      const isTutorialCustomer = Boolean(customer.tutorial);
+      const waitDuration = customerWaitDuration(customer);
+      const elapsed = Math.max(0, gameplayNow() - Number(customer.arrivedAt || 0));
+      return {
+        id: typeof customer.id === 'string' ? customer.id.slice(0, 80) : `saved-${index}`,
+        customerType: template.customerType,
+        avatar: template.avatar,
+        minimumDay: template.minimumDay,
+        favoriteSushiId: template.favoriteSushiId ?? null,
+        patienceMultiplier: template.patienceMultiplier,
+        orderItems: customer.orderItems ?? [],
+        remainingPatienceMs: isTutorialCustomer ? null : Math.max(0, Math.ceil(waitDuration - elapsed)),
+        tutorial: isTutorialCustomer,
+      };
+    })
+    .filter((customer) => customer.orderItems.some((item) => !item.fulfilled));
+}
+
+function restoredWaitingCustomers(value, { unlockedIngredients, unlockedRecipes, unlockedDrinks, day }) {
+  if (!Array.isArray(value)) return [];
+  const now = gameplayNow();
+  const seenIds = new Set();
+  return value.slice(0, MAX_WAITING_CUSTOMERS).map((savedCustomer, index) => {
+    const template = customerTemplateForSavedCustomer(savedCustomer);
+    const orderItems = savedCustomerOrderItems(savedCustomer?.orderItems, unlockedIngredients, unlockedRecipes, unlockedDrinks);
+    if (!orderItems.length || orderItems.every((item) => item.fulfilled)) return null;
+    const isTutorialCustomer = Boolean(savedCustomer?.tutorial);
+    const waitDuration = customerWaitDuration(template);
+    const storedRemaining = Number(savedCustomer?.remainingPatienceMs);
+    const remainingPatienceMs = isTutorialCustomer
+      ? waitDuration
+      : Number.isFinite(storedRemaining)
+        ? Math.min(waitDuration, Math.max(0, Math.floor(storedRemaining)))
+        : waitDuration;
+    let id = typeof savedCustomer?.id === 'string' && savedCustomer.id ? savedCustomer.id.slice(0, 80) : `restored-${index}`;
+    if (seenIds.has(id)) id = `restored-${index}`;
+    seenIds.add(id);
+    return {
+      ...template,
+      id,
+      orderItems,
+      price: template.customerType === 'beggar' ? 0 : orderItems.reduce((total, item) => total + item.price, 0),
+      arrivedAt: isTutorialCustomer ? now : now - (waitDuration - remainingPatienceMs),
+      served: false,
+      leaving: false,
+      day,
+      dayResolved: false,
+      tutorial: isTutorialCustomer,
+    };
+  }).filter(Boolean);
+}
+
 function hasUnsettledSaveState() {
-  const hasPartialOrder = state.customers.some((customer) => !customer.served && !customer.leaving
-    && (customer.orderItems ?? []).some((item) => item.fulfilled));
   return Boolean(
     state.incomingSlices
     || state.incomingRice
@@ -888,7 +981,6 @@ function hasUnsettledSaveState() {
     || state.shrimpOnBoard
     || state.shrimpHeads.length
     || state.shrimpHeadDiscarding
-    || hasPartialOrder,
   );
 }
 
@@ -908,6 +1000,8 @@ function buildSaveSnapshot() {
     storageLevels: normalizeStorageLevels(state.storageLevels),
     teaUnlocked: isTeaUnlocked(),
     tutorialCompleted: Boolean(state.tutorialCompleted),
+    tutorialStarted: Boolean(!state.tutorialCompleted && state.tutorialStarted),
+    tutorialStep: normalizedTutorialStep(state.tutorialStep),
     day: Math.max(1, Math.floor(state.day)),
     dayPhase: state.dayPhase,
     dayCustomersFinished: Math.max(0, Math.floor(state.dayCustomersFinished)),
@@ -916,6 +1010,8 @@ function buildSaveSnapshot() {
     dayTimeRemainingMs: Math.ceil(dayTimeRemaining()),
     dayEndedEarly: Boolean(state.dayEndedEarly),
     shopOpen: Boolean(state.shopOpen),
+    customerSerial: Math.max(0, Math.floor(state.customerSerial)),
+    customers: savedWaitingCustomers(),
     inventory: {
       rawFish: normalizeRawFish(state.rawFish),
       sliceTypes: state.sliceTypes.slice(0, stableSliceCount),
@@ -983,6 +1079,8 @@ function restoreGame() {
     // Old saves predate the tutorial. Keep their owners in the game instead of
     // putting an established shop back through a first-day lesson.
     const tutorialCompleted = typeof saved.tutorialCompleted === 'boolean' ? saved.tutorialCompleted : true;
+    const tutorialStarted = !tutorialCompleted && Boolean(saved.tutorialStarted);
+    const tutorialStep = tutorialStarted ? normalizedTutorialStep(saved.tutorialStep) : TUTORIAL_STEP.WELCOME;
     const hasSavedDay = Number.isFinite(Number(saved.day)) && Number(saved.day) >= 1;
     const day = hasSavedDay
       ? asStoredCount(saved.day, 9_999) || 1
@@ -1000,6 +1098,17 @@ function restoreGame() {
       : dayDuration;
     if (dayPhase === 'service' && tutorialCompleted && dayTimeRemainingMs <= 0) dayPhase = 'settlement';
     const shopOpen = dayPhase === 'service';
+    const customers = dayPhase === 'service'
+      ? restoredWaitingCustomers(saved.customers, {
+        unlockedIngredients,
+        unlockedRecipes,
+        unlockedDrinks,
+        day,
+      }).filter((customer) => tutorialStarted || !customer.tutorial)
+      : [];
+    const tutorialCustomerId = tutorialStarted
+      ? customers.find((customer) => customer.tutorial)?.id ?? null
+      : null;
 
     Object.assign(state, {
       salmonOnBoard: false,
@@ -1044,9 +1153,9 @@ function restoreGame() {
       teaUnlocked: unlockedDrinks.includes('tea'),
       unlockedDrinks,
       tutorialCompleted,
-      tutorialStarted: false,
-      tutorialStep: TUTORIAL_STEP.WELCOME,
-      tutorialCustomerId: null,
+      tutorialStarted,
+      tutorialStep,
+      tutorialCustomerId,
       day,
       dayPhase,
       dayCustomersFinished,
@@ -1062,8 +1171,8 @@ function restoreGame() {
       pauseSettingsOpen: false,
       cash: asStoredCount(saved.cash, 9_999_999),
       lifetimeRevenue,
-      customers: [],
-      customerSerial: 0,
+      customers,
+      customerSerial: asStoredCount(saved.customerSerial, 9_999_999),
     });
     return true;
   } catch {
@@ -1563,10 +1672,24 @@ function resolveDayCustomer(customer, { served = false } = {}) {
   return true;
 }
 
+function returnUntouchedBoardIngredient() {
+  let ingredientId = null;
+  if (state.salmonOnBoard && state.boardIngredientId && !state.cutLines.some(Boolean)) {
+    ingredientId = state.boardIngredientId;
+  } else if (state.shrimpOnBoard && state.shrimpBatch.length && state.shrimpBatch.every((shrimp) => !shrimp.cut)) {
+    ingredientId = 'shrimp';
+  }
+  if (!ingredientId || !needsFishing(ingredientId)) return;
+  state.rawFish[ingredientId] = Math.min(MAX_RAW_FISH, (state.rawFish[ingredientId] ?? 0) + 1);
+}
+
 function clearInProgressKitchenWork() {
   // Completed ingredients already exist in their storage arrays before their
   // flight animation ends. Keep those items, but cancel their visual callback
   // so an ended day cannot modify the counter behind the settlement screen.
+  // A fish that has only been placed on the board has not produced anything;
+  // return it so the day timer never silently deletes the player's stock.
+  returnUntouchedBoardIngredient();
   state.flightVersion += 1;
   state.drinkVersion += 1;
   state.incomingSlices = 0;
@@ -1672,14 +1795,11 @@ function hasMissingFishForWaitingOrders() {
   return Array.from(requiredServings).some(([id, required]) => availableFishServings(id) < required);
 }
 
-function allUnlockedFishAreGone() {
-  const unlockedFish = state.unlockedIngredients.filter((id) => needsFishing(id));
-  return unlockedFish.length > 0 && unlockedFish.every((id) => availableFishServings(id) <= 0);
-}
-
 function maybeEndDayForMissingFish() {
   if (!isServingDay() || state.gamePaused || tutorialNeedsCompletion() || kitchenWorkIsInFlight()) return false;
-  if (!hasMissingFishForWaitingOrders() && !allUnlockedFishAreGone()) return false;
+  // 没有生鱼并不代表不能营业：玉子烧和饮品仍可继续售卖。
+  // 只有已经排队的订单确实缺少所需鱼种时，才提前结束当天。
+  if (!hasMissingFishForWaitingOrders()) return false;
   finishDay({ early: true, reason: 'missing-fish' });
   return true;
 }
@@ -1940,6 +2060,15 @@ function scheduleCustomer(delay = CUSTOMER_ARRIVAL_DELAY_MS) {
     render();
     scheduleCustomer();
   }, delay);
+}
+
+function restoreSavedCustomerTimers() {
+  if (!isServingDay() || state.gamePaused) return;
+  state.customers.forEach((customer) => {
+    if (customer.tutorial || customer.served || customer.leaving || customerLeaveTimers.has(customer.id)) return;
+    const remaining = Math.max(0, customerWaitDuration(customer) - (gameplayNow() - customer.arrivedAt));
+    customerLeaveTimers.set(customer.id, setGameplayTimeout(() => customerLeaves(customer.id), remaining));
+  });
 }
 
 function customerLeaves(customerId) {
@@ -4250,6 +4379,9 @@ tutorialSkipButton.addEventListener('click', skipTutorial);
 
 restoreGameSettings();
 restoreGame();
+if (tutorialIsRunning() && state.tutorialStep === TUTORIAL_STEP.SERVE_CUSTOMER && !tutorialCustomer()) {
+  spawnTutorialCustomer();
+}
 setMessage(state.dayPhase === 'settlement'
   ? state.dayEndedEarly
     ? `第 ${state.day} 天暂时打烊，补货后继续。`
@@ -4259,6 +4391,7 @@ setMessage(state.dayPhase === 'settlement'
     : `第 ${state.day} 天营业中：第一位客人马上就到。`);
 render();
 startDayClock();
+restoreSavedCustomerTimers();
 scheduleCustomer(700);
 window.addEventListener('pagehide', () => {
   if (!hasUnsettledSaveState()) saveGame();
