@@ -38,7 +38,11 @@ const ORDER_CATALOG = Object.freeze({
     'platter-seabream': 32,
     'platter-mixed': 20,
   }),
-  tea: 3,
+  drinks: Object.freeze({
+    tea: 3,
+    'yuzu-soda': 5,
+    'strawberry-soda': 6,
+  }),
 });
 
 const allowedOrigins = new Set(
@@ -167,8 +171,13 @@ function normalizeOrderEvent(body) {
   for (const item of sourceItems) {
     if (!item || typeof item !== 'object') return null;
     if (item.type === 'tea') {
-      items.push({ type: 'tea' });
-      revenue += ORDER_CATALOG.tea;
+      items.push({ type: 'drink', id: 'tea' });
+      revenue += ORDER_CATALOG.drinks.tea;
+      continue;
+    }
+    if (item.type === 'drink' && Object.hasOwn(ORDER_CATALOG.drinks, item.id)) {
+      items.push({ type: 'drink', id: item.id });
+      revenue += ORDER_CATALOG.drinks[item.id];
       continue;
     }
     if (item.type === 'sushi' && Object.hasOwn(ORDER_CATALOG.sushi, item.id)) {

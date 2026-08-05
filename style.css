@@ -240,6 +240,13 @@ button { font: inherit; }
 .drink-machine-station.is-upgraded img { filter: drop-shadow(0 0 5px rgb(144 221 211 / .6)) saturate(1.08); }
 .drink-machine-station[data-upgrade-level="2"] img { filter: drop-shadow(0 0 8px rgb(144 221 211 / .78)) saturate(1.14) brightness(1.03); }
 .drink-machine-station[data-upgrade-level="3"] img { filter: drop-shadow(0 0 11px rgb(171 240 226 / .92)) saturate(1.2) brightness(1.06); }
+.drink-picker { position: absolute; top: 37.5%; left: 69%; z-index: 24; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; width: 25.8%; padding: 5px; border: 2px solid #704331; border-radius: 13px; background: #fff1d1; box-shadow: 0 4px 0 rgb(90 57 45 / .25); animation: drink-picker-in 190ms cubic-bezier(.22, .9, .28, 1) both; }
+.drink-choice { display: grid; grid-template-columns: 1fr; gap: 2px; min-width: 0; padding: 5%; cursor: pointer; border: 0; border-radius: 8px; color: #704331; background: #ffe2a3; font-size: clamp(8px, .66vw, 11px); font-weight: 900; line-height: 1.15; transition: transform 140ms cubic-bezier(.2, .8, .25, 1), filter 140ms ease; }
+.drink-choice:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.drink-choice:active { transform: translateY(1px) scale(.98); }
+.drink-choice img { width: 100%; height: clamp(24px, 2.7vw, 39px); object-fit: contain; }
+.drink-choice span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes drink-picker-in { from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.92); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 .cup-station { left: 82%; top: 81%; z-index: 2; width: 15%; height: 10%; cursor: grab; touch-action: none; }
 .cup-station:active { cursor: grabbing; }
 .machine-cup { position: absolute; left: 86.5%; top: 69.4%; z-index: 4; width: 3.5%; height: auto; pointer-events: none; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .23)); will-change: transform, opacity; }
@@ -495,5 +502,5 @@ button { font: inherit; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sashimi-picker, .ingredient-shop-panel, .ingredient-shop-window, .tutorial-guide.is-welcome, .tutorial-guide.is-welcome .tutorial-guide-card, .day-summary-overlay, .day-summary-card, .game-pause-overlay, .game-pause-card, .game-pause-view, .save-reset-dialog, .save-reset-card, .wealth-leaderboard-dialog, .wealth-leaderboard-card { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+  .sashimi-picker, .drink-picker, .ingredient-shop-panel, .ingredient-shop-window, .tutorial-guide.is-welcome, .tutorial-guide.is-welcome .tutorial-guide-card, .day-summary-overlay, .day-summary-card, .game-pause-overlay, .game-pause-card, .game-pause-view, .save-reset-dialog, .save-reset-card, .wealth-leaderboard-dialog, .wealth-leaderboard-card { animation-duration: 1ms !important; transition-duration: 1ms !important; }
 }

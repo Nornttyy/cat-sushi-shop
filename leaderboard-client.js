@@ -22,6 +22,7 @@
     'platter-seabream',
     'platter-mixed',
   ]);
+  const SCOREABLE_DRINK_IDS = new Set(['tea', 'yuzu-soda', 'strawberry-soda']);
   let flushPromise = null;
 
   function readStoredJson(key, fallback) {
@@ -76,7 +77,10 @@
     if (!Array.isArray(orderItems)) return [];
     return orderItems
       .map((item) => {
-        if (item?.type === 'tea') return { type: 'tea' };
+        if (item?.type === 'tea') return { type: 'drink', id: 'tea' };
+        if (item?.type === 'drink' && SCOREABLE_DRINK_IDS.has(item.id)) {
+          return { type: 'drink', id: item.id };
+        }
         if (item?.type === 'sushi' && SCOREABLE_SUSHI_IDS.has(item.id)) {
           return { type: 'sushi', id: item.id };
         }

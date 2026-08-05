@@ -9,7 +9,12 @@ const CUSTOMER_WAIT_MS = 75000;
 const CUSTOMER_ARRIVAL_DELAY_MS = 3600;
 const CUSTOMER_EXIT_MS = 820;
 const SLICE_FLIGHT_STAGGER_MS = 70;
-const TEA_PRICE = 3;
+const DRINK_TYPES = Object.freeze({
+  tea: Object.freeze({ id: 'tea', name: '茶', price: 3, asset: 'tea-cup-ready.png' }),
+  'yuzu-soda': Object.freeze({ id: 'yuzu-soda', name: '柚子苏打', price: 5, asset: 'yuzu-soda-ready.png' }),
+  'strawberry-soda': Object.freeze({ id: 'strawberry-soda', name: '草莓苏打', price: 6, asset: 'strawberry-soda-ready.png' }),
+});
+const DRINK_TYPE_LIST = Object.values(DRINK_TYPES);
 const FIRST_DAY_SERVICE_MS = 90 * 1000;
 const STANDARD_DAY_SERVICE_MS = 150 * 1000;
 const DAY_CLOCK_SAVE_INTERVAL_MS = 5 * 1000;
@@ -35,7 +40,9 @@ const SETTINGS_KEY = 'seaside-sushi-shop.settings.v1';
 const DEFAULT_SOUND_VOLUME = 0.48;
 const INITIAL_UNLOCKED_INGREDIENTS = ['tamago'];
 const SHOP_ITEMS = [
-  { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready.png', price: 120 },
+  { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready.png', price: 120, kind: 'drink', drinkId: 'tea' },
+  { id: 'yuzu-soda', name: '柚子苏打配方', asset: 'yuzu-soda-ready.png', price: 380, kind: 'drink', drinkId: 'yuzu-soda', requiresTea: true },
+  { id: 'strawberry-soda', name: '草莓苏打配方', asset: 'strawberry-soda-ready.png', price: 560, kind: 'drink', drinkId: 'strawberry-soda', requiresTea: true },
   { id: 'salmon', price: 180 },
   { id: 'shrimp', price: 260 },
   { id: 'tuna', price: 350 },
@@ -76,7 +83,7 @@ const STORAGE_UPGRADES = [
   },
   {
     id: 'drinks',
-    name: '茶水架扩容',
+    name: '饮品架扩容',
     asset: 'tea-cup-ready.png',
     prices: [140, 300, 550],
     requiresTea: true,
@@ -229,13 +236,6 @@ const PLATTER_TYPES = Object.freeze({
   'platter-mixed': { id: 'platter-mixed', name: '精选三拼', nigiri: 'sashimi-platter-mixed.png', price: 20, kind: 'platter' },
 });
 const PLATTER_TYPE_LIST = Object.values(PLATTER_TYPES);
-const TEA_ORDER_ITEM = {
-  type: 'tea',
-  id: 'tea',
-  name: '茶',
-  price: TEA_PRICE,
-  asset: 'tea-cup-ready.png',
-};
 const CUSTOMER_CATALOG = Object.freeze([
   Object.freeze({ avatar: 'customer-summer.png', customerType: 'standard', minimumDay: 1, patienceMultiplier: 1 }),
   Object.freeze({ avatar: 'customer-beggar.png', customerType: 'beggar', minimumDay: 7, patienceMultiplier: 0.86 }),
@@ -269,13 +269,33 @@ function dishDisplayName(dish) {
   return dish.kind === 'gunkan' || dish.kind === 'platter' ? dish.name : `${dish.name}寿司`;
 }
 
+function isKnownDrinkId(id) {
+  return typeof id === 'string' && Object.hasOwn(DRINK_TYPES, id);
+}
+
+function drinkFor(id) {
+  return DRINK_TYPES[id] ?? DRINK_TYPES.tea;
+}
+
+function drinkAsset(id) {
+  return `${KITCHEN_ASSET_PATH}${drinkFor(id).asset}`;
+}
+
+function isDrinkOrderItem(item) {
+  return item?.type === 'drink' || item?.type === 'tea';
+}
+
+function drinkIdForOrderItem(item) {
+  return isKnownDrinkId(item?.id) ? item.id : 'tea';
+}
+
 function orderItemName(item) {
-  return item.type === 'tea' ? TEA_ORDER_ITEM.name : dishDisplayName(dishFor(item.id));
+  return isDrinkOrderItem(item) ? drinkFor(drinkIdForOrderItem(item)).name : dishDisplayName(dishFor(item.id));
 }
 
 function orderItemAsset(item) {
-  return item.type === 'tea'
-    ? `${KITCHEN_ASSET_PATH}${TEA_ORDER_ITEM.asset}`
+  return isDrinkOrderItem(item)
+    ? drinkAsset(drinkIdForOrderItem(item))
     : dishAsset(item.id, 'nigiri');
 }
 
@@ -326,13 +346,15 @@ function createCustomerOrder(template = CUSTOMER_CATALOG[0]) {
     }
   }
 
-  const teaChance = template.customerType === 'large-order'
+  const drinkChance = template.customerType === 'large-order'
     ? 0.46
     : template.customerType === 'impatient'
       ? 0.18
       : 0.62;
-  if (orderItems.length < 4 && isTeaUnlocked() && Math.random() < teaChance) {
-    orderItems.push({ ...TEA_ORDER_ITEM, fulfilled: false });
+  const availableDrinks = unlockedDrinkTypes();
+  if (orderItems.length < 4 && availableDrinks.length && Math.random() < drinkChance) {
+    const drink = availableDrinks[Math.floor(Math.random() * availableDrinks.length)] ?? DRINK_TYPES.tea;
+    orderItems.push({ type: 'drink', id: drink.id, price: drink.price, fulfilled: false });
   }
 
   return orderItems;
@@ -342,12 +364,24 @@ function isIngredientUnlocked(id) {
   return state.unlockedIngredients.includes(id);
 }
 
+function isDrinkUnlocked(id) {
+  return state.unlockedDrinks.includes(id);
+}
+
+function hasUnlockedDrinks() {
+  return state.unlockedDrinks.length > 0;
+}
+
+function unlockedDrinkTypes() {
+  return DRINK_TYPE_LIST.filter((drink) => isDrinkUnlocked(drink.id));
+}
+
 function isRecipeUnlocked(id) {
   return state.unlockedRecipes.includes(id);
 }
 
 function isTeaUnlocked() {
-  return state.teaUnlocked;
+  return isDrinkUnlocked('tea');
 }
 
 function isSushiTypeUnlocked(sushiType) {
@@ -440,7 +474,7 @@ function shopItemFor(id) {
 }
 
 function isShopItemUnlocked(shopItem) {
-  if (shopItem.id === 'tea') return isTeaUnlocked();
+  if (shopItem.kind === 'drink') return isDrinkUnlocked(shopItem.drinkId);
   if (shopItem.kind === 'recipe') return isRecipeUnlocked(shopItem.recipeId);
   return isIngredientUnlocked(shopItem.id);
 }
@@ -587,10 +621,14 @@ const state = {
   drinksStored: 0,
   incomingDrinks: 0,
   drinkVersion: 0,
+  machineDrinkId: null,
+  drinkPickerOpen: false,
+  drinkTypes: [],
   sashimiPickerOpen: false,
   shopPanelOpen: false,
   unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS],
   unlockedRecipes: [],
+  unlockedDrinks: [],
   platterAssembly: [],
   platterMaking: false,
   rawFish: { salmon: 0, tuna: 0, shrimp: 0, mackerel: 0, seabream: 0, eel: 0 },
@@ -727,6 +765,19 @@ function isKnownDishId(id) {
   return typeof id === 'string' && Boolean(PLATTER_TYPES[id] || SUSHI_TYPES[id]);
 }
 
+function normalizeUnlockedDrinks(value, legacyTeaUnlocked = false) {
+  const values = Array.isArray(value) ? [...value] : [];
+  if (legacyTeaUnlocked) values.push('tea');
+  return [...new Set(values.filter(isKnownDrinkId))];
+}
+
+function savedDrinkTypes(value, unlockedDrinks, max) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((id) => isKnownDrinkId(id) && unlockedDrinks.includes(id))
+    .slice(0, max);
+}
+
 function isIngredientId(id) {
   const sushiType = SUSHI_TYPES[id];
   return Boolean(sushiType && !sushiType.recipeId);
@@ -778,14 +829,16 @@ function hasUnsettledSaveState() {
 function buildSaveSnapshot() {
   const stableSliceCount = Math.max(0, state.sliceTypes.length - state.incomingSlices);
   const stableSushiCount = Math.max(0, state.sushiTypes.length - state.incomingSushi);
+  const stableDrinkCount = Math.max(0, state.drinkTypes.length - state.incomingDrinks);
   return {
     version: SAVE_VERSION,
     cash: asStoredCount(state.cash, 9_999_999),
     lifetimeRevenue: asStoredCount(state.lifetimeRevenue, 9_999_999),
     unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isIngredientId))],
     unlockedRecipes: normalizeUnlockedRecipes(state.unlockedRecipes),
+    unlockedDrinks: normalizeUnlockedDrinks(state.unlockedDrinks),
     storageLevels: normalizeStorageLevels(state.storageLevels),
-    teaUnlocked: Boolean(state.teaUnlocked),
+    teaUnlocked: isTeaUnlocked(),
     tutorialCompleted: Boolean(state.tutorialCompleted),
     day: Math.max(1, Math.floor(state.day)),
     dayPhase: state.dayPhase,
@@ -801,7 +854,7 @@ function buildSaveSnapshot() {
       rice: Math.max(0, state.riceStored - state.incomingRice),
       sushiTypes: state.sushiTypes.slice(0, stableSushiCount),
       platterAssembly: savedPlatterAssembly(state.platterAssembly, state.unlockedRecipes),
-      tea: Math.max(0, state.drinksStored - state.incomingDrinks),
+      drinks: state.drinkTypes.slice(0, stableDrinkCount),
     },
   };
 }
@@ -849,7 +902,14 @@ function restoreGame() {
     const sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, unlockedRecipes, storageCapacityFor('slices', storageLevels));
     const sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, unlockedRecipes, storageCapacityFor('sushi', storageLevels));
     const platterAssembly = savedPlatterAssembly(inventory.platterAssembly, unlockedRecipes);
-    const teaUnlocked = Boolean(saved.teaUnlocked);
+    const unlockedDrinks = normalizeUnlockedDrinks(saved.unlockedDrinks, Boolean(saved.teaUnlocked));
+    const legacyTeaCount = Boolean(saved.teaUnlocked)
+      ? asStoredCount(inventory.tea, storageCapacityFor('drinks', storageLevels))
+      : 0;
+    const savedDrinks = Array.isArray(inventory.drinks)
+      ? inventory.drinks
+      : Array.from({ length: legacyTeaCount }, () => 'tea');
+    const drinkTypes = savedDrinkTypes(savedDrinks, unlockedDrinks, storageCapacityFor('drinks', storageLevels));
     // Old saves predate the tutorial. Keep their owners in the game instead of
     // putting an established shop back through a first-day lesson.
     const tutorialCompleted = typeof saved.tutorialCompleted === 'boolean' ? saved.tutorialCompleted : true;
@@ -895,9 +955,12 @@ function restoreGame() {
       sushiTypes,
       cupOnMachine: false,
       drinkPouring: false,
-      drinksStored: teaUnlocked ? asStoredCount(inventory.tea, storageCapacityFor('drinks', storageLevels)) : 0,
+      drinksStored: drinkTypes.length,
       incomingDrinks: 0,
       drinkVersion: 0,
+      machineDrinkId: null,
+      drinkPickerOpen: false,
+      drinkTypes,
       sashimiPickerOpen: false,
       shopPanelOpen: false,
       unlockedIngredients,
@@ -906,7 +969,8 @@ function restoreGame() {
       platterMaking: false,
       rawFish,
       storageLevels,
-      teaUnlocked,
+      teaUnlocked: unlockedDrinks.includes('tea'),
+      unlockedDrinks,
       tutorialCompleted,
       tutorialStarted: false,
       tutorialStep: TUTORIAL_STEP.WELCOME,
@@ -969,6 +1033,7 @@ const riceRack = document.querySelector('#rice-rack');
 const sushiRack = document.querySelector('#sushi-rack');
 const platterStation = document.querySelector('#platter-station');
 const platterSlicePreview = document.querySelector('#platter-slice-preview');
+const drinkPicker = document.querySelector('#drink-picker');
 const gamePauseButton = document.querySelector('#game-pause-button');
 const gamePauseOverlay = document.querySelector('#game-pause-overlay');
 const gamePauseMenu = document.querySelector('#game-pause-menu');
@@ -1441,6 +1506,8 @@ function clearInProgressKitchenWork() {
   state.platterMaking = false;
   state.cupOnMachine = false;
   state.drinkPouring = false;
+  state.machineDrinkId = null;
+  state.drinkPickerOpen = false;
   state.salmonOnBoard = false;
   state.boardIngredientId = null;
   state.cutLines = [false, false, false];
@@ -1652,7 +1719,7 @@ function appendCustomerOrderItem(order, item) {
 
 function customerOrderSignature(customer) {
   const status = customer.served ? 'served' : customer.leaving ? 'leaving' : 'waiting';
-  const items = (customer.orderItems ?? []).map((item) => `${item.type}:${item.id ?? 'tea'}:${item.fulfilled ? 1 : 0}`);
+  const items = (customer.orderItems ?? []).map((item) => `${item.type}:${isDrinkOrderItem(item) ? drinkIdForOrderItem(item) : item.id}:${item.fulfilled ? 1 : 0}`);
   return `${status}|${items.join('|')}`;
 }
 
@@ -2356,23 +2423,65 @@ function renderStockRack(rack, count, className, src, alt, onPointerDown = null,
 }
 
 function renderDrinks() {
-  const displayedDrinks = Math.max(0, state.drinksStored - state.incomingDrinks);
+  const displayedTypes = state.drinkTypes.slice(0, Math.max(0, state.drinkTypes.length - state.incomingDrinks));
   const existingDrinks = Array.from(drinkRack.children);
-  existingDrinks.slice(displayedDrinks).forEach((drink) => drink.remove());
-  for (let index = 0; index < displayedDrinks; index += 1) {
-    if (existingDrinks[index]) continue;
-    const drink = document.createElement('button');
-    const image = document.createElement('img');
+  existingDrinks.slice(displayedTypes.length).forEach((drink) => drink.remove());
+  displayedTypes.forEach((drinkId, index) => {
+    const drinkType = drinkFor(drinkId);
+    const drink = existingDrinks[index] ?? document.createElement('button');
+    const image = drink.querySelector('img') ?? document.createElement('img');
     drink.type = 'button';
     drink.className = 'stored-drink stored-sushi-button';
-    drink.setAttribute('aria-label', `第 ${index + 1} 杯茶，拖给顾客或垃圾桶`);
-    drink.addEventListener('pointerdown', prepareDrinkServeDrag);
-    image.src = `${KITCHEN_ASSET_PATH}tea-cup-ready.png`;
-    image.alt = '一杯茶';
+    drink.dataset.drinkId = drinkType.id;
+    drink.setAttribute('aria-label', `第 ${index + 1} 杯${drinkType.name}，拖给顾客或垃圾桶`);
+    if (!drink.isConnected) drink.addEventListener('pointerdown', prepareDrinkServeDrag);
+    const source = drinkAsset(drinkType.id);
+    if (image.getAttribute('src') !== source) image.src = source;
+    image.alt = `一杯${drinkType.name}`;
     image.draggable = false;
-    drink.append(image);
-    drinkRack.append(drink);
+    if (!image.isConnected) drink.append(image);
+    if (drinkRack.children[index] !== drink) drinkRack.append(drink);
+  });
+}
+
+function renderDrinkPicker() {
+  const choices = unlockedDrinkTypes();
+  const visible = Boolean(
+    state.drinkPickerOpen
+    && state.cupOnMachine
+    && !state.drinkPouring
+    && !state.gamePaused
+    && choices.length > 1,
+  );
+  if (!visible) state.drinkPickerOpen = false;
+  show(drinkPicker, visible);
+  drinkPicker.setAttribute('aria-hidden', String(!visible));
+  if (!visible) {
+    drinkPicker.dataset.signature = '';
+    return;
   }
+
+  const signature = choices.map((drink) => drink.id).join('|');
+  if (drinkPicker.dataset.signature === signature) return;
+  drinkPicker.dataset.signature = signature;
+  drinkPicker.replaceChildren();
+  choices.forEach((drink) => {
+    const choice = document.createElement('button');
+    const image = document.createElement('img');
+    const name = document.createElement('span');
+    choice.type = 'button';
+    choice.className = 'drink-choice';
+    choice.dataset.drinkId = drink.id;
+    choice.setAttribute('aria-label', `制作${drink.name}`);
+    choice.title = `制作${drink.name} · ¥${drink.price}`;
+    image.src = drinkAsset(drink.id);
+    image.alt = drink.name;
+    image.draggable = false;
+    name.textContent = drink.name;
+    choice.append(image, name);
+    choice.addEventListener('click', () => startDrinkProduction(drink.id));
+    drinkPicker.append(choice);
+  });
 }
 
 function renderSashimiChoices() {
@@ -2482,7 +2591,7 @@ function renderIngredientShop() {
   const nextSignature = [
     state.day,
     state.cash,
-    state.teaUnlocked ? 1 : 0,
+    state.unlockedDrinks.join(','),
     state.unlockedIngredients.join(','),
     state.unlockedRecipes.join(','),
     ...STORAGE_UPGRADES.map((upgrade) => storageLevelFor(upgrade.id)),
@@ -2627,9 +2736,12 @@ function buyIngredient(ingredientId) {
   }
   state.cash -= shopItem.price;
   playSound('purchase');
-  if (ingredientId === 'tea') {
-    state.teaUnlocked = true;
-    setMessage('茶饮配方已解锁，饮品机和顾客订单都会出现茶。');
+  if (shopItem.kind === 'drink') {
+    state.unlockedDrinks = [...new Set([...state.unlockedDrinks, shopItem.drinkId])];
+    state.teaUnlocked = isTeaUnlocked();
+    setMessage(shopItem.drinkId === 'tea'
+      ? '茶饮配方已解锁，饮品机和顾客订单都会出现茶。'
+      : `${drinkFor(shopItem.drinkId).name}配方已解锁。把空杯放到饮品机后，就能选择制作它。`);
   } else if (shopItem.kind === 'recipe') {
     state.unlockedRecipes = [...new Set([...state.unlockedRecipes, shopItem.recipeId])];
     const recipeMessages = {
@@ -2851,23 +2963,26 @@ function render() {
   show(openShopButton, showSettlementActions);
   show(goFishingButton, showSettlementActions);
   settlementActions.setAttribute('aria-label', state.dayEndedEarly ? '补货操作' : '今日结束操作');
-  const teaUnlocked = isTeaUnlocked();
-  if (!teaUnlocked && (state.cupOnMachine || state.drinkPouring || state.incomingDrinks)) {
+  const drinksUnlocked = hasUnlockedDrinks();
+  if (!drinksUnlocked && (state.cupOnMachine || state.drinkPouring || state.incomingDrinks)) {
     state.cupOnMachine = false;
     state.drinkPouring = false;
     state.incomingDrinks = 0;
     state.drinkVersion += 1;
+    state.machineDrinkId = null;
+    state.drinkPickerOpen = false;
   }
-  show(drinkMachine, teaUnlocked);
-  show(cupStation, teaUnlocked);
-  show(drinkRack, teaUnlocked);
-  show(machineCup, teaUnlocked && state.cupOnMachine);
-  drinkMachine.setAttribute('aria-hidden', String(!teaUnlocked));
-  cupStation.setAttribute('aria-hidden', String(!teaUnlocked));
-  drinkRack.setAttribute('aria-hidden', String(!teaUnlocked));
-  machineCup.setAttribute('aria-hidden', String(!teaUnlocked));
+  show(drinkMachine, drinksUnlocked);
+  show(cupStation, drinksUnlocked);
+  show(drinkRack, drinksUnlocked);
+  show(machineCup, drinksUnlocked && state.cupOnMachine);
+  drinkMachine.setAttribute('aria-hidden', String(!drinksUnlocked));
+  cupStation.setAttribute('aria-hidden', String(!drinksUnlocked));
+  drinkRack.setAttribute('aria-hidden', String(!drinksUnlocked));
+  machineCup.setAttribute('aria-hidden', String(!drinksUnlocked));
+  const machineDrink = drinkFor(state.machineDrinkId);
   const machineCupSource = state.drinkPouring
-    ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
+    ? drinkAsset(machineDrink.id)
     : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
   if (machineCup.getAttribute('src') !== machineCupSource) machineCup.src = machineCupSource;
   machineCup.classList.toggle('is-filling', state.drinkPouring);
@@ -2876,7 +2991,11 @@ function render() {
   cupStation.classList.remove('is-locked');
   drinkMachine.setAttribute('aria-disabled', 'false');
   cupStation.setAttribute('aria-disabled', 'false');
-  drinkMachine.title = '点击接茶';
+  drinkMachine.title = state.cupOnMachine
+    ? state.drinkPouring
+      ? `正在接${machineDrink.name}`
+      : unlockedDrinkTypes().length > 1 ? '点击选择饮品' : `点击接${unlockedDrinkTypes()[0]?.name ?? '饮品'}`
+    : '先放一只空杯';
   cupStation.title = '拖出空杯';
   renderSlices();
   renderStockRack(
@@ -2890,7 +3009,8 @@ function render() {
   );
   renderSushiRack();
   renderPlatterStation();
-  if (teaUnlocked) renderDrinks();
+  renderDrinkPicker();
+  if (drinksUnlocked) renderDrinks();
   else drinkRack.replaceChildren();
   renderCustomers();
   renderTutorial();
@@ -2957,6 +3077,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
   const ingredientId = requestedIngredientId ?? source.dataset.ingredientId ?? 'salmon';
   const sushiType = sushiTypeFor(ingredientId);
   const dish = dishFor(ingredientId);
+  const drink = drinkFor(ingredientId);
   const isCustomerDelivery = type === 'serve' || type === 'serve-drink';
 
   const preview = document.createElement('img');
@@ -2974,7 +3095,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
       : type === 'cup'
         ? `${KITCHEN_ASSET_PATH}tea-cup-empty.png`
         : type === 'serve-drink'
-          ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
+          ? drinkAsset(drink.id)
           : dishAsset(dish.id, 'nigiri');
   preview.alt = '';
   preview.draggable = false;
@@ -2989,7 +3110,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
     preview,
     target,
     targetCustomerId: targetCustomer?.id ?? null,
-    ingredientId: isCustomerDelivery ? dish.id : sushiType.id,
+    ingredientId: type === 'serve-drink' ? drink.id : isCustomerDelivery ? dish.id : sushiType.id,
     shrimpHeadId: source.dataset.shrimpHeadId ?? null,
     stageRect,
     pointerX: event.clientX,
@@ -3018,7 +3139,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
     : type === 'shrimp-head' ? '把虾头拖到垃圾桶。'
       : type === 'rice' ? '把米饭拖到垃圾桶丢弃。'
       : type === 'cup' ? '把空杯拖到饮品机。'
-        : type === 'serve-drink' ? '把茶拖给顾客，或拖进垃圾桶丢弃。'
+        : type === 'serve-drink' ? `把${drink.name}拖给顾客，或拖进垃圾桶丢弃。`
         : type === 'serve' ? '把寿司拖给顾客，或拖进垃圾桶丢弃。'
           : isRecipeUnlocked('sashimi-platter')
             ? `把${sushiType.name}片拖到米饭架做寿司，或拖到盘子做刺身拼盘。`
@@ -3119,15 +3240,15 @@ function takeRice() {
 }
 
 function prepareCupDrag(event) {
-  if (!isTeaUnlocked()) {
-    setMessage('先在食材商店购买茶饮配方。');
+  if (!hasUnlockedDrinks()) {
+    setMessage('先在采购商店购买饮品配方。');
     return;
   }
   if (state.cupOnMachine || state.drinkPouring) {
     setMessage('饮品机里已经有一只杯子。');
     return;
   }
-  if (state.drinksStored >= storageCapacityFor('drinks')) {
+  if (state.drinkTypes.length >= storageCapacityFor('drinks')) {
     setMessage('饮料架满了，先等待出餐。');
     return;
   }
@@ -3189,10 +3310,10 @@ function prepareSushiServeDrag(event) {
 
 function prepareDrinkServeDrag(event) {
   if (state.incomingDrinks) {
-    setMessage('等茶滑进饮料架再出餐。');
+    setMessage('等饮品滑进饮品架再出餐。');
     return;
   }
-  startIngredientDrag(event, 'serve-drink');
+  startIngredientDrag(event, 'serve-drink', event.currentTarget.dataset.drinkId);
 }
 
 function playCustomerDeliveryFlight({ src, fromClientX, fromClientY, targetRect, isDrink }) {
@@ -3285,18 +3406,21 @@ function deliverSushiToCustomer(ingredientId, customerId) {
   return true;
 }
 
-function deliverDrinkToCustomer(customerId) {
+function deliverDrinkToCustomer(drinkId, customerId) {
   const customer = state.customers.find((waitingCustomer) => waitingCustomer.id === customerId && !waitingCustomer.served && !waitingCustomer.leaving);
-  if (!customer || !state.drinksStored) return false;
-  const matchingOrderItem = pendingOrderItems(customer).find((item) => item.type === 'tea');
+  const drink = drinkFor(drinkId);
+  if (!customer || !state.drinkTypes.includes(drink.id)) return false;
+  const matchingOrderItem = pendingOrderItems(customer).find((item) => isDrinkOrderItem(item) && drinkIdForOrderItem(item) === drink.id);
   if (!matchingOrderItem) {
     const remaining = pendingOrderItems(customer);
-    setMessage(`这位客人还需要${orderSummary(remaining)}，这杯茶不能交付。`);
+    setMessage(`这位客人还需要${orderSummary(remaining)}，这杯${drink.name}不能交付。`);
     render();
     return false;
   }
 
-  state.drinksStored = Math.max(0, state.drinksStored - 1);
+  const storedIndex = state.drinkTypes.indexOf(drink.id);
+  state.drinkTypes.splice(storedIndex, 1);
+  state.drinksStored = state.drinkTypes.length;
   playSound('serve');
   completeCustomerOrderItem(customer, matchingOrderItem);
   return true;
@@ -3367,11 +3491,14 @@ function discardDraggedItem(type, { ingredientId, sourceRect, src, fromClientX, 
     }
     label = dishDisplayName(dish);
   } else if (type === 'serve-drink') {
-    if (state.drinksStored > 0) {
-      state.drinksStored -= 1;
+    const drink = drinkFor(ingredientId);
+    const index = state.drinkTypes.indexOf(drink.id);
+    if (index !== -1) {
+      state.drinkTypes.splice(index, 1);
+      state.drinksStored = state.drinkTypes.length;
       discarded = true;
     }
-    label = '茶';
+    label = drink.name;
   } else if (type === 'cup') {
     discarded = true;
     label = '空杯';
@@ -3417,13 +3544,16 @@ function discardWorkInProgress() {
     state.shrimpBatch = [];
     state.activeShrimpCut = null;
   } else if (state.cupOnMachine || state.drinkPouring) {
+    const machineDrink = drinkFor(state.machineDrinkId);
     sourceRect = machineCup.getBoundingClientRect();
     src = state.drinkPouring
-      ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
+      ? drinkAsset(machineDrink.id)
       : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
-    label = state.drinkPouring ? '正在制作的茶' : '空杯';
+    label = state.drinkPouring ? `正在制作的${machineDrink.name}` : '空杯';
     state.cupOnMachine = false;
     state.drinkPouring = false;
+    state.machineDrinkId = null;
+    state.drinkPickerOpen = false;
     state.drinkVersion += 1;
   } else if (state.shrimpHeads.length && !state.shrimpHeadDiscarding) {
     const firstHead = shrimpHeadRack.querySelector('.shrimp-head');
@@ -3435,7 +3565,7 @@ function discardWorkInProgress() {
     src = sushiAsset(removedIngredient, 'slice');
     label = `盘中的${sushiName(removedIngredient)}鱼片`;
   } else {
-    setMessage('把米饭、鱼片、寿司、茶或食材拖进垃圾桶；点击垃圾桶也能清空菜板或盘中的刺身。');
+    setMessage('把米饭、鱼片、寿司、饮品或食材拖进垃圾桶；点击垃圾桶也能清空菜板或盘中的刺身。');
     return;
   }
 
@@ -3471,6 +3601,7 @@ window.addEventListener('pointerup', (event) => {
   const { type, source, target, targetCustomerId, ingredientId, shrimpHeadId, preview } = ingredientDrag;
   const sushiType = sushiTypeFor(ingredientId);
   const dish = dishFor(ingredientId);
+  const drink = drinkFor(ingredientId);
   const isCustomerDelivery = type === 'serve' || type === 'serve-drink';
   const sourceRect = source.getBoundingClientRect();
   const previewSrc = preview.currentSrc || preview.src;
@@ -3507,7 +3638,7 @@ window.addEventListener('pointerup', (event) => {
       : type === 'shrimp-head' ? '把虾头拖到垃圾桶里。'
         : type === 'rice' ? '把米饭拖到垃圾桶里。'
           : type === 'cup' ? '把空杯拖到饮品机里，或拖进垃圾桶。'
-            : type === 'serve-drink' ? '把茶拖到顾客身上，或拖进垃圾桶。'
+            : type === 'serve-drink' ? `把${drink.name}拖到顾客身上，或拖进垃圾桶。`
               : type === 'serve' ? '把寿司拖到顾客身上，或拖进垃圾桶。'
                 : isRecipeUnlocked('sashimi-platter')
                   ? `把${sushiType.name}片拖到米饭架做寿司，或拖到盘子做刺身拼盘。`
@@ -3534,7 +3665,7 @@ window.addEventListener('pointerup', (event) => {
   }
 
   if (type === 'serve-drink') {
-    if (deliverDrinkToCustomer(targetCustomerId)) playCustomerDeliveryFlight(deliveryFlight);
+    if (deliverDrinkToCustomer(drink.id, targetCustomerId)) playCustomerDeliveryFlight(deliveryFlight);
     return;
   }
 
@@ -3557,8 +3688,10 @@ window.addEventListener('pointerup', (event) => {
       : `${sushiType.boardName}已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。`);
   } else if (type === 'cup') {
     state.cupOnMachine = true;
+    state.machineDrinkId = null;
+    state.drinkPickerOpen = false;
     playSound('place');
-    setMessage('空杯放好了，点击饮品机接饮料。');
+    setMessage('空杯放好了，点击饮品机选择饮品。');
   } else if (type === 'slice' && destination === platterStation) {
     addSliceToPlatter(sushiType.id);
     return;
@@ -3855,38 +3988,35 @@ boardSalmon.addEventListener('keydown', (event) => {
   if (cutLine !== -1 && hasRoomForCut(cutLine)) finishCutLine(cutLine);
 });
 
-drinkMachine.addEventListener('click', () => {
-  if (state.gamePaused) return;
-  if (!isTeaUnlocked()) {
-    setMessage('先在食材商店购买茶饮配方。');
-    return;
-  }
-  if (!state.cupOnMachine) {
-    setMessage('先从杯子区拖一个空杯到饮品机。');
-    return;
-  }
-  if (state.drinkPouring) return;
+function startDrinkProduction(drinkId) {
+  const drink = drinkFor(drinkId);
+  if (state.gamePaused || !isDrinkUnlocked(drink.id) || !state.cupOnMachine || state.drinkPouring) return;
+
+  state.drinkPickerOpen = false;
   state.drinkPouring = true;
+  state.machineDrinkId = drink.id;
   const version = state.drinkVersion;
   playSound('teaStart');
-  setMessage('正在接茶。');
+  setMessage(`正在接${drink.name}。`);
   render();
   setGameplayTimeout(() => {
     if (version !== state.drinkVersion) return;
     const sourceRect = machineCup.getBoundingClientRect();
     const targetRect = drinkRack.getBoundingClientRect();
-    const targetIndex = state.drinksStored;
+    const targetIndex = state.drinkTypes.length;
     state.cupOnMachine = false;
     state.drinkPouring = false;
-    state.drinksStored += 1;
+    state.machineDrinkId = null;
+    state.drinkTypes.push(drink.id);
+    state.drinksStored = state.drinkTypes.length;
     state.incomingDrinks += 1;
     playSound('teaReady');
-    setMessage('茶做好了，已放进饮料架。');
+    setMessage(`${drink.name}做好了，已放进饮品架。`);
     render();
     const drinkGrid = storageGridFor('drinks');
     flyCompletedItem({
       className: 'drink',
-      src: `${KITCHEN_ASSET_PATH}tea-cup-ready.png`,
+      src: drinkAsset(drink.id),
       sourceRect,
       targetRect,
       targetIndex,
@@ -3900,6 +4030,27 @@ drinkMachine.addEventListener('click', () => {
       },
     });
   }, motionDuration(teaFillDuration()));
+}
+
+drinkMachine.addEventListener('click', () => {
+  if (state.gamePaused) return;
+  if (!hasUnlockedDrinks()) {
+    setMessage('先在采购商店购买饮品配方。');
+    return;
+  }
+  if (!state.cupOnMachine) {
+    setMessage('先从杯子区拖一个空杯到饮品机。');
+    return;
+  }
+  if (state.drinkPouring) return;
+  const choices = unlockedDrinkTypes();
+  if (choices.length === 1) {
+    startDrinkProduction(choices[0].id);
+    return;
+  }
+  state.drinkPickerOpen = !state.drinkPickerOpen;
+  setMessage(state.drinkPickerOpen ? '选择这杯要制作的饮品。' : '点击饮品机选择饮品。');
+  render();
 });
 
 gamePauseButton.addEventListener('click', toggleGamePause);
@@ -3933,6 +4084,7 @@ window.addEventListener('pagehide', () => {
 
 function preloadInteractionAssets() {
   const assetNames = new Set(['rice-portion.png', 'tea-cup-ready.png', 'shrimp-whole.png', 'shrimp-head.png', 'trash-bin.png', 'nori-sheets.png', 'plate-stack.png']);
+  DRINK_TYPE_LIST.forEach((drink) => assetNames.add(drink.asset));
   SUSHI_TYPE_LIST.forEach((sushiType) => {
     assetNames.add(sushiType.loin);
     assetNames.add(sushiType.slice);

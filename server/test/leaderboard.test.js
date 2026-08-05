@@ -153,3 +153,44 @@ test('the API accepts and scores every new gunkan and sashimi platter order', as
   assert.equal(remainingPlatters.body.addedRevenue, 92);
   assert.equal(remainingPlatters.body.me.revenue, 148);
 });
+
+test('the API scores each drink recipe independently and keeps old tea orders compatible', async (context) => {
+  const app = await startTestServer();
+  context.after(app.close);
+
+  const session = await json(app.baseUrl, '/v1/anonymous-sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  const headers = {
+    Authorization: `Bearer ${session.body.token}`,
+    'Content-Type': 'application/json',
+  };
+
+  const drinks = await json(app.baseUrl, '/v1/orders', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      eventId: 'order-event-drinks-001',
+      items: [
+        { type: 'tea' },
+        { type: 'drink', id: 'yuzu-soda' },
+        { type: 'drink', id: 'strawberry-soda' },
+      ],
+    }),
+  });
+  assert.equal(drinks.response.status, 200);
+  assert.equal(drinks.body.accepted, true);
+  assert.equal(drinks.body.addedRevenue, 14);
+
+  const invalidDrink = await json(app.baseUrl, '/v1/orders', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      eventId: 'order-event-drinks-002',
+      items: [{ type: 'drink', id: 'not-a-real-drink' }],
+    }),
+  });
+  assert.equal(invalidDrink.response.status, 400);
+});

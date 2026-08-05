@@ -195,6 +195,8 @@ const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/cup-station.png',
   'assets/restaurant/kitchen-layers/optimized/tea-cup-empty.png',
   'assets/restaurant/kitchen-layers/optimized/tea-cup-ready.png',
+  'assets/restaurant/kitchen-layers/optimized/yuzu-soda-ready.png',
+  'assets/restaurant/kitchen-layers/optimized/strawberry-soda-ready.png',
   'assets/restaurant/customers/customer-summer.png',
   'assets/restaurant/customers/customer-beggar.png',
   'assets/restaurant/customers/customer-fisher.png',
@@ -328,7 +330,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=sushi-menu-v86-20260805';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v88-20260805';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {

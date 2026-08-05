@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=sushi-menu-v86-20260805" />
+    <link rel="stylesheet" href="style.css?v=sushi-menu-v87-20260805" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -32,7 +32,7 @@
             <button id="ingredient-shop-close" class="ingredient-shop-close" type="button">返回制作台</button>
           </header>
           <section class="ingredient-shop-section" aria-labelledby="ingredient-shop-food-title">
-            <div class="ingredient-shop-section-heading"><b id="ingredient-shop-food-title">食材解锁</b><span>购买后，在钓鱼时才会遇到新鱼种。</span></div>
+            <div class="ingredient-shop-section-heading"><b id="ingredient-shop-food-title">食材与饮品</b><span>新鱼种要去钓鱼获得；饮品配方会直接加入饮品机。</span></div>
             <div id="ingredient-shop-items" class="ingredient-shop-items"></div>
           </section>
           <section class="storage-upgrade-section ingredient-shop-section" aria-labelledby="storage-upgrade-title">
@@ -129,6 +129,7 @@
         <button id="drink-machine" class="station drink-machine-station" type="button" aria-label="饮品机，点击接饮料">
           <img src="assets/restaurant/kitchen-layers/optimized/drink-machine-opaque.png" alt="不透明饮品机" draggable="false" decoding="async" />
         </button>
+        <section id="drink-picker" class="drink-picker is-hidden" aria-label="选择要制作的饮品"></section>
         <img id="machine-cup" class="machine-cup is-hidden" src="assets/restaurant/kitchen-layers/optimized/tea-cup-empty.png" alt="" aria-hidden="true" draggable="false" decoding="async" />
         <div id="drink-rack" class="drink-rack" aria-label="已做好饮料"></div>
         <button id="cup-station" class="station cup-station" type="button" aria-label="从杯子区拖出空杯">
@@ -203,7 +204,7 @@
       </div>
     </main>
     <script src="audio.js?v=material-foley-v4-20260805"></script>
-    <script src="leaderboard-client.js?v=online-board-v2-20260805"></script>
-    <script src="kitchen.js?v=sushi-menu-v87-20260805"></script>
+    <script src="leaderboard-client.js?v=online-board-v3-20260805"></script>
+    <script src="kitchen.js?v=sushi-menu-v88-20260805"></script>
   </body>
 </html>
