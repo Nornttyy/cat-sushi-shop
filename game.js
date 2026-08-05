@@ -277,27 +277,10 @@ const fishingAssetsReady = requestedScene === 'fishing'
   ? Promise.all(fishingAssetSources.map(preloadImage))
   : Promise.resolve();
 
-// 预加载只是为了让进场更顺，不该成为无法开始游戏的门槛。
-// 个别图片在移动网络或 CDN 上迟迟没有完成解码时，继续在后台加载即可。
-function waitForAssetWarmup(assetsReady, maximumWait = 2200) {
-  return new Promise((resolve) => {
-    let finished = false;
-    let timeoutId = 0;
-
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      window.clearTimeout(timeoutId);
-      resolve();
-    };
-
-    timeoutId = window.setTimeout(finish, maximumWait);
-    Promise.resolve(assetsReady).then(finish, finish);
-  });
-}
-
-const kitchenAssetWarmup = waitForAssetWarmup(kitchenAssetsReady);
-const fishingAssetWarmup = waitForAssetWarmup(fishingAssetsReady);
+// 场景切换必须等全部核心图像完成解码。此前的 2.2 秒上限会让慢网络
+// 在素材仍是空白时进入游戏，因而这里不再以时间强制放行。
+const kitchenAssetWarmup = kitchenAssetsReady;
+const fishingAssetWarmup = fishingAssetsReady;
 let kitchenMarkupReady = loadKitchenMarkup();
 let fishingMarkupReady = loadFishingMarkup();
 
