@@ -17,6 +17,7 @@
   let audioContext = null;
   let masterGain = null;
   let foleyGain = null;
+  let foleyToneFilter = null;
   let foleyCompressor = null;
   let hasUserGesture = false;
   let settings = readStoredSettings();
@@ -60,7 +61,11 @@
       audioContext = new AudioContextConstructor();
       masterGain = audioContext.createGain();
       foleyGain = audioContext.createGain();
+      foleyToneFilter = audioContext.createBiquadFilter();
       foleyCompressor = audioContext.createDynamicsCompressor();
+      foleyToneFilter.type = 'highshelf';
+      foleyToneFilter.frequency.value = 2400;
+      foleyToneFilter.gain.value = -3.5;
       foleyCompressor.threshold.value = -18;
       foleyCompressor.knee.value = 22;
       foleyCompressor.ratio.value = 5;
@@ -68,7 +73,8 @@
       foleyCompressor.release.value = 0.22;
       foleyGain.gain.value = FOLEY_GAIN;
       masterGain.gain.value = settings.enabled ? settings.volume : 0;
-      foleyGain.connect(foleyCompressor);
+      foleyGain.connect(foleyToneFilter);
+      foleyToneFilter.connect(foleyCompressor);
       foleyCompressor.connect(masterGain);
       masterGain.connect(audioContext.destination);
       return audioContext;
@@ -76,6 +82,7 @@
       audioContext = null;
       masterGain = null;
       foleyGain = null;
+      foleyToneFilter = null;
       foleyCompressor = null;
       return null;
     }
@@ -113,8 +120,8 @@
   function outputEnvelope(context, start, duration, peak = 0.04, attack = 0.005, release = 0.06) {
     const envelope = context.createGain();
     const safeDuration = Math.max(0.008, duration);
-    const safeAttack = Math.min(Math.max(0.001, attack), safeDuration * 0.42);
-    const safeRelease = Math.min(Math.max(0.004, release), safeDuration * 0.72);
+    const safeAttack = Math.min(Math.max(0.0025, attack), safeDuration * 0.42);
+    const safeRelease = Math.min(Math.max(0.006, release), safeDuration * 0.72);
     const releaseStart = Math.max(start + safeAttack, start + safeDuration - safeRelease);
     const safePeak = Math.max(MIN_GAIN, peak);
     envelope.gain.setValueAtTime(MIN_GAIN, start);
@@ -242,8 +249,8 @@
         gain: gain * randomBetween(0.66, 1.12),
         lowpass: lowpass * randomBetween(0.84, 1.1),
         highpass: highpass * randomBetween(0.86, 1.08),
-        attack: 0.0015,
-        release: randomBetween(0.008, 0.02),
+        attack: 0.0035,
+        release: randomBetween(0.012, 0.024),
         delay: delay + randomBetween(0, spread),
         texture,
         rateMin: 0.88,
@@ -254,12 +261,12 @@
 
   function buttonTouch(context, delay = 0) {
     noiseBurst(context, {
-      duration: 0.022,
-      gain: 0.011,
-      lowpass: 1150,
-      highpass: 260,
-      attack: 0.0015,
-      release: 0.018,
+      duration: 0.032,
+      gain: 0.012,
+      lowpass: 900,
+      highpass: 150,
+      attack: 0.004,
+      release: 0.03,
       delay,
       texture: 'soft',
     });
@@ -278,15 +285,15 @@
       texture: 'soft',
     });
     noiseBurst(context, {
-      duration: 0.024,
-      gain: 0.018,
-      lowpass: 2100,
-      highpass: 360,
-      attack: 0.0015,
-      release: 0.019,
+      duration: 0.042,
+      gain: 0.009,
+      lowpass: 1120,
+      highpass: 120,
+      attack: 0.006,
+      release: 0.035,
       delay: delay + 0.108,
+      texture: 'soft',
     });
-    resonantTap(context, { frequencies: [310, 471], duration: 0.045, gain: 0.004, delay: delay + 0.107 });
   }
 
   function counterSetDown(context, delay = 0) {
@@ -301,13 +308,14 @@
       texture: 'soft',
     });
     noiseBurst(context, {
-      duration: 0.018,
-      gain: 0.009,
-      lowpass: 1650,
-      highpass: 390,
-      attack: 0.0015,
-      release: 0.014,
+      duration: 0.028,
+      gain: 0.006,
+      lowpass: 1180,
+      highpass: 190,
+      attack: 0.004,
+      release: 0.023,
       delay: delay + 0.008,
+      texture: 'soft',
     });
   }
 
@@ -315,9 +323,9 @@
     grainCluster(context, {
       count: randomInteger(4, 7),
       spread: 0.11,
-      gain: 0.012,
-      lowpass: 2800,
-      highpass: 700,
+      gain: 0.008,
+      lowpass: 2100,
+      highpass: 440,
       delay,
     });
     noiseBurst(context, {
@@ -334,12 +342,12 @@
 
   function knifeOnBoard(context, delay = 0) {
     noiseBurst(context, {
-      duration: 0.016,
-      gain: 0.064,
-      lowpass: 3900,
-      highpass: 720,
-      attack: 0.001,
-      release: 0.013,
+      duration: 0.021,
+      gain: 0.036,
+      lowpass: 2500,
+      highpass: 430,
+      attack: 0.002,
+      release: 0.018,
       delay,
     });
     noiseBurst(context, {
@@ -427,21 +435,22 @@
 
   function teaCupReady(context, delay = 0) {
     noiseBurst(context, {
-      duration: 0.022,
-      gain: 0.021,
-      lowpass: 3300,
-      highpass: 800,
-      attack: 0.0015,
-      release: 0.019,
+      duration: 0.038,
+      gain: 0.009,
+      lowpass: 1650,
+      highpass: 340,
+      attack: 0.005,
+      release: 0.032,
       delay,
+      texture: 'soft',
     });
-    resonantTap(context, { frequencies: [790, 1270], duration: 0.052, gain: 0.006, delay: delay + 0.004 });
+    resonantTap(context, { frequencies: [340, 510], duration: 0.055, gain: 0.0025, delay: delay + 0.005 });
   }
 
   function serveDish(context, delay = 0) {
     noiseBurst(context, {
       duration: 0.075,
-      gain: 0.017,
+      gain: 0.019,
       lowpass: 900,
       highpass: 70,
       attack: 0.006,
@@ -450,26 +459,27 @@
       texture: 'soft',
     });
     noiseBurst(context, {
-      duration: 0.019,
-      gain: 0.019,
-      lowpass: 3000,
-      highpass: 720,
-      attack: 0.0015,
-      release: 0.016,
+      duration: 0.045,
+      gain: 0.008,
+      lowpass: 1050,
+      highpass: 110,
+      attack: 0.006,
+      release: 0.038,
       delay: delay + 0.045,
+      texture: 'soft',
     });
-    resonantTap(context, { frequencies: [238, 379], duration: 0.04, gain: 0.0035, delay: delay + 0.045 });
   }
 
   function receiptAndDrawer(context, delay = 0, gain = 1) {
     noiseBurst(context, {
       duration: 0.1,
-      gain: 0.021 * gain,
-      lowpass: 3150,
-      highpass: 430,
-      attack: 0.004,
+      gain: 0.012 * gain,
+      lowpass: 1900,
+      highpass: 190,
+      attack: 0.008,
       release: 0.09,
       delay,
+      texture: 'soft',
     });
     noiseBurst(context, {
       duration: 0.038,
@@ -495,15 +505,15 @@
       texture: 'soft',
     });
     noiseBurst(context, {
-      duration: 0.058,
-      gain: 0.017,
-      lowpass: 2400,
-      highpass: 380,
-      attack: 0.003,
-      release: 0.05,
+      duration: 0.085,
+      gain: 0.008,
+      lowpass: 980,
+      highpass: 95,
+      attack: 0.008,
+      release: 0.075,
       delay: delay + 0.022,
+      texture: 'soft',
     });
-    resonantTap(context, { frequencies: [158, 241], duration: 0.075, gain: 0.0035, delay: delay + 0.027 });
   }
 
   function footsteps(context, delay = 0, leaving = false) {
@@ -568,20 +578,20 @@
     });
     noiseBurst(context, {
       duration: 0.072,
-      gain: 0.028 * strength,
-      lowpass: 3000,
-      highpass: 330,
-      attack: 0.002,
-      release: 0.064,
+      gain: 0.012 * strength,
+      lowpass: 1350,
+      highpass: 110,
+      attack: 0.009,
+      release: 0.075,
       delay: delay + 0.012,
       texture: 'water',
     });
     grainCluster(context, {
-      count: randomInteger(2, 4),
+      count: randomInteger(1, 3),
       spread: 0.15,
-      gain: 0.006 * strength,
-      lowpass: 2400,
-      highpass: 470,
+      gain: 0.0035 * strength,
+      lowpass: 1450,
+      highpass: 220,
       delay: delay + 0.03,
       texture: 'water',
     });
@@ -589,29 +599,31 @@
 
   function castLine(context, delay = 0) {
     noiseBurst(context, {
-      duration: 0.18,
-      gain: 0.03,
-      lowpass: 3600,
-      lowpassEnd: 1300,
-      highpass: 350,
-      attack: 0.008,
-      release: 0.15,
+      duration: 0.2,
+      gain: 0.017,
+      lowpass: 1900,
+      lowpassEnd: 800,
+      highpass: 140,
+      attack: 0.02,
+      release: 0.16,
       delay,
+      texture: 'soft',
     });
     waterSplash(context, delay + 0.09, 0.42);
   }
 
   function hookClick(context, delay = 0) {
     noiseBurst(context, {
-      duration: 0.019,
-      gain: 0.032,
-      lowpass: 3100,
-      highpass: 720,
-      attack: 0.001,
-      release: 0.016,
+      duration: 0.034,
+      gain: 0.009,
+      lowpass: 1150,
+      highpass: 160,
+      attack: 0.005,
+      release: 0.028,
       delay,
+      texture: 'soft',
     });
-    resonantTap(context, { frequencies: [430, 689], duration: 0.047, gain: 0.005, delay: delay + 0.003 });
+    resonantTap(context, { frequencies: [175, 270], duration: 0.05, gain: 0.0018, delay: delay + 0.004 });
   }
 
   function reelGears(context, delay = 0) {
@@ -619,15 +631,16 @@
     for (let index = 0; index < steps; index += 1) {
       const clickDelay = delay + (index * randomBetween(0.038, 0.066));
       noiseBurst(context, {
-        duration: 0.013,
-        gain: 0.016,
-        lowpass: 2600,
-        highpass: 460,
-        attack: 0.001,
-        release: 0.011,
+        duration: 0.024,
+        gain: 0.007,
+        lowpass: 1050,
+        highpass: 130,
+        attack: 0.004,
+        release: 0.021,
         delay: clickDelay,
+        texture: 'soft',
       });
-      resonantTap(context, { frequencies: [198, 322], duration: 0.026, gain: 0.0025, delay: clickDelay });
+      resonantTap(context, { frequencies: [145, 215], duration: 0.03, gain: 0.0014, delay: clickDelay });
     }
   }
 
@@ -642,7 +655,16 @@
       delay,
       texture: 'soft',
     });
-    hookClick(context, delay + 0.065);
+    noiseBurst(context, {
+      duration: 0.05,
+      gain: 0.008,
+      lowpass: 900,
+      highpass: 100,
+      attack: 0.008,
+      release: 0.04,
+      delay: delay + 0.065,
+      texture: 'soft',
+    });
   }
 
   function play(name) {
