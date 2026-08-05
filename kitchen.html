@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#56a5d9" />
     <title>海边寿司店 · 制作台</title>
-    <link rel="stylesheet" href="style.css?v=sushi-menu-v87-20260805" />
+    <link rel="stylesheet" href="style.css?v=sushi-menu-v90-20260805" />
     <link rel="preload" as="image" href="assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg" fetchpriority="high" />
   </head>
   <body>
@@ -38,6 +38,10 @@
           <section class="storage-upgrade-section ingredient-shop-section" aria-labelledby="storage-upgrade-title">
             <div class="ingredient-shop-section-heading"><b id="storage-upgrade-title">店铺升级</b><span>扩充备料容量，让饮品机更快，冰柜能装下更多生鱼。</span></div>
             <div id="storage-upgrade-items" class="storage-upgrade-items"></div>
+          </section>
+          <section class="decoration-theme-section ingredient-shop-section" aria-labelledby="decoration-theme-title">
+            <div class="ingredient-shop-section-heading"><b id="decoration-theme-title">店铺装修</b><span>购买主题后会保存，结算时可随时切换，装修会立刻出现在制作台。</span></div>
+            <div id="decoration-theme-items" class="decoration-theme-items"></div>
           </section>
         </div>
       </section>
@@ -158,11 +162,20 @@
 
       <div class="game-bottom-bar">
         <span id="kitchen-message" class="screen-reader-status" aria-live="polite">点击冰柜选择食材，把它放到切菜板。</span>
-        <button id="game-pause-button" type="button" aria-pressed="false">暂停</button>
+        <button id="game-pause-button" class="icon-control pause-control" type="button" aria-label="暂停游戏" title="暂停游戏" aria-pressed="false" data-icon="pause">
+          <svg class="control-icon" data-control-icon="pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5.5h3.3v13H7zM13.7 5.5H17v13h-3.3z" /></svg>
+          <svg class="control-icon" data-control-icon="play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2 18.3 12 8 18.8z" /></svg>
+        </button>
         <div id="settlement-actions" class="settlement-actions is-hidden" aria-label="今日结算操作">
-          <button id="ingredient-shop-toggle" class="ingredient-shop-toggle" type="button" aria-controls="ingredient-shop-panel" aria-expanded="false">采购商店</button>
-          <button id="go-fishing-button" class="pause-secondary-button" type="button">去钓鱼</button>
-          <button id="open-shop-button" class="day-next-button" type="button">开始第 2 天</button>
+          <button id="ingredient-shop-toggle" class="ingredient-shop-toggle icon-control" type="button" aria-label="采购商店" title="采购商店" aria-controls="ingredient-shop-panel" aria-expanded="false">
+            <svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 8.4h13.6l-1 10.1H6.2zm3-3.2h7.6l1 3.2H7.2zM9.4 12.2v3.1m5.2-3.1v3.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+          <button id="go-fishing-button" class="pause-secondary-button icon-control" type="button" aria-label="去钓鱼" title="去钓鱼">
+            <svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.4 12.3c2.3-3.6 5.4-5.4 9.2-5.4 2.6 0 4.8.9 6 2.5-1.2 1.7-3.4 2.6-6 2.6-3.8 0-6.9-1.8-9.2-5.4Zm8.2-1.3a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z" fill="currentColor" /><path d="M19.2 5c.5 2.7-.2 5-2.2 6.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+          </button>
+          <button id="open-shop-button" class="day-next-button icon-control" type="button" aria-label="开始下一天" title="开始下一天">
+            <svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.2v3M5.9 6.7l2.1 2.1m10.1-2.1L16 8.8M4.6 13h2.9m9 0h2.9M7.4 17.4h9.2M8.7 13a3.3 3.3 0 0 1 6.6 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /><path d="M4.6 19.1h14.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+          </button>
         </div>
       </div>
       <section id="game-pause-overlay" class="game-pause-overlay is-hidden" role="dialog" aria-modal="true" aria-label="暂停菜单">
@@ -205,6 +218,6 @@
     </main>
     <script src="audio.js?v=material-foley-v4-20260805"></script>
     <script src="leaderboard-client.js?v=online-board-v3-20260805"></script>
-    <script src="kitchen.js?v=sushi-menu-v89-20260805"></script>
+    <script src="kitchen.js?v=sushi-menu-v90-20260805"></script>
   </body>
 </html>

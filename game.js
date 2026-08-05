@@ -149,6 +149,11 @@ function canFishFromSavedDay() {
 // 这些素材会在主菜单停留时悄悄进入浏览器缓存，进制作台时就不会一张张跳出来。
 const kitchenAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg',
+  'assets/restaurant/kitchen-layers/optimized/kitchen-background-christmas.jpg',
+  'assets/restaurant/kitchen-layers/optimized/kitchen-background-toy.jpg',
+  'assets/restaurant/kitchen-layers/optimized/kitchen-background-game.jpg',
+  'assets/restaurant/kitchen-layers/optimized/kitchen-background-cyber.jpg',
+  'assets/restaurant/kitchen-layers/optimized/kitchen-background-primitive.jpg',
   'assets/restaurant/kitchen-layers/optimized/fish-well-frosted.png',
   'assets/restaurant/kitchen-layers/optimized/salmon-loin.png',
   'assets/restaurant/kitchen-layers/optimized/tuna-loin.png',
@@ -330,7 +335,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=sushi-menu-v89-20260805';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v90-20260805';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {

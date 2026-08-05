@@ -39,6 +39,51 @@ const SAVE_VERSION = 1;
 const SETTINGS_KEY = 'seaside-sushi-shop.settings.v1';
 const DEFAULT_SOUND_VOLUME = 0.48;
 const INITIAL_UNLOCKED_INGREDIENTS = ['tamago'];
+const DEFAULT_DECORATION_THEME_ID = 'coastal';
+const DECORATION_THEMES = Object.freeze([
+  Object.freeze({
+    id: 'coastal',
+    name: '海风原木',
+    description: '原本温暖的海边料理台',
+    background: 'kitchen-background.jpg',
+    price: 0,
+  }),
+  Object.freeze({
+    id: 'christmas',
+    name: '圣诞主题',
+    description: '暖灯、花环与节日小装饰',
+    background: 'kitchen-background-christmas.jpg',
+    price: 1800,
+  }),
+  Object.freeze({
+    id: 'toy',
+    name: '玩具主题',
+    description: '彩旗、积木与柔和糖果色',
+    background: 'kitchen-background-toy.jpg',
+    price: 2600,
+  }),
+  Object.freeze({
+    id: 'game',
+    name: '游戏主题',
+    description: '复古街机与游戏手柄装饰',
+    background: 'kitchen-background-game.jpg',
+    price: 3600,
+  }),
+  Object.freeze({
+    id: 'cyber',
+    name: '赛博主题',
+    description: '蓝紫霓虹与未来感灯带',
+    background: 'kitchen-background-cyber.jpg',
+    price: 4800,
+  }),
+  Object.freeze({
+    id: 'primitive',
+    name: '原始主题',
+    description: '粗木、藤编、陶土与叶片',
+    background: 'kitchen-background-primitive.jpg',
+    price: 3200,
+  }),
+]);
 const SHOP_ITEMS = [
   { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready.png', price: 120, kind: 'drink', drinkId: 'tea' },
   { id: 'yuzu-soda', name: '柚子苏打配方', asset: 'yuzu-soda-ready.png', price: 380, kind: 'drink', drinkId: 'yuzu-soda', requiresTea: true },
@@ -364,6 +409,25 @@ function isIngredientUnlocked(id) {
   return state.unlockedIngredients.includes(id);
 }
 
+function decorationThemeFor(id) {
+  return DECORATION_THEMES.find((theme) => theme.id === id) ?? DECORATION_THEMES[0];
+}
+
+function isDecorationThemeId(id) {
+  return typeof id === 'string' && DECORATION_THEMES.some((theme) => theme.id === id);
+}
+
+function normalizeUnlockedDecorations(value) {
+  const saved = Array.isArray(value) ? value.filter(isDecorationThemeId) : [];
+  return [...new Set([DEFAULT_DECORATION_THEME_ID, ...saved])];
+}
+
+function normalizedActiveDecoration(value, unlockedDecorations) {
+  return isDecorationThemeId(value) && unlockedDecorations.includes(value)
+    ? value
+    : DEFAULT_DECORATION_THEME_ID;
+}
+
 function isDrinkUnlocked(id) {
   return state.unlockedDrinks.includes(id);
 }
@@ -626,6 +690,8 @@ const state = {
   drinkTypes: [],
   sashimiPickerOpen: false,
   shopPanelOpen: false,
+  unlockedDecorations: [DEFAULT_DECORATION_THEME_ID],
+  activeDecoration: DEFAULT_DECORATION_THEME_ID,
   unlockedIngredients: [...INITIAL_UNLOCKED_INGREDIENTS],
   unlockedRecipes: [],
   unlockedDrinks: [],
@@ -834,6 +900,8 @@ function buildSaveSnapshot() {
     version: SAVE_VERSION,
     cash: asStoredCount(state.cash, 9_999_999),
     lifetimeRevenue: asStoredCount(state.lifetimeRevenue, 9_999_999),
+    unlockedDecorations: normalizeUnlockedDecorations(state.unlockedDecorations),
+    activeDecoration: normalizedActiveDecoration(state.activeDecoration, state.unlockedDecorations),
     unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isIngredientId))],
     unlockedRecipes: normalizeUnlockedRecipes(state.unlockedRecipes),
     unlockedDrinks: normalizeUnlockedDrinks(state.unlockedDrinks),
@@ -895,6 +963,8 @@ function restoreGame() {
       ? saved.unlockedIngredients.filter(isIngredientId)
       : [];
     const unlockedIngredients = [...new Set([...INITIAL_UNLOCKED_INGREDIENTS, ...savedUnlocks])];
+    const unlockedDecorations = normalizeUnlockedDecorations(saved.unlockedDecorations);
+    const activeDecoration = normalizedActiveDecoration(saved.activeDecoration, unlockedDecorations);
     const unlockedRecipes = normalizeUnlockedRecipes(saved.unlockedRecipes);
     const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
     const storageLevels = normalizeStorageLevels(saved.storageLevels);
@@ -963,6 +1033,8 @@ function restoreGame() {
       drinkTypes,
       sashimiPickerOpen: false,
       shopPanelOpen: false,
+      unlockedDecorations,
+      activeDecoration,
       unlockedIngredients,
       unlockedRecipes,
       platterAssembly,
@@ -1020,6 +1092,7 @@ const ingredientShopClose = document.querySelector('#ingredient-shop-close');
 const ingredientShopCash = document.querySelector('#ingredient-shop-cash');
 const ingredientShopItems = document.querySelector('#ingredient-shop-items');
 const storageUpgradeItems = document.querySelector('#storage-upgrade-items');
+const decorationThemeItems = document.querySelector('#decoration-theme-items');
 const riceBin = document.querySelector('#rice-bin');
 const boardStation = document.querySelector('.board-station');
 const assemblyStation = document.querySelector('.assembly-station');
@@ -2519,6 +2592,62 @@ function storageUpgradePreviewAsset(upgrade) {
   return `${KITCHEN_ASSET_PATH}${upgrade.asset}`;
 }
 
+function decorationThemeAsset(themeOrId) {
+  const theme = typeof themeOrId === 'string' ? decorationThemeFor(themeOrId) : themeOrId;
+  return `${KITCHEN_ASSET_PATH}${theme.background}`;
+}
+
+function decorationThemeIsUnlocked(themeId) {
+  return state.unlockedDecorations.includes(themeId);
+}
+
+function renderDecorationThemes() {
+  decorationThemeItems.replaceChildren();
+
+  DECORATION_THEMES.forEach((theme) => {
+    const unlocked = decorationThemeIsUnlocked(theme.id);
+    const active = state.activeDecoration === theme.id;
+    const affordable = state.cash >= theme.price;
+    const item = document.createElement('article');
+    const image = document.createElement('img');
+    const detail = document.createElement('div');
+    const name = document.createElement('b');
+    const description = document.createElement('span');
+    const button = document.createElement('button');
+
+    item.className = `decoration-theme-card${unlocked ? ' is-owned' : ''}${active ? ' is-active' : ''}`;
+    image.src = decorationThemeAsset(theme);
+    image.alt = theme.name;
+    image.draggable = false;
+    name.textContent = theme.name;
+    description.textContent = unlocked
+      ? active ? '正在使用' : '已拥有，结算时可切换'
+      : `${theme.description} · ¥${theme.price}`;
+    detail.append(name, description);
+
+    button.type = 'button';
+    button.disabled = active || (!unlocked && !affordable);
+    button.textContent = active
+      ? '正在使用'
+      : unlocked
+        ? '使用主题'
+        : affordable
+          ? `购买 ¥${theme.price}`
+          : `余额不足 ¥${theme.price}`;
+    button.title = active
+      ? `${theme.name}正在使用`
+      : unlocked
+        ? `切换为${theme.name}`
+        : affordable
+          ? `购买并使用${theme.name}`
+          : `余额不足，还差 ¥${theme.price - state.cash}`;
+    button.addEventListener('click', () => buyOrSelectDecoration(theme.id));
+    detail.append(button);
+    item.append(image, detail);
+    decorationThemeItems.append(item);
+  });
+}
+
 function renderStorageUpgrades() {
   storageUpgradeItems.replaceChildren();
 
@@ -2591,6 +2720,8 @@ function renderIngredientShop() {
   const nextSignature = [
     state.day,
     state.cash,
+    state.activeDecoration,
+    state.unlockedDecorations.join(','),
     state.unlockedDrinks.join(','),
     state.unlockedIngredients.join(','),
     state.unlockedRecipes.join(','),
@@ -2653,6 +2784,7 @@ function renderIngredientShop() {
   });
 
   renderStorageUpgrades();
+  renderDecorationThemes();
 }
 
 function renderDaySummary() {
@@ -2661,9 +2793,6 @@ function renderDaySummary() {
   else if (!daySummaryTransitioning) closeModal(daySummaryOverlay, 230);
   daySummaryOverlay.setAttribute('aria-hidden', String(!showSummary));
   daySummaryTitle.textContent = '今天结束';
-  openShopButton.textContent = canContinueCurrentDay()
-    ? `继续第 ${state.day} 天`
-    : `开始第 ${state.day + 1} 天`;
 }
 
 function dismissDaySummary() {
@@ -2788,6 +2917,31 @@ function buyStorageUpgrade(storageId) {
   render();
 }
 
+function buyOrSelectDecoration(themeId) {
+  if (state.gamePaused || state.dayPhase !== 'settlement') return;
+  const theme = decorationThemeFor(themeId);
+  if (state.activeDecoration === theme.id) return;
+
+  if (!decorationThemeIsUnlocked(theme.id)) {
+    if (state.cash < theme.price) {
+      setMessage(`余额不足，还差 ¥${theme.price - state.cash} 才能购买${theme.name}。`);
+      render();
+      return;
+    }
+    state.cash -= theme.price;
+    state.unlockedDecorations = [...new Set([...state.unlockedDecorations, theme.id])];
+    playSound('purchase');
+    setMessage(`${theme.name}已购入，店铺焕然一新。`);
+  } else {
+    playSound('ui');
+    setMessage(`已切换为${theme.name}。`);
+  }
+
+  state.activeDecoration = theme.id;
+  if (!saveGame()) scheduleSave();
+  render();
+}
+
 function renderStorageLayouts() {
   const sliceGrid = storageGridFor('slices');
   const riceGrid = storageGridFor('rice');
@@ -2825,6 +2979,33 @@ function renderEquipmentAppearance() {
   const teaDuration = motionDuration(teaFillDuration());
   machineCup.style.setProperty('--drink-fill-duration', `${teaDuration}ms`);
   drinkMachine.style.setProperty('--drink-fill-duration', `${teaDuration}ms`);
+}
+
+function setIconControl(button, label, icon) {
+  if (!button) return;
+  button.setAttribute('aria-label', label);
+  button.title = label;
+  if (icon) button.dataset.icon = icon;
+}
+
+function renderDecorationScene() {
+  const theme = decorationThemeFor(state.activeDecoration);
+  const backgroundSource = decorationThemeAsset(theme);
+  stage.dataset.decoration = theme.id;
+  stage.style.setProperty('--kitchen-background', `url("${backgroundSource}")`);
+  sceneBackground.alt = `${theme.name}的海边寿司制作台`;
+
+  if (sceneBackground.getAttribute('src') === backgroundSource) return;
+  sceneBackground.classList.add('is-theme-switching');
+  const reveal = () => {
+    if (sceneBackground.getAttribute('src') === backgroundSource) {
+      sceneBackground.classList.remove('is-theme-switching');
+    }
+  };
+  sceneBackground.addEventListener('load', reveal, { once: true });
+  sceneBackground.addEventListener('error', reveal, { once: true });
+  sceneBackground.src = backgroundSource;
+  window.setTimeout(reveal, 560);
 }
 
 function renderShrimpBatch() {
@@ -2906,7 +3087,10 @@ function render() {
   gamePauseOverlay.setAttribute('aria-hidden', String(!state.gamePaused));
   show(gamePauseMenu, !state.pauseSettingsOpen);
   show(gameSettingsPanel, state.pauseSettingsOpen);
-  gamePauseButton.textContent = state.gamePaused ? '继续游戏' : '暂停';
+  setIconControl(gamePauseButton, state.gamePaused ? '继续游戏' : '暂停游戏', state.gamePaused ? 'play' : 'pause');
+  setIconControl(ingredientShopToggle, '采购商店');
+  setIconControl(goFishingButton, '去钓鱼');
+  setIconControl(openShopButton, canContinueCurrentDay() ? `继续第 ${state.day} 天` : `开始第 ${state.day + 1} 天`);
   gamePauseButton.setAttribute('aria-pressed', String(state.gamePaused));
   soundSettingButton.textContent = gameSettings.soundEnabled ? '已开启' : '已关闭';
   soundSettingButton.setAttribute('aria-pressed', String(gameSettings.soundEnabled));
@@ -2915,9 +3099,7 @@ function render() {
   soundVolumeSetting.disabled = !gameSettings.soundEnabled;
   soundVolumeSetting.setAttribute('aria-valuetext', `${soundPercent}%`);
   soundVolumeValue.textContent = `${soundPercent}%`;
-  const backgroundSource = `${KITCHEN_ASSET_PATH}kitchen-background.jpg`;
-  if (sceneBackground.getAttribute('src') !== backgroundSource) sceneBackground.src = backgroundSource;
-  sceneBackground.alt = '海边寿司店后台';
+  renderDecorationScene();
   const boardSushiType = sushiTypeFor(state.boardIngredientId);
   const servingDay = isServingDay();
   stageName.textContent = servingDay
