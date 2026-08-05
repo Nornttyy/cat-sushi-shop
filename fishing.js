@@ -540,8 +540,8 @@ function hookTarget(target) {
   state.activeTarget = target;
   target.captureToken = state.hookToken;
   target.element.classList.add('is-hooked', 'is-carried');
-  target.element.style.setProperty('--fish-x', '27px');
-  target.element.style.setProperty('--fish-y', '35px');
+  target.element.style.setProperty('--fish-x', '42px');
+  target.element.style.setProperty('--fish-y', '51px');
   fishingHook.append(target.element);
   state.phase = 'retracting';
   playSound('hook');

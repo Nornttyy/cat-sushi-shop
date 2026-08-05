@@ -69,13 +69,8 @@ body {
 .gold-hook-rig.is-casting .gold-hook-arm, .gold-hook-rig.is-reeling .gold-hook-arm { animation: none; }
 .fishing-line { position: absolute; top: 0; left: -1px; width: clamp(3px, .3vw, 5px); height: var(--hook-length); overflow: visible; border-radius: 999px; background: linear-gradient(90deg, #4b322b, #f9e7ba 46%, #4b322b); box-shadow: 0 0 0 1px rgb(75 50 43 / .15), 1px 1px 0 rgb(22 95 122 / .28); transform-origin: 50% 0; transition: height var(--hook-speed) cubic-bezier(.25, .85, .35, 1); will-change: height; }
 .gold-hook-rig:has(#fishing-line.is-cast) { --hook-length: clamp(162px, 23vw, 330px); }
-.fishing-hook { position: absolute; top: 0; left: 0; width: clamp(22px, 2.25vw, 34px); height: clamp(31px, 3.35vw, 49px); transform: translateY(var(--hook-length)); transform-origin: 50% 5%; filter: drop-shadow(1px 2px 0 rgb(54 77 87 / .28)); transition: transform var(--hook-speed) cubic-bezier(.25, .85, .35, 1), filter 160ms ease; will-change: transform; }
-.fishing-hook-art { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: translate(-50%, -3px) rotate(-11deg); transform-origin: 50% 5%; }
-.fishing-hook-art::before { content: ''; position: absolute; top: 0; left: 50%; width: 35%; height: 35%; transform: translateX(-50%); border: clamp(2px, .2vw, 3px) solid #5a392d; border-radius: 999px; background: #f7cf72; box-shadow: inset 0 0 0 1px rgb(255 243 198 / .7); }
-.fishing-hook-eye { position: absolute; top: 21%; left: 50%; width: 24%; height: 24%; transform: translateX(-50%); border: 2px solid #5a392d; border-radius: 999px; background: #c98042; }
-.fishing-hook-shank { position: absolute; top: 35%; left: 50%; width: 22%; height: 43%; transform: translateX(-50%); border: clamp(2px, .2vw, 3px) solid #5a392d; border-radius: 999px; background: linear-gradient(90deg, #f8d57b, #c97a3a); }
-.fishing-hook-curve { position: absolute; right: 6%; bottom: 0; width: 61%; height: 52%; border: clamp(3px, .27vw, 4px) solid #5a392d; border-top: 0; border-left: 0; border-radius: 0 0 95% 0; }
-.fishing-hook-point { position: absolute; right: -2%; bottom: 3%; width: 38%; height: 26%; transform: rotate(-36deg); transform-origin: left bottom; border-top: clamp(3px, .27vw, 4px) solid #5a392d; }
+.fishing-hook { position: absolute; top: 0; left: 0; width: clamp(56px, 5.4vw, 82px); height: clamp(56px, 5.4vw, 82px); transform: translateY(var(--hook-length)); transform-origin: 50% 5%; filter: drop-shadow(1px 2px 0 rgb(54 77 87 / .28)); transition: transform var(--hook-speed) cubic-bezier(.25, .85, .35, 1), filter 160ms ease; will-change: transform; }
+.fishing-hook-image { position: absolute; top: 0; left: 0; display: block; width: 100%; height: 100%; object-fit: contain; transform: translate(-42%, -6%); transform-origin: 42% 6%; pointer-events: none; }
 .gold-hook-rig.is-carrying .fishing-hook { filter: drop-shadow(0 0 7px rgb(255 239 139 / .86)) drop-shadow(1px 2px 0 rgb(54 77 87 / .28)); }
 
 /* The active fish are mounted here by fishing.js. --fish-x/--fish-y are percentages of this water area. */
@@ -99,7 +94,7 @@ body {
 .fishing-target.is-hooked .fishing-target-body { animation: fish-caught .2s ease-in-out infinite alternate; filter: drop-shadow(0 0 7px rgb(255 239 139 / .8)); }
 .fishing-target.is-escaped { opacity: 0; transform: translate(-50%, -50%) scale(.65); }
 /* When a caught fish is appended into #fishing-hook, add is-carried before moving it. */
-.fishing-hook .fishing-target.is-carried { --fish-x: 27px; --fish-y: 35px; position: absolute; z-index: 2; width: clamp(44px, 5.7vw, 84px); pointer-events: none; transform: translate(-50%, -50%) scaleX(var(--fish-direction)) scale(var(--fish-scale)); }
+.fishing-hook .fishing-target.is-carried { --fish-x: 42px; --fish-y: 51px; position: absolute; z-index: 2; width: clamp(44px, 5.7vw, 84px); pointer-events: none; transform: translate(-50%, -50%) scaleX(var(--fish-direction)) scale(var(--fish-scale)); }
 .fishing-hook .fishing-target.is-carried .fishing-target-ripple { display: none; }
 
 /* Retained only so cached versions of the former float-bobber script keep running harmlessly. */
