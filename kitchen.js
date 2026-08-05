@@ -1950,7 +1950,7 @@ function renderSushiRack() {
     }
     const image = item.querySelector('img');
     item.dataset.ingredientId = sushiType.id;
-    item.setAttribute('aria-label', `第 ${index + 1} 份${sushiType.name}寿司，拖给顾客`);
+    item.setAttribute('aria-label', `第 ${index + 1} 份${sushiType.name}寿司，拖给顾客或垃圾桶`);
     const nextSource = sushiAsset(sushiType.id, 'nigiri');
     if (image.getAttribute('src') !== nextSource) image.src = nextSource;
     image.alt = `${sushiType.name}寿司`;
@@ -1958,7 +1958,7 @@ function renderSushiRack() {
   });
 }
 
-function renderStockRack(rack, count, className, src, alt, onPointerDown = null) {
+function renderStockRack(rack, count, className, src, alt, onPointerDown = null, dragInstruction = '拖给顾客') {
   const visibleCount = Math.max(0, count);
   const existingItems = Array.from(rack.children);
   existingItems.slice(visibleCount).forEach((item) => item.remove());
@@ -1970,7 +1970,7 @@ function renderStockRack(rack, count, className, src, alt, onPointerDown = null)
     if (onPointerDown) {
       const image = document.createElement('img');
       item.type = 'button';
-      item.setAttribute('aria-label', `第 ${index + 1} 份${alt}，拖给顾客`);
+      item.setAttribute('aria-label', `第 ${index + 1} 份${alt}，${dragInstruction}`);
       image.src = src;
       image.alt = alt;
       image.draggable = false;
@@ -1995,7 +1995,7 @@ function renderDrinks() {
     const image = document.createElement('img');
     drink.type = 'button';
     drink.className = 'stored-drink stored-sushi-button';
-    drink.setAttribute('aria-label', `第 ${index + 1} 杯茶，拖给顾客`);
+    drink.setAttribute('aria-label', `第 ${index + 1} 杯茶，拖给顾客或垃圾桶`);
     drink.addEventListener('pointerdown', prepareDrinkServeDrag);
     image.src = `${KITCHEN_ASSET_PATH}tea-cup-ready.png`;
     image.alt = '一杯茶';
@@ -2423,6 +2423,7 @@ function render() {
   renderShrimpBatch();
   renderShrimpHeads();
   trashBin.classList.toggle('is-discarding', state.shrimpHeadDiscarding);
+  trashBin.title = '拖入物品丢弃；点击可清空菜板上的食材';
   const showSettlementActions = state.dayPhase === 'settlement' && !state.daySummaryOpen && !daySummaryTransitioning;
   show(settlementActions, showSettlementActions);
   show(openShopButton, showSettlementActions);
@@ -2456,7 +2457,15 @@ function render() {
   drinkMachine.title = '点击接茶';
   cupStation.title = '拖出空杯';
   renderSlices();
-  renderStockRack(riceRack, state.riceStored - state.incomingRice, 'stored-rice', `${KITCHEN_ASSET_PATH}rice-portion.png`, '一团米饭');
+  renderStockRack(
+    riceRack,
+    state.riceStored - state.incomingRice,
+    'stored-rice',
+    `${KITCHEN_ASSET_PATH}rice-portion.png`,
+    '米饭',
+    prepareRiceDiscardDrag,
+    '拖到垃圾桶丢弃',
+  );
   renderSushiRack();
   if (teaUnlocked) renderDrinks();
   else drinkRack.replaceChildren();
@@ -2468,6 +2477,20 @@ function pointIsInside(event, element) {
   const bounds = element.getBoundingClientRect();
   return event.clientX >= bounds.left && event.clientX <= bounds.right
     && event.clientY >= bounds.top && event.clientY <= bounds.bottom;
+}
+
+function canDropInTrash(type) {
+  return ['ingredient', 'slice', 'rice', 'cup', 'shrimp-head', 'serve', 'serve-drink'].includes(type);
+}
+
+function pointIsInsideTrash(event) {
+  const bounds = trashBin.getBoundingClientRect();
+  // The painted bin extends beyond its layout box.  Match the drop area to
+  // the visible rim so drops onto the drawing cannot miss.
+  const paddingX = bounds.width * 0.16;
+  const paddingY = bounds.height * 0.16;
+  return event.clientX >= bounds.left - paddingX && event.clientX <= bounds.right + paddingX
+    && event.clientY >= bounds.top - paddingY && event.clientY <= bounds.bottom + paddingY;
 }
 
 function moveDragPreview(event) {
@@ -2519,6 +2542,8 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
     ? sushiType.id === 'shrimp'
       ? `${KITCHEN_ASSET_PATH}shrimp-whole.png`
       : sushiAsset(sushiType.id, 'loin')
+    : type === 'rice'
+      ? `${KITCHEN_ASSET_PATH}rice-portion.png`
     : type === 'slice'
       ? sushiAsset(sushiType.id, 'slice')
       : type === 'cup'
@@ -2548,17 +2573,27 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
   };
   preview.style.setProperty('--drag-x', `${event.clientX - stageRect.left}px`);
   preview.style.setProperty('--drag-y', `${event.clientY - stageRect.top}px`);
-  if (type === 'slice' || type === 'ingredient' || type === 'shrimp-head' || isCustomerDelivery) source.classList.add('is-dragging');
+  if (type === 'slice' || type === 'rice' || type === 'ingredient' || type === 'shrimp-head' || isCustomerDelivery) source.classList.add('is-dragging');
   source.setPointerCapture(event.pointerId);
-  const dropTarget = type === 'ingredient' ? boardStation : type === 'cup' ? drinkMachine : type === 'shrimp-head' ? trashBin : isCustomerDelivery ? target?.closest('.customer') : riceRack;
+  const dropTarget = type === 'ingredient'
+    ? boardStation
+    : type === 'cup'
+      ? drinkMachine
+      : type === 'rice' || type === 'shrimp-head'
+        ? null
+        : isCustomerDelivery
+          ? target?.closest('.customer')
+          : riceRack;
   dropTarget?.classList.add('is-drop-target');
+  if (canDropInTrash(type)) trashBin.classList.add('is-drop-target');
   moveDragPreview(event);
   setMessage(type === 'ingredient'
     ? sushiType.id === 'shrimp' ? '把一只带头甜虾拖到切菜板。' : `把${sushiType.boardName}拖到切菜板。`
     : type === 'shrimp-head' ? '把虾头拖到垃圾桶。'
+      : type === 'rice' ? '把米饭拖到垃圾桶丢弃。'
       : type === 'cup' ? '把空杯拖到饮品机。'
-        : type === 'serve-drink' ? '把茶直接拖给顾客。'
-        : type === 'serve' ? '把寿司直接拖给顾客。'
+        : type === 'serve-drink' ? '把茶拖给顾客，或拖进垃圾桶丢弃。'
+        : type === 'serve' ? '把寿司拖给顾客，或拖进垃圾桶丢弃。'
           : `把${sushiType.name}片拖到米饭架。`);
 }
 
@@ -2689,6 +2724,18 @@ function prepareSliceDrag(event) {
   startIngredientDrag(event, 'slice', event.currentTarget.dataset.ingredientId);
 }
 
+function prepareRiceDiscardDrag(event) {
+  if (state.incomingRice) {
+    setMessage('等米饭滑进米饭架后再处理。');
+    return;
+  }
+  if (!state.riceStored) {
+    setMessage('米饭架里没有可以丢弃的米饭。');
+    return;
+  }
+  startIngredientDrag(event, 'rice');
+}
+
 function prepareShrimpHeadDrag(event) {
   if (!state.shrimpHeads.length || state.shrimpHeadDiscarding) {
     setMessage('现在没有需要处理的虾头。');
@@ -2698,15 +2745,6 @@ function prepareShrimpHeadDrag(event) {
 }
 
 function prepareSushiServeDrag(event) {
-  if (!state.shopOpen) {
-    setMessage('今天已经结算，开始下一天后再出餐。');
-    return;
-  }
-  const customer = getActiveCustomer();
-  if (!customer) {
-    setMessage('还没有正在等待的顾客。');
-    return;
-  }
   if (state.incomingSushi) {
     setMessage('等寿司滑进寿司架再出餐。');
     return;
@@ -2715,15 +2753,6 @@ function prepareSushiServeDrag(event) {
 }
 
 function prepareDrinkServeDrag(event) {
-  if (!state.shopOpen) {
-    setMessage('今天已经结算，开始下一天后再出餐。');
-    return;
-  }
-  const customer = getActiveCustomer();
-  if (!customer) {
-    setMessage('还没有正在等待的顾客。');
-    return;
-  }
   if (state.incomingDrinks) {
     setMessage('等茶滑进饮料架再出餐。');
     return;
@@ -2834,6 +2863,149 @@ function deliverDrinkToCustomer(customerId) {
   return true;
 }
 
+function playTrashFlight({ src, fromClientX, fromClientY, sourceRect = null }) {
+  const stageRect = stage.getBoundingClientRect();
+  const trashRect = trashBin.getBoundingClientRect();
+  if (!stageRect.width || !stageRect.height || !trashRect.width || !trashRect.height) return;
+
+  const fallbackSize = Math.min(stageRect.width * 0.065, stageRect.height * 0.16);
+  const sourceSize = sourceRect ? Math.max(sourceRect.width, sourceRect.height) * 0.62 : fallbackSize;
+  const size = Math.max(24, Math.min(76, sourceSize || fallbackSize));
+  const item = document.createElement('img');
+  const fromX = fromClientX - stageRect.left;
+  const fromY = fromClientY - stageRect.top;
+  const toX = trashRect.left + (trashRect.width / 2) - stageRect.left;
+  const toY = trashRect.top + (trashRect.height * 0.43) - stageRect.top;
+
+  item.className = 'flying-trash-item';
+  item.src = src;
+  item.alt = '';
+  item.draggable = false;
+  item.style.left = `${fromX}px`;
+  item.style.top = `${fromY}px`;
+  item.style.width = `${size}px`;
+  item.style.height = `${size}px`;
+  item.style.setProperty('--flight-x', `${toX - fromX}px`);
+  item.style.setProperty('--flight-y', `${toY - fromY}px`);
+  stage.append(item);
+  finishFlightOnAnimationEnd(item, 'trash-item-flight');
+}
+
+function discardDraggedItem(type, { ingredientId, sourceRect, src, fromClientX, fromClientY, shrimpHeadId }) {
+  if (type === 'shrimp-head') {
+    discardShrimpHead(sourceRect, shrimpHeadId);
+    return true;
+  }
+
+  const sushiType = sushiTypeFor(ingredientId);
+  let label = '';
+  let discarded = false;
+
+  if (type === 'ingredient') {
+    discarded = consumeRawFish(sushiType.id);
+    label = `${sushiType.name}食材`;
+  } else if (type === 'slice') {
+    const index = state.sliceTypes.indexOf(sushiType.id);
+    if (index !== -1) {
+      state.sliceTypes.splice(index, 1);
+      state.slicesReady = state.sliceTypes.length;
+      discarded = true;
+    }
+    label = `${sushiType.name}鱼片`;
+  } else if (type === 'rice') {
+    if (state.riceStored > 0) {
+      state.riceStored -= 1;
+      discarded = true;
+    }
+    label = '米饭';
+  } else if (type === 'serve') {
+    const index = state.sushiTypes.indexOf(sushiType.id);
+    if (index !== -1) {
+      state.sushiTypes.splice(index, 1);
+      state.sushiStored = state.sushiTypes.length;
+      discarded = true;
+    }
+    label = `${sushiType.name}寿司`;
+  } else if (type === 'serve-drink') {
+    if (state.drinksStored > 0) {
+      state.drinksStored -= 1;
+      discarded = true;
+    }
+    label = '茶';
+  } else if (type === 'cup') {
+    discarded = true;
+    label = '空杯';
+  }
+
+  if (!discarded) {
+    setMessage('这个物品已经不在制作台上了。');
+    render();
+    return false;
+  }
+
+  playStationMotion(trashBin, 'is-discarding', motionDuration(620));
+  playTrashFlight({ src, fromClientX, fromClientY, sourceRect });
+  setMessage(`${label}已经丢进垃圾桶。`);
+  render();
+  if (!hasUnsettledSaveState()) saveGame();
+  else scheduleSave();
+  return true;
+}
+
+function discardWorkInProgress() {
+  if (state.gamePaused || ingredientDrag) return;
+  let sourceRect = null;
+  let src = '';
+  let label = '';
+
+  if (state.salmonOnBoard) {
+    const sushiType = sushiTypeFor(state.boardIngredientId);
+    sourceRect = boardSalmon.getBoundingClientRect();
+    src = sushiAsset(sushiType.id, 'loin');
+    label = sushiType.boardName;
+    state.salmonOnBoard = false;
+    state.boardIngredientId = null;
+    state.cutLines = [false, false, false];
+    state.activeCut = null;
+  } else if (state.shrimpOnBoard) {
+    const remaining = state.shrimpBatch.filter((shrimp) => !shrimp.cut).length;
+    sourceRect = shrimpBatch.getBoundingClientRect();
+    src = `${KITCHEN_ASSET_PATH}shrimp-whole.png`;
+    label = remaining > 1 ? `${remaining} 只甜虾` : '甜虾';
+    state.shrimpOnBoard = false;
+    state.shrimpBatch = [];
+    state.activeShrimpCut = null;
+  } else if (state.cupOnMachine || state.drinkPouring) {
+    sourceRect = machineCup.getBoundingClientRect();
+    src = state.drinkPouring
+      ? `${KITCHEN_ASSET_PATH}tea-cup-ready.png`
+      : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
+    label = state.drinkPouring ? '正在制作的茶' : '空杯';
+    state.cupOnMachine = false;
+    state.drinkPouring = false;
+    state.drinkVersion += 1;
+  } else if (state.shrimpHeads.length && !state.shrimpHeadDiscarding) {
+    const firstHead = shrimpHeadRack.querySelector('.shrimp-head');
+    discardShrimpHead(firstHead?.getBoundingClientRect() ?? trashBin.getBoundingClientRect(), firstHead?.dataset.shrimpHeadId);
+    return;
+  } else {
+    setMessage('把米饭、鱼片、寿司、茶或食材拖进垃圾桶；点击垃圾桶也能清空菜板上的食材。');
+    return;
+  }
+
+  playStationMotion(trashBin, 'is-discarding', motionDuration(620));
+  playTrashFlight({
+    src,
+    sourceRect,
+    fromClientX: sourceRect.left + (sourceRect.width / 2),
+    fromClientY: sourceRect.top + (sourceRect.height / 2),
+  });
+  setMessage(`${label}已经丢进垃圾桶。`);
+  render();
+  if (!hasUnsettledSaveState()) saveGame();
+  else scheduleSave();
+}
+
 freezerButton.addEventListener('click', openSashimiPicker);
 sashimiChoices.forEach((choice) => choice.addEventListener('pointerdown', dragSashimiFromPicker));
 ingredientShopToggle.addEventListener('click', toggleIngredientShop);
@@ -2843,6 +3015,7 @@ ingredientShopPanel.addEventListener('click', (event) => {
 });
 riceBin.addEventListener('click', takeRice);
 cupStation.addEventListener('pointerdown', prepareCupDrag);
+trashBin.addEventListener('click', discardWorkInProgress);
 
 window.addEventListener('pointermove', (event) => moveDragPreview(event), { passive: true });
 window.addEventListener('pointercancel', () => clearIngredientDrag());
@@ -2851,30 +3024,53 @@ window.addEventListener('pointerup', (event) => {
   const { type, source, target, targetCustomerId, ingredientId, shrimpHeadId, preview } = ingredientDrag;
   const sushiType = sushiTypeFor(ingredientId);
   const isCustomerDelivery = type === 'serve' || type === 'serve-drink';
-  const shrimpHeadSourceRect = type === 'shrimp-head' ? source.getBoundingClientRect() : null;
+  const sourceRect = source.getBoundingClientRect();
+  const previewSrc = preview.currentSrc || preview.src;
   const deliveryFlight = isCustomerDelivery && target
     ? {
-      src: preview.currentSrc || preview.src,
+      src: previewSrc,
       fromClientX: event.clientX,
       fromClientY: event.clientY,
       targetRect: target.getBoundingClientRect(),
       isDrink: type === 'serve-drink',
     }
     : null;
-  const destination = type === 'ingredient' ? boardStation : type === 'cup' ? drinkMachine : type === 'shrimp-head' ? trashBin : isCustomerDelivery ? target : riceRack;
-  const accepted = Boolean(destination && pointIsInside(event, destination));
+  const destination = type === 'ingredient'
+    ? boardStation
+    : type === 'cup'
+      ? drinkMachine
+      : type === 'rice' || type === 'shrimp-head'
+        ? null
+        : isCustomerDelivery
+          ? target
+          : riceRack;
+  const droppedInTrash = canDropInTrash(type) && pointIsInsideTrash(event);
+  const accepted = droppedInTrash || Boolean(destination && pointIsInside(event, destination));
   if (source.hasPointerCapture(event.pointerId)) source.releasePointerCapture(event.pointerId);
   clearIngredientDrag();
 
   if (!accepted) {
     setMessage(type === 'ingredient'
-      ? sushiType.id === 'shrimp' ? '把带头甜虾拖到切菜板里。' : `把${sushiType.boardName}拖到切菜板里。`
+      ? sushiType.id === 'shrimp' ? '把带头甜虾拖到切菜板里，或拖进垃圾桶。' : `把${sushiType.boardName}拖到切菜板里，或拖进垃圾桶。`
       : type === 'shrimp-head' ? '把虾头拖到垃圾桶里。'
-        : type === 'cup' ? '把空杯拖到饮品机里。'
-          : type === 'serve-drink' ? '把茶直接拖到顾客身上。'
-          : type === 'serve' ? '把寿司直接拖到顾客身上。'
-            : `把${sushiType.name}片拖到米饭架里。`);
+        : type === 'rice' ? '把米饭拖到垃圾桶里。'
+          : type === 'cup' ? '把空杯拖到饮品机里，或拖进垃圾桶。'
+            : type === 'serve-drink' ? '把茶拖到顾客身上，或拖进垃圾桶。'
+              : type === 'serve' ? '把寿司拖到顾客身上，或拖进垃圾桶。'
+                : `把${sushiType.name}片拖到米饭架里，或拖进垃圾桶。`);
     render();
+    return;
+  }
+
+  if (droppedInTrash) {
+    discardDraggedItem(type, {
+      ingredientId,
+      sourceRect,
+      src: previewSrc,
+      fromClientX: event.clientX,
+      fromClientY: event.clientY,
+      shrimpHeadId,
+    });
     return;
   }
 
@@ -2885,11 +3081,6 @@ window.addEventListener('pointerup', (event) => {
 
   if (type === 'serve-drink') {
     if (deliverDrinkToCustomer(targetCustomerId)) playCustomerDeliveryFlight(deliveryFlight);
-    return;
-  }
-
-  if (type === 'shrimp-head') {
-    discardShrimpHead(shrimpHeadSourceRect, shrimpHeadId);
     return;
   }
 
