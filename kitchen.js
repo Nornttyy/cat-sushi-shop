@@ -461,6 +461,41 @@ function recipeName(recipeId) {
   return SHOP_ITEMS.find((shopItem) => shopItem.recipeId === recipeId)?.name ?? '前置配方';
 }
 
+function purchaseRequirements(item) {
+  const requirements = [];
+  if (item?.requiresRecipe) {
+    requirements.push({
+      name: recipeName(item.requiresRecipe),
+      met: isRecipeUnlocked(item.requiresRecipe),
+    });
+  }
+  if (item?.requiresTea) {
+    requirements.push({
+      name: shopItemName(shopItemFor('tea')),
+      met: isTeaUnlocked(),
+    });
+  }
+  return requirements;
+}
+
+function unmetPurchaseRequirementNames(item) {
+  return purchaseRequirements(item)
+    .filter((requirement) => !requirement.met)
+    .map((requirement) => requirement.name);
+}
+
+function appendPurchaseRequirement(detail, item) {
+  const requirements = purchaseRequirements(item);
+  if (!requirements.length) return requirements;
+
+  const prerequisite = document.createElement('span');
+  const met = requirements.every((requirement) => requirement.met);
+  prerequisite.className = `shop-prerequisite${met ? ' is-met' : ''}`;
+  prerequisite.textContent = `${met ? '前置已满足：' : '前置：'}${requirements.map((requirement) => requirement.name).join('、')}`;
+  detail.append(prerequisite);
+  return requirements;
+}
+
 function storageUpgradeFor(id) {
   return STORAGE_UPGRADES.find((upgrade) => upgrade.id === id) ?? null;
 }
@@ -2385,7 +2420,8 @@ function renderStorageUpgrades() {
     const maxed = storageUpgradeIsMaxed(upgrade);
     const nextValue = maxed ? currentValue : values[level + 1];
     const nextPrice = maxed ? null : upgrade.prices[level];
-    const needsTea = Boolean(upgrade.requiresTea && !isTeaUnlocked());
+    const unmetRequirements = unmetPurchaseRequirementNames(upgrade);
+    const prerequisiteMet = unmetRequirements.length === 0;
     const canAfford = !maxed && state.cash >= nextPrice;
     const actionLabel = upgrade.durations ? '提速' : '升级';
     const item = document.createElement('article');
@@ -2395,31 +2431,31 @@ function renderStorageUpgrades() {
     const price = document.createElement('span');
     const button = document.createElement('button');
 
-    item.className = `ingredient-shop-item storage-upgrade-item${level ? ' is-owned' : ''}${maxed ? ' is-maxed' : ''}`;
+    item.className = `ingredient-shop-item storage-upgrade-item${level ? ' is-owned' : ''}${maxed ? ' is-maxed' : ''}${prerequisiteMet ? '' : ' is-locked'}`;
     image.src = storageUpgradePreviewAsset(upgrade);
     image.alt = upgrade.name;
     image.draggable = false;
     name.textContent = upgrade.name;
     price.textContent = maxed
       ? `已升级至 ${storageUpgradeValueLabel(upgrade, currentValue)}`
-      : needsTea
-        ? '先购买茶饮配方'
-        : `${storageUpgradeValueLabel(upgrade, currentValue)} → ${storageUpgradeValueLabel(upgrade, nextValue)} · 第${level + 1}/${upgrade.prices.length}次 · ¥${nextPrice}`;
-    detail.append(name, price);
+      : `${storageUpgradeValueLabel(upgrade, currentValue)} → ${storageUpgradeValueLabel(upgrade, nextValue)} · 第${level + 1}/${upgrade.prices.length}次 · ¥${nextPrice}`;
+    detail.append(name);
+    appendPurchaseRequirement(detail, upgrade);
+    detail.append(price);
 
     button.type = 'button';
-    button.disabled = maxed || needsTea || !canAfford;
+    button.disabled = maxed || !prerequisiteMet || !canAfford;
     button.textContent = maxed
       ? '已扩到最大'
-      : needsTea
-        ? '先买茶饮配方'
+      : !prerequisiteMet
+        ? `需要：${unmetRequirements.join('、')}`
         : canAfford
           ? `${actionLabel} ¥${nextPrice}`
           : `余额不足 ¥${nextPrice}`;
     button.title = maxed
       ? `${upgrade.name}已扩到最大`
-      : needsTea
-        ? '先购买茶饮配方，才能升级饮品机'
+      : !prerequisiteMet
+        ? `先购买${unmetRequirements.join('、')}，才能${actionLabel}`
         : canAfford
           ? `第 ${level + 1}/${upgrade.prices.length} 次：把${upgrade.name}从 ${storageUpgradeValueLabel(upgrade, currentValue)}提升到 ${storageUpgradeValueLabel(upgrade, nextValue)}`
           : `余额不足，还差 ¥${nextPrice - state.cash}`;
@@ -2461,7 +2497,8 @@ function renderIngredientShop() {
     const available = isShopItemAvailable(shopItem);
     const unlockDay = shopItemUnlockDay(shopItem);
     const isFish = needsFishing(shopItem.id);
-    const prerequisiteMet = !shopItem.requiresRecipe || isRecipeUnlocked(shopItem.requiresRecipe);
+    const unmetRequirements = unmetPurchaseRequirementNames(shopItem);
+    const prerequisiteMet = unmetRequirements.length === 0;
     const canAfford = state.cash >= shopItem.price;
     const item = document.createElement('article');
     const image = document.createElement('img');
@@ -2478,9 +2515,10 @@ function renderIngredientShop() {
     price.textContent = unlocked
       ? isFish ? '已解锁 · 去钓鱼' : '已购买'
       : !available ? `第 ${unlockDay} 天解锁`
-        : !prerequisiteMet ? `先购买${recipeName(shopItem.requiresRecipe)}`
-          : `¥${shopItem.price}`;
-    detail.append(name, price);
+        : `¥${shopItem.price}`;
+    detail.append(name);
+    appendPurchaseRequirement(detail, shopItem);
+    detail.append(price);
 
     button.type = 'button';
     button.disabled = unlocked || !available || !prerequisiteMet || !canAfford;
@@ -2489,7 +2527,7 @@ function renderIngredientShop() {
       : !available
         ? `第 ${unlockDay} 天解锁`
         : !prerequisiteMet
-          ? `先买${recipeName(shopItem.requiresRecipe)}`
+        ? `需要：${unmetRequirements.join('、')}`
         : canAfford
         ? `购买 ¥${shopItem.price}`
         : `余额不足 ¥${shopItem.price}`;
@@ -2498,7 +2536,7 @@ function renderIngredientShop() {
       : !available
         ? `第 ${unlockDay} 天起可以购买${itemName}`
         : !prerequisiteMet
-          ? `先购买${recipeName(shopItem.requiresRecipe)}，再购买${itemName}`
+          ? `前置物品：${unmetRequirements.join('、')}`
         : canAfford ? `购买${itemName}` : `余额不足，还差 ¥${shopItem.price - state.cash}`;
     button.addEventListener('click', () => buyIngredient(shopItem.id));
     item.append(image, detail, button);
@@ -2576,8 +2614,9 @@ function buyIngredient(ingredientId) {
     render();
     return;
   }
-  if (shopItem.requiresRecipe && !isRecipeUnlocked(shopItem.requiresRecipe)) {
-    setMessage(`先购买${recipeName(shopItem.requiresRecipe)}，再购买${itemName}。`);
+  const unmetRequirements = unmetPurchaseRequirementNames(shopItem);
+  if (unmetRequirements.length) {
+    setMessage(`需要先购买${unmetRequirements.join('、')}，才能购买${itemName}。`);
     render();
     return;
   }

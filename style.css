@@ -274,11 +274,13 @@ button { font: inherit; }
 .storage-upgrade-section { border-top: 2px dashed rgb(112 67 49 / .3); }
 .ingredient-shop-item { display: grid; grid-template-columns: clamp(40px, 4.4vw, 66px) minmax(0, 1fr); align-items: center; gap: 5px clamp(7px, .7vw, 11px); min-height: clamp(64px, 7.5vw, 104px); padding: clamp(6px, .72vw, 11px); border: 2px solid rgb(112 67 49 / .3); border-radius: 13px; background: linear-gradient(145deg, #fffdf1, #fff0cd); box-shadow: 0 3px 0 rgb(112 67 49 / .12); }
 .ingredient-shop-item.is-owned, .storage-upgrade-item.is-maxed { background: linear-gradient(145deg, #edf7df, #d8ecbc); }
-.ingredient-shop-item.is-locked { filter: saturate(.52) opacity(.82); }
+.ingredient-shop-item.is-locked { filter: saturate(.66); }
 .ingredient-shop-item > img { grid-row: span 2; display: block; width: 100%; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 2px 1px rgb(90 57 45 / .22)); }
 .ingredient-shop-item > div { display: grid; gap: 2px; min-width: 0; color: #704331; }
 .ingredient-shop-item b { overflow: hidden; font-size: clamp(11px, .95vw, 15px); font-weight: 1000; text-overflow: ellipsis; white-space: nowrap; }
 .ingredient-shop-item span { font-size: clamp(9px, .74vw, 12px); font-weight: 900; line-height: 1.25; opacity: .78; }
+.ingredient-shop-item .shop-prerequisite { width: fit-content; max-width: 100%; overflow: hidden; padding: 2px 6px; border: 1px solid #b36543; border-radius: 999px; color: #943e2b; background: #ffe6ad; font-size: clamp(8px, .66vw, 11px); font-weight: 1000; line-height: 1.15; opacity: 1; text-overflow: ellipsis; white-space: nowrap; }
+.ingredient-shop-item .shop-prerequisite.is-met { border-color: #87a161; color: #4e703c; background: #e2f0cf; }
 .ingredient-shop-item button { grid-column: 2; width: 100%; padding: clamp(4px, .45vw, 7px) clamp(5px, .6vw, 9px); cursor: pointer; border: 2px solid #8a563e; border-radius: 9px; color: #fff9e5; background: linear-gradient(#eb9869, #d87650); box-shadow: 0 2px 0 #a55f46; font-size: clamp(9px, .74vw, 12px); font-weight: 1000; transition: transform 140ms cubic-bezier(.2, .8, .25, 1), filter 140ms ease, box-shadow 140ms ease; }
 .ingredient-shop-item button:active { transform: translateY(2px); box-shadow: none; }
 .ingredient-shop-item button:disabled { cursor: not-allowed; color: #79665b; background: #d8cdbb; box-shadow: none; opacity: .82; }
