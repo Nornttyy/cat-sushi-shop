@@ -354,7 +354,6 @@ button { font: inherit; }
 .kitchen-stage.is-game-paused > :not(.game-pause-overlay):not(.kitchen-exit-loading), .kitchen-stage.is-game-paused > :not(.game-pause-overlay):not(.kitchen-exit-loading) * { animation-play-state: paused !important; }
 .menu-loading-screen.kitchen-exit-loading { z-index: 90; }
 .kitchen-stage.is-exiting-game { pointer-events: none; }
-.kitchen-stage.is-reduced-motion * { animation-duration: 1ms !important; transition-duration: 1ms !important; }
 .kitchen-stage.is-day-settled .work-counter { pointer-events: none; filter: saturate(.84) brightness(.96); }
 .is-hidden { display: none !important; }
 .screen-reader-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }

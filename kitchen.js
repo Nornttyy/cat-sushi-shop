@@ -458,7 +458,7 @@ const state = {
 
 let lastSavedSnapshot = '';
 let saveTimer = null;
-let gameSettings = { reducedMotion: false, soundEnabled: true, soundVolume: DEFAULT_SOUND_VOLUME };
+let gameSettings = { soundEnabled: true, soundVolume: DEFAULT_SOUND_VOLUME };
 let accumulatedPausedTime = 0;
 let pauseStartedAt = 0;
 const gameplayTimeouts = new Set();
@@ -531,12 +531,11 @@ function restoreGameSettings() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(SETTINGS_KEY));
     if (saved && typeof saved === 'object') {
-      gameSettings.reducedMotion = Boolean(saved.reducedMotion);
       gameSettings.soundEnabled = saved.soundEnabled !== false;
       gameSettings.soundVolume = normalizedSoundVolume(saved.soundVolume);
     }
   } catch {
-    gameSettings = { reducedMotion: false, soundEnabled: true, soundVolume: DEFAULT_SOUND_VOLUME };
+    gameSettings = { soundEnabled: true, soundVolume: DEFAULT_SOUND_VOLUME };
   }
   syncSoundSettings();
 }
@@ -781,7 +780,6 @@ const gameSettingsPanel = document.querySelector('#game-settings-panel');
 const resumeGameButton = document.querySelector('#resume-game-button');
 const openGameSettingsButton = document.querySelector('#open-game-settings-button');
 const closeGameSettingsButton = document.querySelector('#close-game-settings-button');
-const motionSettingButton = document.querySelector('#motion-setting-button');
 const soundSettingButton = document.querySelector('#sound-setting-button');
 const soundVolumeSetting = document.querySelector('#sound-volume-setting');
 const soundVolumeValue = document.querySelector('#sound-volume-value');
@@ -1046,7 +1044,7 @@ function skipTutorial() {
 }
 
 function motionDuration(duration) {
-  return gameSettings.reducedMotion ? 1 : duration;
+  return duration;
 }
 
 function openModal(element) {
@@ -1727,7 +1725,7 @@ function openGameSettings() {
   state.pauseSettingsOpen = true;
   playSound('ui');
   render();
-  window.requestAnimationFrame(() => motionSettingButton.focus());
+  window.requestAnimationFrame(() => soundSettingButton.focus());
 }
 
 function closeGameSettings() {
@@ -1736,13 +1734,6 @@ function closeGameSettings() {
   playSound('ui');
   render();
   window.requestAnimationFrame(() => openGameSettingsButton.focus());
-}
-
-function toggleReducedMotion() {
-  gameSettings.reducedMotion = !gameSettings.reducedMotion;
-  saveGameSettings();
-  playSound('ui');
-  render();
 }
 
 function toggleSoundEffects() {
@@ -1765,7 +1756,7 @@ function exitGame() {
   saveGame();
   stage.classList.add('is-exiting-game');
   exitLoadingOverlay.setAttribute('aria-hidden', 'false');
-  const exitDelay = gameSettings.reducedMotion ? 1 : 900;
+  const exitDelay = 900;
   window.setTimeout(() => window.location.assign('index.html?returning=1'), exitDelay);
 }
 
@@ -2425,15 +2416,12 @@ function render() {
   if (maybeEndDayForMissingFish()) return;
   stage.classList.toggle('is-game-paused', state.gamePaused);
   stage.classList.toggle('is-day-settled', state.dayPhase === 'settlement');
-  stage.classList.toggle('is-reduced-motion', gameSettings.reducedMotion);
   setModalVisibility(gamePauseOverlay, state.gamePaused, 220);
   gamePauseOverlay.setAttribute('aria-hidden', String(!state.gamePaused));
   show(gamePauseMenu, !state.pauseSettingsOpen);
   show(gameSettingsPanel, state.pauseSettingsOpen);
   gamePauseButton.textContent = state.gamePaused ? '继续游戏' : '暂停';
   gamePauseButton.setAttribute('aria-pressed', String(state.gamePaused));
-  motionSettingButton.textContent = gameSettings.reducedMotion ? '已关闭' : '已开启';
-  motionSettingButton.setAttribute('aria-pressed', String(!gameSettings.reducedMotion));
   soundSettingButton.textContent = gameSettings.soundEnabled ? '已开启' : '已关闭';
   soundSettingButton.setAttribute('aria-pressed', String(gameSettings.soundEnabled));
   const soundPercent = Math.round(gameSettings.soundVolume * 100);
@@ -3222,7 +3210,7 @@ function flySlice(sourceRect, rackRect, sourceFraction, sliceIndex, flightVersio
   flyingSlice.style.height = `${targetHeight}px`;
   flyingSlice.style.setProperty('--flight-x', `${toX - fromX}px`);
   flyingSlice.style.setProperty('--flight-y', `${toY - fromY}px`);
-  const animationStagger = gameSettings.reducedMotion ? 0 : staggerMs;
+  const animationStagger = staggerMs;
   flyingSlice.style.animationDelay = `${animationStagger}ms`;
   stage.append(flyingSlice);
 
@@ -3517,7 +3505,6 @@ gamePauseButton.addEventListener('click', toggleGamePause);
 resumeGameButton.addEventListener('click', resumeGame);
 openGameSettingsButton.addEventListener('click', openGameSettings);
 closeGameSettingsButton.addEventListener('click', closeGameSettings);
-motionSettingButton.addEventListener('click', toggleReducedMotion);
 soundSettingButton.addEventListener('click', toggleSoundEffects);
 soundVolumeSetting.addEventListener('input', updateSoundVolume);
 exitGameButton.addEventListener('click', exitGame);

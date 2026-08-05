@@ -16,7 +16,7 @@ async function enterBusiness() {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=soft-foley-v72-20260805';
+    kitchenScript.src = 'kitchen.js?v=settings-clean-v81-20260805';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
