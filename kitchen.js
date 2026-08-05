@@ -39,13 +39,13 @@ const SHOP_ITEMS = [
   { id: 'salmon', price: 180 },
   { id: 'shrimp', price: 260 },
   { id: 'tuna', price: 350 },
-  { id: 'mackerel', price: 480, minimumDay: 3 },
-  { id: 'nori', name: '紫菜配方', asset: 'nori-sheets.png', price: 420, minimumDay: 4, kind: 'recipe', recipeId: 'nori' },
-  { id: 'roe-gunkan', name: '鱼籽军舰配方', asset: 'roe-gunkan.png', price: 900, minimumDay: 6, kind: 'recipe', recipeId: 'roe-gunkan', requiresRecipe: 'nori' },
-  { id: 'seabream', price: 780, minimumDay: 7 },
-  { id: 'uni-gunkan', name: '海胆军舰配方', asset: 'uni-gunkan.png', price: 1180, minimumDay: 8, kind: 'recipe', recipeId: 'uni-gunkan', requiresRecipe: 'nori' },
-  { id: 'sashimi-platter', name: '刺身拼盘盘具', asset: 'plate-stack.png', price: 1100, minimumDay: 9, kind: 'recipe', recipeId: 'sashimi-platter' },
-  { id: 'eel', price: 1250, minimumDay: 12 },
+  { id: 'mackerel', price: 480 },
+  { id: 'nori', name: '紫菜配方', asset: 'nori-sheets.png', price: 420, kind: 'recipe', recipeId: 'nori' },
+  { id: 'roe-gunkan', name: '鱼籽军舰配方', asset: 'roe-gunkan.png', price: 900, kind: 'recipe', recipeId: 'roe-gunkan', requiresRecipe: 'nori' },
+  { id: 'seabream', price: 780 },
+  { id: 'uni-gunkan', name: '海胆军舰配方', asset: 'uni-gunkan.png', price: 1180, kind: 'recipe', recipeId: 'uni-gunkan', requiresRecipe: 'nori' },
+  { id: 'sashimi-platter', name: '刺身拼盘盘具', asset: 'plate-stack.png', price: 1100, kind: 'recipe', recipeId: 'sashimi-platter' },
+  { id: 'eel', price: 1250 },
 ];
 const STORAGE_UPGRADES = [
   {
