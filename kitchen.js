@@ -191,9 +191,9 @@ const SUSHI_TYPES = {
     name: '金枪鱼',
     pickerName: '金枪鱼刺身',
     boardName: '大金枪鱼块',
-    loin: 'tuna-loin.png',
-    slice: 'tuna-slice.png',
-    nigiri: 'tuna-nigiri.png',
+    loin: 'tuna-loin-vivid-v1.png',
+    slice: 'tuna-slice-vivid-v1.png',
+    nigiri: 'tuna-nigiri-vivid-v1.png',
     price: 6,
   },
   shrimp: {
@@ -201,11 +201,11 @@ const SUSHI_TYPES = {
     name: '甜虾',
     pickerName: '甜虾',
     boardName: '甜虾食材',
-    loin: 'shrimp-loin.png',
-    whole: 'shrimp-whole.png',
-    head: 'shrimp-head.png',
-    slice: 'shrimp-slice.png',
-    nigiri: 'shrimp-nigiri.png',
+    loin: 'shrimp-loin-vivid-v1.png',
+    whole: 'shrimp-whole-vivid-v1.png',
+    head: 'shrimp-head-vivid-v1.png',
+    slice: 'shrimp-slice-vivid-v1.png',
+    nigiri: 'shrimp-nigiri-vivid-v1.png',
     price: 5,
   },
   mackerel: {
@@ -3044,7 +3044,7 @@ function shopPreviewAsset(ingredientId) {
   const shopItem = shopItemFor(ingredientId);
   if (shopItem?.asset) return `${KITCHEN_ASSET_PATH}${shopItem.asset}`;
   return ingredientId === 'shrimp'
-    ? `${KITCHEN_ASSET_PATH}shrimp-whole.png`
+    ? `${KITCHEN_ASSET_PATH}shrimp-whole-vivid-v1.png`
     : sushiAsset(ingredientId, 'loin');
 }
 
@@ -3486,7 +3486,7 @@ function renderShrimpBatch() {
       const guide = document.createElement('span');
       item.type = 'button';
       item.className = 'shrimp-batch-item';
-      image.src = `${KITCHEN_ASSET_PATH}shrimp-whole.png`;
+      image.src = `${KITCHEN_ASSET_PATH}shrimp-whole-vivid-v1.png`;
       image.alt = '带头甜虾';
       image.draggable = false;
       guide.className = 'shrimp-head-cut-guide';
@@ -3526,7 +3526,7 @@ function renderShrimpHeads() {
       const image = document.createElement('img');
       item.type = 'button';
       item.className = 'shrimp-head';
-      image.src = `${KITCHEN_ASSET_PATH}shrimp-head.png`;
+      image.src = `${KITCHEN_ASSET_PATH}shrimp-head-vivid-v1.png`;
       image.alt = '待丢弃的虾头';
       image.draggable = false;
       item.append(image);
@@ -3730,10 +3730,10 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
   const preview = document.createElement('img');
   preview.className = `ingredient-drag-preview ${type}`;
   preview.src = type === 'shrimp-head'
-    ? `${KITCHEN_ASSET_PATH}shrimp-head.png`
+    ? `${KITCHEN_ASSET_PATH}shrimp-head-vivid-v1.png`
     : type === 'ingredient'
     ? sushiType.id === 'shrimp'
-      ? `${KITCHEN_ASSET_PATH}shrimp-whole.png`
+      ? `${KITCHEN_ASSET_PATH}shrimp-whole-vivid-v1.png`
       : sushiAsset(sushiType.id, 'loin')
     : type === 'rice'
       ? `${KITCHEN_ASSET_PATH}rice-portion-vivid-v1.png`
@@ -4193,7 +4193,7 @@ function discardWorkInProgress() {
   } else if (state.shrimpOnBoard) {
     const remaining = state.shrimpBatch.filter((shrimp) => !shrimp.cut).length;
     sourceRect = shrimpBatch.getBoundingClientRect();
-    src = `${KITCHEN_ASSET_PATH}shrimp-whole.png`;
+    src = `${KITCHEN_ASSET_PATH}shrimp-whole-vivid-v1.png`;
     label = remaining > 1 ? `${remaining} 只甜虾` : '甜虾';
     state.shrimpOnBoard = false;
     state.shrimpBatch = [];
@@ -4463,7 +4463,7 @@ function discardShrimpHead(sourceRect, headId) {
   const headSize = Math.max(30, Math.min(sourceRect.width, sourceRect.height) * 0.9);
 
   head.className = 'flying-shrimp-head';
-  head.src = `${KITCHEN_ASSET_PATH}shrimp-head.png`;
+  head.src = `${KITCHEN_ASSET_PATH}shrimp-head-vivid-v1.png`;
   head.alt = '';
   head.draggable = false;
   const fromX = sourceRect.left + (sourceRect.width / 2) - stageRect.left;

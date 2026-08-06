@@ -41,7 +41,7 @@ const FISH_CATALOG = {
     id: 'shrimp',
     name: '甜虾食材',
     weight: 30,
-    asset: 'assets/restaurant/kitchen-layers/optimized/shrimp-whole.png',
+    asset: 'assets/restaurant/kitchen-layers/optimized/shrimp-whole-vivid-v1.png',
     swimSpeed: 0.22,
     pullSpeed: 1.18,
     scale: 0.98,
