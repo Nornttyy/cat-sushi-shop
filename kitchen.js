@@ -15,8 +15,8 @@ const SPECIAL_ORDER_BONUS_RATE = 0.18;
 const SPECIAL_ORDER_BONUS_MAX = 8;
 const DRINK_TYPES = Object.freeze({
   tea: Object.freeze({ id: 'tea', name: '茶', price: 3, asset: 'tea-cup-ready-vivid-v1.png' }),
-  'yuzu-soda': Object.freeze({ id: 'yuzu-soda', name: '柚子苏打', price: 5, asset: 'yuzu-soda-ready.png' }),
-  'strawberry-soda': Object.freeze({ id: 'strawberry-soda', name: '草莓苏打', price: 6, asset: 'strawberry-soda-ready.png' }),
+  'yuzu-soda': Object.freeze({ id: 'yuzu-soda', name: '柚子苏打', price: 5, asset: 'yuzu-soda-ready-vivid-v1.png' }),
+  'strawberry-soda': Object.freeze({ id: 'strawberry-soda', name: '草莓苏打', price: 6, asset: 'strawberry-soda-ready-vivid-v1.png' }),
 });
 const DRINK_TYPE_LIST = Object.values(DRINK_TYPES);
 const FIRST_DAY_SERVICE_MS = 90 * 1000;
@@ -90,17 +90,17 @@ const DECORATION_THEMES = Object.freeze([
 ]);
 const SHOP_ITEMS = [
   { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready-vivid-v1.png', price: 120, kind: 'drink', drinkId: 'tea' },
-  { id: 'yuzu-soda', name: '柚子苏打配方', asset: 'yuzu-soda-ready.png', price: 380, kind: 'drink', drinkId: 'yuzu-soda', requiresTea: true },
-  { id: 'strawberry-soda', name: '草莓苏打配方', asset: 'strawberry-soda-ready.png', price: 560, kind: 'drink', drinkId: 'strawberry-soda', requiresTea: true },
+  { id: 'yuzu-soda', name: '柚子苏打配方', asset: 'yuzu-soda-ready-vivid-v1.png', price: 380, kind: 'drink', drinkId: 'yuzu-soda', requiresTea: true },
+  { id: 'strawberry-soda', name: '草莓苏打配方', asset: 'strawberry-soda-ready-vivid-v1.png', price: 560, kind: 'drink', drinkId: 'strawberry-soda', requiresTea: true },
   { id: 'salmon', price: 180 },
   { id: 'shrimp', price: 260 },
   { id: 'tuna', price: 350 },
   { id: 'mackerel', price: 480 },
-  { id: 'nori', name: '紫菜配方', asset: 'nori-sheets.png', price: 420, kind: 'recipe', recipeId: 'nori' },
-  { id: 'roe-gunkan', name: '鱼籽军舰配方', asset: 'roe-gunkan.png', price: 900, kind: 'recipe', recipeId: 'roe-gunkan', requiresRecipe: 'nori' },
+  { id: 'nori', name: '紫菜配方', asset: 'nori-sheets-vivid-v1.png', price: 420, kind: 'recipe', recipeId: 'nori' },
+  { id: 'roe-gunkan', name: '鱼籽军舰配方', asset: 'roe-gunkan-vivid-v1.png', price: 900, kind: 'recipe', recipeId: 'roe-gunkan', requiresRecipe: 'nori' },
   { id: 'seabream', price: 780 },
-  { id: 'uni-gunkan', name: '海胆军舰配方', asset: 'uni-gunkan.png', price: 1180, kind: 'recipe', recipeId: 'uni-gunkan', requiresRecipe: 'nori' },
-  { id: 'sashimi-platter', name: '刺身拼盘盘具', asset: 'plate-stack.png', price: 1100, kind: 'recipe', recipeId: 'sashimi-platter' },
+  { id: 'uni-gunkan', name: '海胆军舰配方', asset: 'uni-gunkan-vivid-v1.png', price: 1180, kind: 'recipe', recipeId: 'uni-gunkan', requiresRecipe: 'nori' },
+  { id: 'sashimi-platter', name: '刺身拼盘盘具', asset: 'plate-stack-vivid-v1.png', price: 1100, kind: 'recipe', recipeId: 'sashimi-platter' },
   { id: 'eel', price: 1250 },
 ];
 const STORAGE_UPGRADES = [
@@ -244,9 +244,9 @@ const SUSHI_TYPES = {
     name: '海胆军舰',
     pickerName: '海胆食材',
     boardName: '海胆食材盒',
-    loin: 'uni-loin.png',
-    slice: 'uni-slice.png',
-    nigiri: 'uni-gunkan.png',
+    loin: 'uni-loin-vivid-v1.png',
+    slice: 'uni-slice-vivid-v1.png',
+    nigiri: 'uni-gunkan-vivid-v1.png',
     price: 12,
     kind: 'gunkan',
     recipeId: 'uni-gunkan',
@@ -257,9 +257,9 @@ const SUSHI_TYPES = {
     name: '鱼籽军舰',
     pickerName: '鱼籽食材',
     boardName: '鱼籽食材碗',
-    loin: 'roe-loin.png',
-    slice: 'roe-slice.png',
-    nigiri: 'roe-gunkan.png',
+    loin: 'roe-loin-vivid-v1.png',
+    slice: 'roe-slice-vivid-v1.png',
+    nigiri: 'roe-gunkan-vivid-v1.png',
     price: 10,
     kind: 'gunkan',
     recipeId: 'roe-gunkan',
@@ -278,27 +278,27 @@ const SUSHI_TYPES = {
 };
 const SUSHI_TYPE_LIST = Object.values(SUSHI_TYPES);
 const PLATTER_TYPES = Object.freeze({
-  'platter-salmon': { id: 'platter-salmon', name: '三文鱼刺身拼盘', nigiri: 'sashimi-platter-salmon.png', price: 14, kind: 'platter' },
-  'platter-tuna': { id: 'platter-tuna', name: '金枪鱼刺身拼盘', nigiri: 'sashimi-platter-tuna.png', price: 20, kind: 'platter' },
-  'platter-shrimp': { id: 'platter-shrimp', name: '甜虾刺身拼盘', nigiri: 'sashimi-platter-shrimp.png', price: 17, kind: 'platter' },
-  'platter-mackerel': { id: 'platter-mackerel', name: '鲭鱼刺身拼盘', nigiri: 'sashimi-platter-mackerel.png', price: 23, kind: 'platter' },
-  'platter-seabream': { id: 'platter-seabream', name: '真鲷刺身拼盘', nigiri: 'sashimi-platter-seabream.png', price: 32, kind: 'platter' },
-  'platter-mixed': { id: 'platter-mixed', name: '精选三拼', nigiri: 'sashimi-platter-mixed.png', price: 20, kind: 'platter' },
+  'platter-salmon': { id: 'platter-salmon', name: '三文鱼刺身拼盘', nigiri: 'sashimi-platter-salmon-vivid-v1.png', price: 14, kind: 'platter' },
+  'platter-tuna': { id: 'platter-tuna', name: '金枪鱼刺身拼盘', nigiri: 'sashimi-platter-tuna-vivid-v1.png', price: 20, kind: 'platter' },
+  'platter-shrimp': { id: 'platter-shrimp', name: '甜虾刺身拼盘', nigiri: 'sashimi-platter-shrimp-vivid-v1.png', price: 17, kind: 'platter' },
+  'platter-mackerel': { id: 'platter-mackerel', name: '鲭鱼刺身拼盘', nigiri: 'sashimi-platter-mackerel-vivid-v1.png', price: 23, kind: 'platter' },
+  'platter-seabream': { id: 'platter-seabream', name: '真鲷刺身拼盘', nigiri: 'sashimi-platter-seabream-vivid-v1.png', price: 32, kind: 'platter' },
+  'platter-mixed': { id: 'platter-mixed', name: '精选三拼', nigiri: 'sashimi-platter-mixed-vivid-v1.png', price: 20, kind: 'platter' },
 });
 const PLATTER_TYPE_LIST = Object.values(PLATTER_TYPES);
 const CUSTOMER_CATALOG = Object.freeze([
-  Object.freeze({ avatar: 'customer-summer.png', customerType: 'standard', minimumDay: 1, patienceMultiplier: 1 }),
-  Object.freeze({ avatar: 'customer-sailor.png', customerType: 'standard', minimumDay: 3, patienceMultiplier: 1.04 }),
-  Object.freeze({ avatar: 'customer-student.png', customerType: 'impatient', minimumDay: 5, patienceMultiplier: 0.64 }),
-  Object.freeze({ avatar: 'customer-artist.png', customerType: 'large-order', minimumDay: 8, patienceMultiplier: 1.14 }),
-  Object.freeze({ avatar: 'customer-beggar.png', customerType: 'beggar', minimumDay: 7, patienceMultiplier: 0.86 }),
-  Object.freeze({ avatar: 'customer-fisher.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'salmon', patienceMultiplier: 1.16 }),
-  Object.freeze({ avatar: 'customer-rush.png', customerType: 'impatient', minimumDay: 12, patienceMultiplier: 0.58 }),
-  Object.freeze({ avatar: 'customer-feast.png', customerType: 'large-order', minimumDay: 12, patienceMultiplier: 1.18 }),
-  Object.freeze({ avatar: 'customer-regular.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'tuna', patienceMultiplier: 1.2 }),
+  Object.freeze({ avatar: 'customer-summer-vivid-v1.png', customerType: 'standard', minimumDay: 1, patienceMultiplier: 1 }),
+  Object.freeze({ avatar: 'customer-sailor-vivid-v1.png', customerType: 'standard', minimumDay: 3, patienceMultiplier: 1.04 }),
+  Object.freeze({ avatar: 'customer-student-vivid-v1.png', customerType: 'impatient', minimumDay: 5, patienceMultiplier: 0.64 }),
+  Object.freeze({ avatar: 'customer-artist-vivid-v1.png', customerType: 'large-order', minimumDay: 8, patienceMultiplier: 1.14 }),
+  Object.freeze({ avatar: 'customer-beggar-vivid-v1.png', customerType: 'beggar', minimumDay: 7, patienceMultiplier: 0.86 }),
+  Object.freeze({ avatar: 'customer-fisher-vivid-v1.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'salmon', patienceMultiplier: 1.16 }),
+  Object.freeze({ avatar: 'customer-rush-vivid-v1.png', customerType: 'impatient', minimumDay: 12, patienceMultiplier: 0.58 }),
+  Object.freeze({ avatar: 'customer-feast-vivid-v1.png', customerType: 'large-order', minimumDay: 12, patienceMultiplier: 1.18 }),
+  Object.freeze({ avatar: 'customer-regular-vivid-v1.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'tuna', patienceMultiplier: 1.2 }),
 ]);
 const SPECIAL_CUSTOMER_TEMPLATE = Object.freeze({
-  avatar: 'customer-vip.png',
+  avatar: 'customer-vip-vivid-v1.png',
   customerType: 'special',
   minimumDay: SPECIAL_ORDER_MINIMUM_DAY,
   patienceMultiplier: 1.08,
@@ -4773,15 +4773,15 @@ function preloadInteractionAssets() {
     });
   });
   state.unlockedDrinks.forEach((id) => assetNames.add(drinkFor(id).asset));
-  if (state.unlockedRecipes.includes('nori')) assetNames.add('nori-sheets.png');
+  if (state.unlockedRecipes.includes('nori')) assetNames.add('nori-sheets-vivid-v1.png');
   if (state.unlockedRecipes.includes('uni-gunkan')) {
-    ['uni-loin.png', 'uni-slice.png', 'uni-gunkan.png'].forEach((name) => assetNames.add(name));
+    ['uni-loin-vivid-v1.png', 'uni-slice-vivid-v1.png', 'uni-gunkan-vivid-v1.png'].forEach((name) => assetNames.add(name));
   }
   if (state.unlockedRecipes.includes('roe-gunkan')) {
-    ['roe-loin.png', 'roe-slice.png', 'roe-gunkan.png'].forEach((name) => assetNames.add(name));
+    ['roe-loin-vivid-v1.png', 'roe-slice-vivid-v1.png', 'roe-gunkan-vivid-v1.png'].forEach((name) => assetNames.add(name));
   }
   if (state.unlockedRecipes.includes('sashimi-platter')) {
-    assetNames.add('plate-stack.png');
+    assetNames.add('plate-stack-vivid-v1.png');
     state.sushiTypes.filter((id) => PLATTER_TYPES[id]).forEach((id) => assetNames.add(PLATTER_TYPES[id].nigiri));
   }
 
