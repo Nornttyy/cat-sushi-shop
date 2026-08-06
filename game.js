@@ -167,10 +167,24 @@ const kitchenEntryAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/tea-cup-ready-vivid-v1.png',
 ];
 const hookExpeditionAssetSources = [
-  // The expedition is a separate illustration set. None of the former
-  // bobber / golden-hook assets are requested or drawn in this scene.
   'assets/diving-expedition/island-base-v1.png',
   'assets/diving-expedition/underwater-reef-v1.png',
+  'assets/diving-expedition/hook-vivid-v1.png',
+  'assets/diving-expedition/hook-anchor-vivid-v1.png',
+  'assets/diving-expedition/fish-salmon-vivid-v1.png',
+  'assets/diving-expedition/fish-tuna-vivid-v1.png',
+  'assets/diving-expedition/fish-shrimp-vivid-v1.png',
+  'assets/diving-expedition/fish-mackerel-vivid-v1.png',
+  'assets/diving-expedition/fish-seabream-vivid-v1.png',
+  'assets/diving-expedition/fish-eel-vivid-v1.png',
+  'assets/diving-expedition/reef-coral-vivid-v1.png',
+  'assets/diving-expedition/reef-rock-vivid-v1.png',
+  'assets/diving-expedition/reef-seaweed-vivid-v1.png',
+  'assets/diving-expedition/reef-star-vivid-v1.png',
+  'assets/diving-expedition/icon-fishing-vivid-v1.png',
+  'assets/diving-expedition/icon-equipment-vivid-v1.png',
+  'assets/diving-expedition/icon-line-upgrade-vivid-v1.png',
+  'assets/diving-expedition/icon-hook-capacity-vivid-v1.png',
 ];
 
 const shouldEnterFishing = requestedScene === 'fishing' && canFishFromSavedDay();
@@ -320,7 +334,7 @@ async function enterFishing() {
       hookExpeditionMarkupReady,
       hookExpeditionAssetWarmup,
       waitForMenuTransition(),
-      loadStylesheet('hook-expedition-style', 'hook-expedition.css?v=hook-expedition-v3-20260806'),
+      loadStylesheet('hook-expedition-style', 'hook-expedition.css?v=hook-expedition-v4-20260806'),
     ]);
     const fishingDocument = new DOMParser().parseFromString(fishingMarkup, 'text/html');
     const fishingStage = fishingDocument.querySelector('main');
@@ -330,7 +344,7 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'hook-expedition.js?v=hook-expedition-v3-20260806';
+    fishingScript.src = 'hook-expedition.js?v=hook-expedition-v4-20260806';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {

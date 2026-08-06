@@ -176,6 +176,44 @@ body:has(.hook-expedition-stage) {
 .hook-result-card { width: min(89%, 380px); justify-items: center; text-align: center; }
 .hook-result-card button { min-width: 170px; padding: 10px 15px; color: #fff9d4; background: linear-gradient(#49d9d1, #0b9bbb); box-shadow: 0 4px 0 #07728e; }
 
+/* 独立绘制的钓鱼素材：保留原有碰撞与动画，只替换 CSS 拼出的外观。 */
+.island-fishing-button i,
+.island-equipment-button i { display: block; width: clamp(25px, 2vw, 34px); height: clamp(25px, 2vw, 34px); flex: 0 0 auto; background-position: center; background-repeat: no-repeat; background-size: contain; }
+.island-fishing-button i { background-image: url('assets/diving-expedition/icon-fishing-vivid-v1.png'); }
+.island-equipment-button i { background-image: url('assets/diving-expedition/icon-equipment-vivid-v1.png'); }
+.island-fishing-button i::before,
+.island-fishing-button i::after { display: none; }
+
+.hook-anchor { width: 86px; height: 86px; background: url('assets/diving-expedition/hook-anchor-vivid-v1.png') center / contain no-repeat; filter: drop-shadow(0 7px 3px rgb(0 63 91 / .24)); }
+.hook-anchor::before,
+.hook-anchor::after,
+.hook-anchor i { display: none; }
+
+.reef-obstacle { background-image: var(--obstacle-sprite); background-position: center; background-repeat: no-repeat; background-size: contain; }
+.reef-obstacle::before,
+.reef-obstacle::after { display: none; }
+
+.expedition-fish { width: calc(var(--fish-size) * 1.18); aspect-ratio: 3 / 2; background-image: var(--fish-sprite); background-position: center; background-repeat: no-repeat; background-size: contain; }
+.expedition-fish::before,
+.expedition-fish::after,
+.expedition-fish .fish-body,
+.expedition-fish .fish-fin { display: none; }
+.expedition-fish[data-fish-id="shrimp"] { aspect-ratio: 3 / 2; transform: translate(-50%, -50%) scaleX(var(--fish-face)); }
+.expedition-fish[data-fish-id="eel"] { aspect-ratio: 3 / 2; }
+
+.explorer-hook { width: 92px; height: 110px; background: url('assets/diving-expedition/hook-vivid-v1.png') center / contain no-repeat; }
+.explorer-hook::before,
+.explorer-hook::after,
+.explorer-hook i,
+.explorer-hook b,
+.explorer-hook span { display: none; }
+
+.hook-upgrade-icon { background-color: #2ebec4; background-position: center; background-repeat: no-repeat; background-size: 86%; }
+.hook-upgrade-icon.is-line { background-image: url('assets/diving-expedition/icon-line-upgrade-vivid-v1.png'); }
+.hook-upgrade-icon.is-bag { background-image: url('assets/diving-expedition/icon-hook-capacity-vivid-v1.png'); }
+.hook-upgrade-icon::before,
+.hook-upgrade-icon::after { display: none; }
+
 @keyframes island-water-drift { from { transform: translate3d(-3%, 0, 0) skewX(-4deg); } to { transform: translate3d(5%, 3%, 0) skewX(2deg); } }
 @keyframes small-bubbles { from { background-position: 0 0, 0 0; } to { background-position: 25px -180px, -22px -220px; } }
 @keyframes expedition-fish-swim { from { translate: -7px -5px; } to { translate: 12px 7px; } }

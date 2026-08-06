@@ -11,12 +11,18 @@
   const LINE_PRICES = Object.freeze([260, 620, 1280]);
   const HOOK_PRICES = Object.freeze([320, 760, 1520]);
   const FISH_CATALOG = Object.freeze({
-    salmon: Object.freeze({ id: 'salmon', name: '三文鱼', weight: 44, size: 94, main: '#ff826d', shadow: '#e1515a', shine: '#ffd6a3', tail: '#ffaf5d', fin: '#ffbe65' }),
-    tuna: Object.freeze({ id: 'tuna', name: '金枪鱼', weight: 20, size: 112, main: '#4f8edc', shadow: '#2457aa', shine: '#bde8ff', tail: '#6dbde8', fin: '#77cbe6' }),
-    shrimp: Object.freeze({ id: 'shrimp', name: '甜虾', weight: 31, size: 82, main: '#ffad72', shadow: '#e96c62', shine: '#ffe0a8', tail: '#ffca78', fin: '#ffbf75' }),
-    mackerel: Object.freeze({ id: 'mackerel', name: '鲭鱼', weight: 38, size: 96, main: '#49c8b6', shadow: '#188aa1', shine: '#c9f2c2', tail: '#52d5bb', fin: '#88e8ce' }),
-    seabream: Object.freeze({ id: 'seabream', name: '真鲷', weight: 18, size: 90, main: '#fb7c90', shadow: '#c94e76', shine: '#ffc7cf', tail: '#fdad80', fin: '#ffb3a5' }),
-    eel: Object.freeze({ id: 'eel', name: '蒲烧鳗鱼', weight: 10, size: 122, main: '#9c7c55', shadow: '#5a4c42', shine: '#e9c783', tail: '#cda45e', fin: '#dfbb6e' }),
+    salmon: Object.freeze({ id: 'salmon', name: '三文鱼', weight: 44, size: 94, sprite: 'assets/diving-expedition/fish-salmon-vivid-v1.png' }),
+    tuna: Object.freeze({ id: 'tuna', name: '金枪鱼', weight: 20, size: 112, sprite: 'assets/diving-expedition/fish-tuna-vivid-v1.png' }),
+    shrimp: Object.freeze({ id: 'shrimp', name: '甜虾', weight: 31, size: 82, sprite: 'assets/diving-expedition/fish-shrimp-vivid-v1.png' }),
+    mackerel: Object.freeze({ id: 'mackerel', name: '鲭鱼', weight: 38, size: 96, sprite: 'assets/diving-expedition/fish-mackerel-vivid-v1.png' }),
+    seabream: Object.freeze({ id: 'seabream', name: '真鲷', weight: 18, size: 90, sprite: 'assets/diving-expedition/fish-seabream-vivid-v1.png' }),
+    eel: Object.freeze({ id: 'eel', name: '蒲烧鳗鱼', weight: 10, size: 122, sprite: 'assets/diving-expedition/fish-eel-vivid-v1.png' }),
+  });
+  const OBSTACLE_SPRITES = Object.freeze({
+    'is-rock': 'assets/diving-expedition/reef-rock-vivid-v1.png',
+    'is-coral': 'assets/diving-expedition/reef-coral-vivid-v1.png',
+    'is-kelp': 'assets/diving-expedition/reef-seaweed-vivid-v1.png',
+    'is-star': 'assets/diving-expedition/reef-star-vivid-v1.png',
   });
   const DIRECTIONS = Object.freeze({
     ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
@@ -335,9 +341,10 @@
   }
 
   function makeObstacle(random, index) {
-    const type = ['is-rock', 'is-coral', 'is-kelp'][Math.floor(random() * 3)];
-    const width = 115 + Math.floor(random() * 135);
-    const height = 95 + Math.floor(random() * 118);
+    const type = ['is-rock', 'is-coral', 'is-kelp', 'is-star'][Math.floor(random() * 4)];
+    const isStar = type === 'is-star';
+    const width = (isStar ? 92 : 115) + Math.floor(random() * (isStar ? 78 : 135));
+    const height = (isStar ? 76 : 95) + Math.floor(random() * (isStar ? 68 : 118));
     const position = randomOpenPosition(random, 260, Math.max(width, height) * .38);
     return {
       id: `${state.mapSerial}-${index}`,
@@ -363,6 +370,7 @@
       element.style.setProperty('--obstacle-width', `${obstacle.width}px`);
       element.style.setProperty('--obstacle-height', `${obstacle.height}px`);
       element.style.setProperty('--obstacle-rotate', `${obstacle.rotation}deg`);
+      element.style.setProperty('--obstacle-sprite', `url("${OBSTACLE_SPRITES[obstacle.type] ?? OBSTACLE_SPRITES['is-rock']}")`);
       fragment.append(element);
     });
     obstacleLayer.append(fragment);
@@ -407,12 +415,7 @@
       element.style.setProperty('--fish-face', String(fish.facing));
       element.style.setProperty('--fish-speed', fish.speed);
       element.style.setProperty('--fish-delay', fish.delay);
-      element.style.setProperty('--fish-main', type.main);
-      element.style.setProperty('--fish-shadow', type.shadow);
-      element.style.setProperty('--fish-shine', type.shine);
-      element.style.setProperty('--fish-tail', type.tail);
-      element.style.setProperty('--fish-fin', type.fin);
-      element.innerHTML = '<i class="fish-fin"></i><i class="fish-body"></i>';
+      element.style.setProperty('--fish-sprite', `url("${type.sprite}")`);
       fish.element = element;
       fragment.append(element);
     });
