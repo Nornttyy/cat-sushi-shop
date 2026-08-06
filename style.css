@@ -106,7 +106,7 @@ button { font: inherit; }
 @keyframes special-order-reward-float { 0% { opacity: 0; transform: translate(-50%, -35%) scale(.82); } 16% { opacity: 1; transform: translate(-50%, -54%) scale(1.04); } 72% { opacity: 1; transform: translate(-50%, -90%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -118%) scale(.96); } }
 @media (prefers-reduced-motion: reduce) { .customer-motion, .customer-avatar, .special-order-reward-float { animation-duration: 1ms !important; } }
 
-.work-counter { position: absolute; inset: 0; z-index: 3; }
+.work-counter { --counter-items-bottom: 10%; position: absolute; inset: 0; z-index: 3; }
 .station, .board-station, .fish-station, .assembly-station { position: absolute; display: block; margin: 0; padding: 0; border: 0; background: transparent; }
 .station { cursor: pointer; }
 .station, .freezer-button, .sashimi-choice, .ingredient-shop-toggle, .ingredient-shop-item button, .game-bottom-bar button, .sushi-slice-crop, .stored-sushi-button, .cup-station { transition: transform 140ms cubic-bezier(.2, .8, .25, 1), filter 140ms ease, box-shadow 140ms ease, opacity 90ms ease; }
@@ -117,7 +117,7 @@ button { font: inherit; }
 .station.is-locked:hover, .station.is-locked:active { filter: saturate(.35) opacity(.54); transform: none; }
 .station:focus-visible, .freezer-button:focus-visible, .board-salmon:focus-visible, .rice-portion:focus-visible, .sushi-slice-crop:focus-visible, .shrimp-head:focus-visible, .shrimp-batch-item:focus-visible, .ingredient-shop-toggle:focus-visible { outline: 4px dashed var(--cream); outline-offset: 5px; }
 
-.fish-station { left: 2.8%; top: 57%; width: 10.5%; height: 29%; }
+.fish-station { bottom: var(--counter-items-bottom); left: 2.8%; width: 9.6%; height: 26%; }
 .fish-station > img { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; object-fit: fill; opacity: 1; }
 .fish-station.is-upgraded > img { filter: drop-shadow(0 0 5px rgb(151 223 239 / .62)) saturate(1.08); }
 .fish-station[data-upgrade-level="2"] > img { filter: drop-shadow(0 0 8px rgb(151 223 239 / .78)) saturate(1.14) brightness(1.03); }
@@ -138,7 +138,7 @@ button { font: inherit; }
 .sashimi-choice.is-dragging { opacity: 0; }
 @keyframes sashimi-picker-in { from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.92); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 
-.board-station { left: 24.8%; top: 64%; width: 18%; height: 23%; }
+.board-station { bottom: var(--counter-items-bottom); left: 24.8%; width: 18%; height: 23%; }
 .cutting-board { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .board-salmon { position: absolute; left: 9%; top: 6%; width: 82%; height: 42%; padding: 0; cursor: ns-resize; border: 0; background: transparent; touch-action: none; user-select: none; }
 .board-salmon img { width: 100%; height: 100%; object-fit: contain; }
@@ -241,15 +241,15 @@ button { font: inherit; }
   .sushi-slice-crop:hover, .stored-sushi-button:hover, .cup-station:hover { transform: translateY(-2%) scale(1.025); filter: brightness(1.06); }
 }
 
-.rice-station { left: 65.9%; top: 60%; width: 10.6%; height: 30%; cursor: pointer; }
+.rice-station { bottom: var(--counter-items-bottom); left: 65.9%; width: 9.6%; height: 27%; cursor: pointer; }
 .rice-station.is-upgraded img { filter: drop-shadow(0 0 5px rgb(255 207 107 / .58)) saturate(1.06); }
 .rice-station[data-upgrade-level="2"] img { filter: drop-shadow(0 0 8px rgb(255 207 107 / .76)) saturate(1.12) brightness(1.03); }
 .rice-station[data-upgrade-level="3"] img { filter: drop-shadow(0 0 11px rgb(255 224 147 / .9)) saturate(1.18) brightness(1.06); }
-.trash-bin { left: 13.2%; top: 62%; z-index: 7; width: 11.2%; height: 27%; }
+.trash-bin { bottom: var(--counter-items-bottom); left: 13.2%; z-index: 7; width: 11.2%; height: 27%; }
 .trash-bin img { transform: scale(1.28); transform-origin: center; }
 .trash-bin.is-discarding img { animation: trash-bin-toss 620ms cubic-bezier(.18, .82, .24, 1) both; }
 .rice-station.is-dispensing img { animation: rice-bin-scoop 420ms cubic-bezier(.16, .84, .22, 1) both; }
-.drink-machine-station { left: 84%; top: 51%; z-index: 3; width: 11.4%; height: 28%; }
+.drink-machine-station { bottom: var(--counter-items-bottom); left: 84%; z-index: 3; width: 11.4%; height: 28%; }
 .drink-machine-station.is-upgraded img { filter: drop-shadow(0 0 5px rgb(144 221 211 / .6)) saturate(1.08); }
 .drink-machine-station[data-upgrade-level="2"] img { filter: drop-shadow(0 0 8px rgb(144 221 211 / .78)) saturate(1.14) brightness(1.03); }
 .drink-machine-station[data-upgrade-level="3"] img { filter: drop-shadow(0 0 11px rgb(171 240 226 / .92)) saturate(1.2) brightness(1.06); }
@@ -260,9 +260,9 @@ button { font: inherit; }
 .drink-choice img { width: 100%; height: clamp(24px, 2.7vw, 39px); object-fit: contain; }
 .drink-choice span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @keyframes drink-picker-in { from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.92); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
-.cup-station { left: 82%; top: 81%; z-index: 2; width: 15%; height: 10%; cursor: grab; touch-action: none; }
+.cup-station { bottom: 0; left: 82%; z-index: 2; width: 15%; height: 10%; cursor: grab; touch-action: none; }
 .cup-station:active { cursor: grabbing; }
-.machine-cup { position: absolute; left: 86.5%; top: 69.4%; z-index: 4; width: 3.5%; height: auto; pointer-events: none; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .23)); will-change: transform, opacity; }
+.machine-cup { position: absolute; left: 86.5%; top: 80.4%; z-index: 4; width: 3.5%; height: auto; pointer-events: none; filter: drop-shadow(0 2px 1px rgb(59 39 28 / .23)); will-change: transform, opacity; }
 .machine-cup.is-filling { animation: tea-cup-fill var(--drink-fill-duration, 760ms) cubic-bezier(.18, .82, .24, 1) both; }
 .drink-machine-station.is-pouring img { animation: drink-machine-pour var(--drink-fill-duration, 760ms) cubic-bezier(.18, .82, .24, 1) both; }
 .drink-rack { --drink-columns: 2; --drink-rows: 4; position: absolute; left: 76%; top: 70%; z-index: 6; display: grid; grid-template-columns: repeat(var(--drink-columns), 1fr); grid-template-rows: repeat(var(--drink-rows), 1fr); gap: 7%; width: 6.1%; height: 20.4%; }
