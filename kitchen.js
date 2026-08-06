@@ -3484,15 +3484,12 @@ function renderShrimpBatch() {
     if (!item) {
       item = document.createElement('button');
       const image = document.createElement('img');
-      const guide = document.createElement('span');
       item.type = 'button';
       item.className = 'shrimp-batch-item';
       image.src = `${KITCHEN_ASSET_PATH}shrimp-whole-vivid-v1.png`;
       image.alt = '带头甜虾';
       image.draggable = false;
-      guide.className = 'shrimp-head-cut-guide';
-      guide.setAttribute('aria-hidden', 'true');
-      item.append(image, guide);
+      item.append(image);
       item.addEventListener('pointerdown', startShrimpCut);
       item.addEventListener('pointermove', moveShrimpCut);
       item.addEventListener('pointerup', cancelShrimpCut);
@@ -3506,7 +3503,7 @@ function renderShrimpBatch() {
     }
 
     item.dataset.shrimpId = shrimp.id;
-    item.setAttribute('aria-label', `第 ${index + 1} 只甜虾，在竖向虚线附近按住后向下滑动去头`);
+    item.setAttribute('aria-label', `第 ${index + 1} 只甜虾，按住后向下滑动去头`);
     item.classList.toggle('is-cutting', state.activeShrimpCut === shrimp.id);
     if (shrimpBatch.children[index] !== item) shrimpBatch.append(item);
   });
@@ -4340,7 +4337,7 @@ window.addEventListener('pointerup', (event) => {
     state.activeShrimpCut = null;
     playSound('place');
     setMessage(sushiType.id === 'shrimp'
-      ? '4 只甜虾已放到切菜板。沿每只虾头旁的竖向虚线向下滑动，就能逐只去头。'
+      ? '4 只甜虾已放到切菜板。按住每只虾的虾头后向下滑动，就能逐只去头。'
       : `${sushiType.boardName}已放到切菜板。在虚线附近按住，轻轻向下滑动即可切片。`);
   } else if (type === 'cup') {
     state.cupOnMachine = true;
@@ -4569,7 +4566,7 @@ function startShrimpCut(event) {
 
   const point = pointerPosition(event, item);
   if (Math.abs(point.x - SHRIMP_HEAD_CUT_X) > 0.42) {
-    setMessage('从虾头旁的竖向虚线开始，轻轻向下滑动就能去头。');
+    setMessage('从虾头位置开始，轻轻向下滑动就能去头。');
     return;
   }
 
