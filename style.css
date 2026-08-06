@@ -96,12 +96,15 @@ button { font: inherit; }
 .customer.is-special-order .customer-order::after { border-color: #9a6233; background: #ffe8a8; }
 .customer.is-special-order .customer-wait { border-color: rgb(157 105 43 / .72); background: #fff0bb; }
 .customer.is-special-order .customer-wait > i { background: linear-gradient(90deg, #e8bd56, #e99462 72%, #d76b58); }
+.special-order-reward { position: relative; z-index: 2; flex: 0 0 auto; margin-left: 1px; padding: .2em .5em; border: 1px solid #9a6233; border-radius: 999px; color: #754323; background: #ffdc79; box-shadow: inset 0 1px 0 rgb(255 251 217 / .76), 0 1px 0 rgb(110 65 31 / .16); font-size: .72em; line-height: 1.15; white-space: nowrap; }
+.special-order-reward-float { position: absolute; z-index: 30; padding: clamp(5px, .45vw, 8px) clamp(8px, .75vw, 13px); border: 2px solid #8c542c; border-radius: 999px; color: #70401f; background: linear-gradient(135deg, #fff6c7, #ffd66b); box-shadow: 0 3px 0 rgb(105 61 31 / .24), 0 0 16px rgb(255 215 112 / .45); font-size: clamp(12px, 1.1vw, 18px); font-weight: 1000; letter-spacing: .02em; pointer-events: none; transform: translate(-50%, -50%); animation: special-order-reward-float 1150ms cubic-bezier(.2, .82, .26, 1) both; will-change: transform, opacity; }
 .customer-received-sushi { position: absolute; bottom: 43%; left: 50%; z-index: 4; width: 31%; height: auto; object-fit: contain; transform: translateX(-50%) rotate(-4deg); filter: drop-shadow(0 3px 2px rgb(59 39 28 / .25)); }
 @keyframes customer-enter { 0% { opacity: 0; transform: translate3d(82px, 10px, 0) scale(.9); } 68% { opacity: 1; transform: translate3d(-4px, 0, 0) scale(1.012); } 100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
 @keyframes customer-thank { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(0, -4px, 0) scale(1.025); } }
 @keyframes customer-leave { 0% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } 100% { opacity: 0; transform: translate3d(-94px, 9px, 0) scale(.94); } }
 @keyframes customer-idle { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-4px); } }
-@media (prefers-reduced-motion: reduce) { .customer-motion, .customer-avatar { animation-duration: 1ms !important; } }
+@keyframes special-order-reward-float { 0% { opacity: 0; transform: translate(-50%, -35%) scale(.82); } 16% { opacity: 1; transform: translate(-50%, -54%) scale(1.04); } 72% { opacity: 1; transform: translate(-50%, -90%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -118%) scale(.96); } }
+@media (prefers-reduced-motion: reduce) { .customer-motion, .customer-avatar, .special-order-reward-float { animation-duration: 1ms !important; } }
 
 .work-counter { position: absolute; inset: 0; z-index: 3; }
 .station, .board-station, .fish-station, .assembly-station { position: absolute; display: block; margin: 0; padding: 0; border: 0; background: transparent; }

@@ -811,6 +811,11 @@ const state = {
 };
 
 let lastSavedSnapshot = '';
+// The fishing scene can update this one inventory field from another tab.
+// Keep a baseline so a later kitchen save preserves those catches while still
+// applying any fish this kitchen tab has used.
+let lastSavedRawFish = normalizeRawFish(state.rawFish);
+let externalSaveReloadTimer = null;
 let saveTimer = null;
 let gameSettings = { soundEnabled: true, soundVolume: DEFAULT_SOUND_VOLUME };
 let accumulatedPausedTime = 0;
@@ -1127,13 +1132,116 @@ function buildSaveSnapshot() {
   };
 }
 
+function storedRawFishSnapshot() {
+  try {
+    const raw = window.localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== 'object' || saved.version !== SAVE_VERSION) return null;
+    const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
+    return {
+      raw,
+      rawFish: normalizeRawFish(inventory.rawFish),
+      day: asStoredCount(saved.day, 9_999),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveSnapshotWithoutRawFish(raw) {
+  try {
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== 'object' || saved.version !== SAVE_VERSION) return null;
+    const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
+    const comparableInventory = { ...inventory };
+    delete comparableInventory.rawFish;
+    return JSON.stringify({ ...saved, inventory: comparableInventory });
+  } catch {
+    return null;
+  }
+}
+
+function onlyRawFishChangedSinceLastSave(raw) {
+  if (!lastSavedSnapshot || raw === lastSavedSnapshot) return true;
+  const previous = saveSnapshotWithoutRawFish(lastSavedSnapshot);
+  const latest = saveSnapshotWithoutRawFish(raw);
+  return Boolean(previous && latest && previous === latest);
+}
+
+function rawFishWithLocalChanges(latestRawFish) {
+  return Object.fromEntries(RAW_FISH_IDS.map((id) => {
+    const current = asStoredCount(state.rawFish?.[id], MAX_RAW_FISH);
+    const baseline = asStoredCount(lastSavedRawFish?.[id], MAX_RAW_FISH);
+    const latest = asStoredCount(latestRawFish?.[id], MAX_RAW_FISH);
+    return [id, asStoredCount(latest + current - baseline, MAX_RAW_FISH)];
+  }));
+}
+
+function reconcileExternalFishBeforeSave() {
+  const stored = storedRawFishSnapshot();
+  // A saved game that was deleted elsewhere must stay deleted. Fresh games
+  // have no prior snapshot and may create their first save normally.
+  if (!stored) return !lastSavedSnapshot;
+
+  // A different day means another tab has already advanced the game. Do not
+  // let this stale page restore the previous day on top of that save.
+  if (stored.day && stored.day !== state.day) return false;
+  // Fishing only changes rawFish. Any other external change is authoritative:
+  // refusing to save here prevents an old kitchen tab from overwriting cash,
+  // unlocks, customers, or a freshly reset save.
+  if (!onlyRawFishChangedSinceLastSave(stored.raw)) return false;
+  state.rawFish = rawFishWithLocalChanges(stored.rawFish);
+  return true;
+}
+
+function scheduleExternalSaveReload({ saveRemoved = false } = {}) {
+  if (externalSaveReloadTimer !== null || document.visibilityState === 'hidden') return;
+  externalSaveReloadTimer = window.setTimeout(() => {
+    externalSaveReloadTimer = null;
+    // A reset should return to the menu instead of constructing a new kitchen
+    // from a page that was restored from history.
+    if (saveRemoved) window.location.replace('./?returning=1');
+    else window.location.reload();
+  }, 80);
+}
+
+function syncExternalSave(raw = window.localStorage.getItem(SAVE_KEY)) {
+  if (raw === lastSavedSnapshot) return;
+  if (!raw) {
+    if (lastSavedSnapshot) scheduleExternalSaveReload({ saveRemoved: true });
+    return;
+  }
+
+  const stored = storedRawFishSnapshot();
+  if (!stored) {
+    scheduleExternalSaveReload();
+    return;
+  }
+
+  const sameDay = !stored.day || stored.day === state.day;
+  if (sameDay && onlyRawFishChangedSinceLastSave(stored.raw)) {
+    state.rawFish = rawFishWithLocalChanges(stored.rawFish);
+    lastSavedSnapshot = stored.raw;
+    lastSavedRawFish = normalizeRawFish(stored.rawFish);
+    render();
+    return;
+  }
+
+  // A different scene/tab changed more than fish stock. Reloading is safer
+  // than keeping a stale kitchen that could make a whole day unsaveable.
+  scheduleExternalSaveReload();
+}
+
 function saveGame() {
   if (hasUnsettledSaveState()) return false;
+  if (!reconcileExternalFishBeforeSave()) return false;
   const snapshot = JSON.stringify(buildSaveSnapshot());
   if (snapshot === lastSavedSnapshot) return true;
   try {
     window.localStorage.setItem(SAVE_KEY, snapshot);
     lastSavedSnapshot = snapshot;
+    lastSavedRawFish = normalizeRawFish(state.rawFish);
     return true;
   } catch {
     return false;
@@ -1285,6 +1393,8 @@ function restoreGame() {
       customerSerial: asStoredCount(saved.customerSerial, 9_999_999),
       specialOrderDay,
     });
+    lastSavedSnapshot = raw;
+    lastSavedRawFish = normalizeRawFish(rawFish);
     return true;
   } catch {
     return false;
@@ -2021,6 +2131,34 @@ function appendCustomerOrderItem(order, item) {
   order.append(itemWrap);
 }
 
+function appendSpecialOrderReward(order, customer) {
+  const bonus = normalizedSpecialOrderBonus(customer.specialBonus, customer.orderItems ?? []);
+  if (!bonus) return;
+
+  const reward = document.createElement('strong');
+  reward.className = 'special-order-reward';
+  reward.textContent = `奖励 +¥${bonus}`;
+  reward.setAttribute('aria-label', `完成这份特别订单可额外获得 ¥${bonus}`);
+  order.append(reward);
+}
+
+function showSpecialOrderReward(customer, bonus) {
+  if (!bonus) return;
+  const card = customerCardFor(customer.id);
+  const stageRect = stage.getBoundingClientRect();
+  const cardRect = card?.getBoundingClientRect();
+  if (!stageRect.width || !stageRect.height || !cardRect) return;
+
+  const reward = document.createElement('div');
+  reward.className = 'special-order-reward-float';
+  reward.textContent = `+¥${bonus} 特别奖励`;
+  reward.setAttribute('aria-hidden', 'true');
+  reward.style.left = `${cardRect.left + (cardRect.width * .5) - stageRect.left}px`;
+  reward.style.top = `${cardRect.top + (cardRect.height * .23) - stageRect.top}px`;
+  reward.addEventListener('animationend', () => reward.remove(), { once: true });
+  stage.append(reward);
+}
+
 function customerOrderSignature(customer) {
   const status = customer.served ? 'served' : customer.leaving ? 'leaving' : 'waiting';
   const items = (customer.orderItems ?? []).map((item) => `${item.type}:${isDrinkOrderItem(item) ? drinkIdForOrderItem(item) : item.id}:${item.fulfilled ? 1 : 0}`);
@@ -2063,7 +2201,10 @@ function updateCustomerCard(card, customer) {
   if (order.dataset.signature !== signature) {
     order.replaceChildren();
     order.dataset.signature = signature;
-    order.setAttribute('aria-label', `${isSpecialOrder ? '特别订单：' : '订单：'}${orderSummary(orderItems)}`);
+    const specialBonus = isSpecialOrder
+      ? normalizedSpecialOrderBonus(customer.specialBonus, orderItems)
+      : 0;
+    order.setAttribute('aria-label', `${isSpecialOrder ? `特别订单：${orderSummary(orderItems)}，完成奖励 ¥${specialBonus}` : `订单：${orderSummary(orderItems)}`}`);
 
     if (customer.served) {
       order.append(customer.fledWithoutPay ? '逃单了' : '谢谢！');
@@ -2071,6 +2212,7 @@ function updateCustomerCard(card, customer) {
       order.append('下次见');
     } else {
       orderItems.forEach((item) => appendCustomerOrderItem(order, item));
+      if (isSpecialOrder) appendSpecialOrderReward(order, customer);
     }
   }
 
@@ -3817,6 +3959,7 @@ function completeCustomerOrderItem(customer, item) {
   const specialBonus = isSpecialOrderCustomer(customer)
     ? normalizedSpecialOrderBonus(customer.specialBonus, customer.orderItems)
     : 0;
+  if (specialBonus) showSpecialOrderReward(customer, specialBonus);
   setMessage(specialBonus
     ? `特别订单完成，获得 ¥${orderPrice}（奖励 ¥${specialBonus}）。`
     : `订单完成，获得 ¥${orderPrice}。`);
@@ -4528,19 +4671,56 @@ scheduleCustomer(700);
 window.addEventListener('pagehide', () => {
   if (!hasUnsettledSaveState()) saveGame();
 });
+window.addEventListener('storage', (event) => {
+  if (event.key !== SAVE_KEY || event.storageArea !== window.localStorage) return;
+  syncExternalSave(event.newValue);
+});
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) syncExternalSave();
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) syncExternalSave();
+});
 
 function preloadInteractionAssets() {
-  const assetNames = new Set(['rice-portion.png', 'tea-cup-ready.png', 'shrimp-whole.png', 'shrimp-head.png', 'trash-bin.png', 'nori-sheets.png', 'plate-stack.png']);
-  DRINK_TYPE_LIST.forEach((drink) => assetNames.add(drink.asset));
-  SUSHI_TYPE_LIST.forEach((sushiType) => {
-    assetNames.add(sushiType.loin);
-    assetNames.add(sushiType.slice);
-    assetNames.add(sushiType.nigiri);
+  // Do not silently download every future customer, fish, and decoration on
+  // a new save. Warm only what this shop can use now; newly bought content
+  // naturally starts loading when its own UI is opened.
+  const assetNames = new Set(['rice-portion.png', 'tea-cup-empty.png', 'trash-bin.png']);
+  const ingredientIds = new Set([
+    ...state.unlockedIngredients,
+    ...state.sliceTypes,
+    ...state.sushiTypes,
+    ...state.platterAssembly,
+    state.boardIngredientId,
+  ]);
+  if (state.shrimpOnBoard) ingredientIds.add('shrimp');
+  ingredientIds.forEach((id) => {
+    const sushiType = SUSHI_TYPES[id];
+    if (!sushiType) return;
+    ['loin', 'whole', 'head', 'slice', 'nigiri'].forEach((property) => {
+      if (sushiType[property]) assetNames.add(sushiType[property]);
+    });
   });
-  PLATTER_TYPE_LIST.forEach((platter) => assetNames.add(platter.nigiri));
+  state.unlockedDrinks.forEach((id) => assetNames.add(drinkFor(id).asset));
+  if (state.unlockedRecipes.includes('nori')) assetNames.add('nori-sheets.png');
+  if (state.unlockedRecipes.includes('uni-gunkan')) {
+    ['uni-loin.png', 'uni-slice.png', 'uni-gunkan.png'].forEach((name) => assetNames.add(name));
+  }
+  if (state.unlockedRecipes.includes('roe-gunkan')) {
+    ['roe-loin.png', 'roe-slice.png', 'roe-gunkan.png'].forEach((name) => assetNames.add(name));
+  }
+  if (state.unlockedRecipes.includes('sashimi-platter')) {
+    assetNames.add('plate-stack.png');
+    state.sushiTypes.filter((id) => PLATTER_TYPES[id]).forEach((id) => assetNames.add(PLATTER_TYPES[id].nigiri));
+  }
+
+  const customerAvatars = new Set(state.customers.map((customer) => customer.avatar).filter(Boolean));
+  if (!customerAvatars.size) customerAvatars.add(nextCustomerTemplate().avatar);
+  if (canSpawnSpecialOrderToday()) customerAvatars.add(SPECIAL_CUSTOMER_TEMPLATE.avatar);
   const assetUrls = [
     ...Array.from(assetNames, (name) => `${KITCHEN_ASSET_PATH}${name}`),
-    ...CUSTOMER_TEMPLATES.map((customer) => `${CUSTOMER_ASSET_PATH}${customer.avatar}`),
+    ...Array.from(customerAvatars, (avatar) => `${CUSTOMER_ASSET_PATH}${avatar}`),
   ];
   assetUrls.forEach((src) => {
     const image = new Image();

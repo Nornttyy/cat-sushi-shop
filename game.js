@@ -146,72 +146,22 @@ function canFishFromSavedDay() {
   }
 }
 
-// 这些素材会在主菜单停留时悄悄进入浏览器缓存，进制作台时就不会一张张跳出来。
-const kitchenAssetSources = [
+// 只有首屏正在看得到的素材会阻塞进入制作台。后续食材、主题和顾客会由
+// kitchen.js 在空闲时按需预热，避免慢网为尚未解锁的内容等待十几兆图片。
+const kitchenEntryAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg',
-  'assets/restaurant/kitchen-layers/optimized/kitchen-background-christmas.jpg',
-  'assets/restaurant/kitchen-layers/optimized/kitchen-background-toy.jpg',
-  'assets/restaurant/kitchen-layers/optimized/kitchen-background-game.jpg',
-  'assets/restaurant/kitchen-layers/optimized/kitchen-background-cyber.jpg',
-  'assets/restaurant/kitchen-layers/optimized/kitchen-background-primitive.jpg',
   'assets/restaurant/kitchen-layers/optimized/fish-well-frosted.png',
-  'assets/restaurant/kitchen-layers/optimized/salmon-loin.png',
-  'assets/restaurant/kitchen-layers/optimized/tuna-loin.png',
-  'assets/restaurant/kitchen-layers/optimized/shrimp-loin.png',
-  'assets/restaurant/kitchen-layers/optimized/mackerel-loin.png',
-  'assets/restaurant/kitchen-layers/optimized/seabream-loin.png',
-  'assets/restaurant/kitchen-layers/optimized/eel-loin.png',
-  'assets/restaurant/kitchen-layers/optimized/uni-loin.png',
-  'assets/restaurant/kitchen-layers/optimized/roe-loin.png',
-  'assets/restaurant/kitchen-layers/optimized/shrimp-whole.png',
-  'assets/restaurant/kitchen-layers/optimized/shrimp-head.png',
-  'assets/restaurant/kitchen-layers/optimized/tamago-loin.png',
   'assets/restaurant/kitchen-layers/optimized/cutting-board.png',
   'assets/restaurant/kitchen-layers/optimized/trash-bin.png',
   'assets/restaurant/kitchen-layers/optimized/rice-bin.png',
-  'assets/restaurant/kitchen-layers/optimized/rice-portion.png',
-  'assets/restaurant/kitchen-layers/optimized/salmon-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/tuna-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/shrimp-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/mackerel-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/seabream-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/eel-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/tamago-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/uni-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/roe-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/salmon-nigiri.png',
-  'assets/restaurant/kitchen-layers/optimized/tuna-nigiri.png',
-  'assets/restaurant/kitchen-layers/optimized/shrimp-nigiri.png',
-  'assets/restaurant/kitchen-layers/optimized/mackerel-nigiri.png',
-  'assets/restaurant/kitchen-layers/optimized/seabream-nigiri.png',
-  'assets/restaurant/kitchen-layers/optimized/eel-nigiri.png',
-  'assets/restaurant/kitchen-layers/optimized/tamago-nigiri.png',
-  'assets/restaurant/kitchen-layers/optimized/nori-sheets.png',
-  'assets/restaurant/kitchen-layers/optimized/uni-gunkan.png',
-  'assets/restaurant/kitchen-layers/optimized/roe-gunkan.png',
-  'assets/restaurant/kitchen-layers/optimized/plate-stack.png',
-  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-salmon.png',
-  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-tuna.png',
-  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-shrimp.png',
-  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-mackerel.png',
-  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-seabream.png',
-  'assets/restaurant/kitchen-layers/optimized/sashimi-platter-mixed.png',
   'assets/restaurant/kitchen-layers/optimized/drink-machine-opaque.png',
   'assets/restaurant/kitchen-layers/optimized/cup-station.png',
-  'assets/restaurant/kitchen-layers/optimized/tea-cup-empty.png',
-  'assets/restaurant/kitchen-layers/optimized/tea-cup-ready.png',
-  'assets/restaurant/kitchen-layers/optimized/yuzu-soda-ready.png',
-  'assets/restaurant/kitchen-layers/optimized/strawberry-soda-ready.png',
-  'assets/restaurant/customers/customer-summer.png',
-  'assets/restaurant/customers/customer-sailor.png',
-  'assets/restaurant/customers/customer-student.png',
-  'assets/restaurant/customers/customer-artist.png',
-  'assets/restaurant/customers/customer-beggar.png',
-  'assets/restaurant/customers/customer-fisher.png',
-  'assets/restaurant/customers/customer-rush.png',
-  'assets/restaurant/customers/customer-feast.png',
-  'assets/restaurant/customers/customer-regular.png',
-  'assets/restaurant/customers/customer-vip.png',
+  'assets/restaurant/kitchen-layers/optimized/tamago-loin.png',
+  'assets/restaurant/kitchen-layers/optimized/tamago-slice.png',
+  'assets/restaurant/kitchen-layers/optimized/tamago-nigiri.png',
+  'assets/restaurant/kitchen-layers/optimized/rice-portion.png',
+  'assets/restaurant/kitchen-layers/optimized/salmon-slice.png',
+  'assets/restaurant/kitchen-layers/optimized/salmon-nigiri.png',
 ];
 const fishingAssetSources = [
   'assets/fishing-v2/sea-background.png',
@@ -228,6 +178,8 @@ const fishingAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/shrimp-whole.png',
   'assets/restaurant/kitchen-layers/optimized/tuna-loin.png',
 ];
+
+const shouldEnterFishing = requestedScene === 'fishing' && canFishFromSavedDay();
 
 function preloadImage(source) {
   return new Promise((resolve) => {
@@ -294,21 +246,29 @@ function loadStylesheet(id, href) {
   });
 }
 
-// 从钓鱼场景返回或直接打开钓鱼时，不能被整套厨房素材阻塞。
-// 主菜单只预热最可能马上进入的厨房；钓鱼场景则只在后台预热自己的图。
-const kitchenAssetsReady = requestedScene === 'fishing'
-  ? Promise.resolve()
-  : Promise.all(kitchenAssetSources.map(preloadImage));
-const fishingAssetsReady = requestedScene === 'fishing'
+// 直接打开可用的钓鱼页时，不必预热厨房；若钓鱼条件不满足，优先预热
+// 实际会回退进入的厨房，避免同时下载两套场景。
+const fishingAssetsReady = shouldEnterFishing
   ? Promise.all(fishingAssetSources.map(preloadImage))
   : Promise.resolve();
 
 // 场景切换必须等全部核心图像完成解码。此前的 2.2 秒上限会让慢网络
 // 在素材仍是空白时进入游戏，因而这里不再以时间强制放行。
-const kitchenAssetWarmup = kitchenAssetsReady;
+let kitchenAssetWarmup = shouldEnterFishing
+  ? null
+  : Promise.all(kitchenEntryAssetSources.map(preloadImage));
 const fishingAssetWarmup = fishingAssetsReady;
 let kitchenMarkupReady = loadKitchenMarkup();
 let fishingMarkupReady = loadFishingMarkup();
+
+function warmKitchenAssets() {
+  // 直接打开钓鱼页时会跳过厨房预加载；若该存档不能钓鱼而回退到营业台，
+  // 此处必须补回预加载，不能把厨房当作已经就绪。
+  if (!kitchenAssetWarmup) {
+    kitchenAssetWarmup = Promise.all(kitchenEntryAssetSources.map(preloadImage));
+  }
+  return kitchenAssetWarmup;
+}
 
 function waitForMenuTransition() {
   return new Promise((resolve) => window.setTimeout(resolve, 700));
@@ -333,7 +293,7 @@ async function enterKitchen(event) {
 
     const [kitchenMarkup] = await Promise.all([
       kitchenMarkupReady,
-      kitchenAssetWarmup,
+      warmKitchenAssets(),
       waitForLoadingScreen(),
     ]);
     const kitchenDocument = new DOMParser().parseFromString(kitchenMarkup, 'text/html');
@@ -344,7 +304,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=sushi-menu-v93-20260805';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v94-20260806';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -485,7 +445,7 @@ if (requestedScene === 'kitchen' || requestedScene === 'fishing' || returningToM
   window.history.replaceState({}, document.title, window.location.pathname);
   if (requestedScene === 'kitchen') enterKitchen();
   else if (requestedScene === 'fishing') {
-    if (!canFishFromSavedDay()) enterKitchen();
+    if (!shouldEnterFishing) enterKitchen();
     else enterFishing();
   }
 }
