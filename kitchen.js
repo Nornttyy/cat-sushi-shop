@@ -1277,9 +1277,10 @@ function restoreGame() {
     const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
     const storageLevels = normalizeStorageLevels(saved.storageLevels);
     const rawFish = normalizeRawFish(inventory.rawFish);
-    const sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, unlockedRecipes, storageCapacityFor('slices', storageLevels));
-    const sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, unlockedRecipes, storageCapacityFor('sushi', storageLevels));
-    const platterAssembly = savedPlatterAssembly(inventory.platterAssembly, unlockedRecipes);
+    let sliceTypes = savedSushiTypes(inventory.sliceTypes, unlockedIngredients, unlockedRecipes, storageCapacityFor('slices', storageLevels));
+    let sushiTypes = savedSushiTypes(inventory.sushiTypes, unlockedIngredients, unlockedRecipes, storageCapacityFor('sushi', storageLevels));
+    let platterAssembly = savedPlatterAssembly(inventory.platterAssembly, unlockedRecipes);
+    let riceStored = asStoredCount(inventory.rice, storageCapacityFor('rice', storageLevels));
     const unlockedDrinks = normalizeUnlockedDrinks(saved.unlockedDrinks, Boolean(saved.teaUnlocked));
     const legacyTeaCount = Boolean(saved.teaUnlocked)
       ? asStoredCount(inventory.tea, storageCapacityFor('drinks', storageLevels))
@@ -1287,7 +1288,7 @@ function restoreGame() {
     const savedDrinks = Array.isArray(inventory.drinks)
       ? inventory.drinks
       : Array.from({ length: legacyTeaCount }, () => 'tea');
-    const drinkTypes = savedDrinkTypes(savedDrinks, unlockedDrinks, storageCapacityFor('drinks', storageLevels));
+    let drinkTypes = savedDrinkTypes(savedDrinks, unlockedDrinks, storageCapacityFor('drinks', storageLevels));
     // Old saves predate the tutorial. Keep their owners in the game instead of
     // putting an established shop back through a first-day lesson.
     const tutorialCompleted = typeof saved.tutorialCompleted === 'boolean' ? saved.tutorialCompleted : true;
@@ -1308,7 +1309,17 @@ function restoreGame() {
     const dayTimeRemainingMs = Number.isFinite(savedDayTime)
       ? Math.min(dayDuration, Math.max(0, Math.floor(savedDayTime)))
       : dayDuration;
-    if (dayPhase === 'service' && tutorialCompleted && dayTimeRemainingMs <= 0) dayPhase = 'settlement';
+    const dayFinishedWhileAway = dayPhase === 'service' && tutorialCompleted && dayTimeRemainingMs <= 0;
+    if (dayFinishedWhileAway) {
+      dayPhase = 'settlement';
+      // Match a normal end-of-day: food left on the counter must not return
+      // merely because the page was refreshed at the end of a shift.
+      sliceTypes = [];
+      riceStored = 0;
+      sushiTypes = [];
+      platterAssembly = [];
+      drinkTypes = [];
+    }
     const shopOpen = dayPhase === 'service';
     const customers = dayPhase === 'service'
       ? restoredWaitingCustomers(saved.customers, {
@@ -1345,7 +1356,7 @@ function restoreGame() {
       incomingSlices: 0,
       sliceTypes,
       flightVersion: 0,
-      riceStored: asStoredCount(inventory.rice, storageCapacityFor('rice', storageLevels)),
+      riceStored,
       incomingRice: 0,
       sushiStored: sushiTypes.length,
       incomingSushi: 0,
@@ -1904,13 +1915,13 @@ function returnUntouchedBoardIngredient() {
   state.rawFish[ingredientId] = Math.min(MAX_RAW_FISH, (state.rawFish[ingredientId] ?? 0) + 1);
 }
 
-function clearInProgressKitchenWork() {
+function clearInProgressKitchenWork({ returnUntouchedIngredient = true } = {}) {
   // Completed ingredients already exist in their storage arrays before their
   // flight animation ends. Keep those items, but cancel their visual callback
   // so an ended day cannot modify the counter behind the settlement screen.
   // A fish that has only been placed on the board has not produced anything;
-  // return it so the day timer never silently deletes the player's stock.
-  returnUntouchedBoardIngredient();
+  // return it only when an early shortage will continue the same day.
+  if (returnUntouchedIngredient) returnUntouchedBoardIngredient();
   state.flightVersion += 1;
   state.drinkVersion += 1;
   state.incomingSlices = 0;
@@ -1937,13 +1948,29 @@ function clearInProgressKitchenWork() {
   stage.querySelectorAll('.flying-sushi-slice, .flying-completed-item, .flying-shrimp-head, .sushi-making-animation, .customer-delivery-flight').forEach((element) => element.remove());
 }
 
+function clearCounterFood() {
+  // Counter racks are daily food, not permanent inventory. Keep freezer fish
+  // untouched, but clear every ready or half-made serving for the next day.
+  state.sliceTypes = [];
+  state.slicesReady = 0;
+  state.riceStored = 0;
+  state.sushiTypes = [];
+  state.sushiStored = 0;
+  state.drinkTypes = [];
+  state.drinksStored = 0;
+  state.platterAssembly = [];
+}
+
 function finishDay({ early = false, reason = 'time' } = {}) {
   if (state.dayPhase !== 'service') return false;
   stopDayClock();
   clearCustomerTimers();
   stopCustomerPatienceLoop();
   clearIngredientDrag();
-  clearInProgressKitchenWork();
+  // An early fish shortage continues the same day after restocking. A normal
+  // end starts a fresh day, so nothing prepared on the counter carries over.
+  clearInProgressKitchenWork({ returnUntouchedIngredient: early });
+  if (!early) clearCounterFood();
   state.customers = [];
   state.sashimiPickerOpen = false;
   state.shopOpen = false;
