@@ -411,7 +411,7 @@ button { font: inherit; }
 .game-volume-control output { min-width: 2.7em; color: #9a5942; font-size: clamp(11px, .95vw, 13px); font-variant-numeric: tabular-nums; text-align: right; }
 .kitchen-stage.is-game-paused > :not(.game-pause-overlay):not(.kitchen-exit-loading), .kitchen-stage.is-game-paused > :not(.game-pause-overlay):not(.kitchen-exit-loading) * { animation-play-state: paused !important; }
 .menu-loading-screen.kitchen-exit-loading { z-index: 90; }
-.kitchen-stage.is-exiting-game { pointer-events: none; }
+.kitchen-stage.is-exiting-game, .kitchen-stage.is-entering-fishing { pointer-events: none; }
 .kitchen-stage.is-day-settled .work-counter { pointer-events: none; filter: saturate(.84) brightness(.96); }
 .is-hidden { display: none !important; }
 .screen-reader-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
@@ -464,12 +464,12 @@ button { font: inherit; }
 .menu-loading-finished { inset: 8% 5% 0; width: 90%; height: 84%; }
 .menu-loading-screen span { opacity: 0; font-size: clamp(20px, 2.2vw, 32px); font-weight: 900; letter-spacing: .24em; text-shadow: 0 0 16px rgb(255 229 181 / .3); transform: translateY(8px); transition: opacity 260ms ease 230ms, transform 420ms ease 230ms; }
 .menu-loading-screen span::after { content: '···'; display: inline-block; width: 2.3em; overflow: hidden; vertical-align: bottom; animation: loading-dots 1.15s steps(4, end) infinite; }
-.main-menu-stage.is-loading-game .menu-loading-screen, .kitchen-stage.is-exiting-game .menu-loading-screen { opacity: 1; }
-.main-menu-stage.is-loading-game .menu-loading-sushi, .kitchen-stage.is-exiting-game .menu-loading-sushi { opacity: 1; transform: translateY(0) scale(1); }
-.main-menu-stage.is-loading-game .menu-loading-rice, .kitchen-stage.is-exiting-game .menu-loading-rice { animation: loading-rice-assemble 1.15s cubic-bezier(.2, .8, .25, 1) infinite; animation-play-state: running; }
-.main-menu-stage.is-loading-game .menu-loading-salmon, .kitchen-stage.is-exiting-game .menu-loading-salmon { animation: loading-salmon-assemble 1.15s cubic-bezier(.2, .8, .25, 1) infinite; animation-play-state: running; }
-.main-menu-stage.is-loading-game .menu-loading-finished, .kitchen-stage.is-exiting-game .menu-loading-finished { animation: loading-sushi-finished 1.15s cubic-bezier(.2, .8, .25, 1) infinite; animation-play-state: running; }
-.main-menu-stage.is-loading-game .menu-loading-screen span, .kitchen-stage.is-exiting-game .menu-loading-screen span { opacity: 1; transform: translateY(0); }
+.main-menu-stage.is-loading-game .menu-loading-screen, .kitchen-stage.is-exiting-game .menu-loading-screen, .kitchen-stage.is-entering-fishing .menu-loading-screen { opacity: 1; }
+.main-menu-stage.is-loading-game .menu-loading-sushi, .kitchen-stage.is-exiting-game .menu-loading-sushi, .kitchen-stage.is-entering-fishing .menu-loading-sushi { opacity: 1; transform: translateY(0) scale(1); }
+.main-menu-stage.is-loading-game .menu-loading-rice, .kitchen-stage.is-exiting-game .menu-loading-rice, .kitchen-stage.is-entering-fishing .menu-loading-rice { animation: loading-rice-assemble 1.15s cubic-bezier(.2, .8, .25, 1) infinite; animation-play-state: running; }
+.main-menu-stage.is-loading-game .menu-loading-salmon, .kitchen-stage.is-exiting-game .menu-loading-salmon, .kitchen-stage.is-entering-fishing .menu-loading-salmon { animation: loading-salmon-assemble 1.15s cubic-bezier(.2, .8, .25, 1) infinite; animation-play-state: running; }
+.main-menu-stage.is-loading-game .menu-loading-finished, .kitchen-stage.is-exiting-game .menu-loading-finished, .kitchen-stage.is-entering-fishing .menu-loading-finished { animation: loading-sushi-finished 1.15s cubic-bezier(.2, .8, .25, 1) infinite; animation-play-state: running; }
+.main-menu-stage.is-loading-game .menu-loading-screen span, .kitchen-stage.is-exiting-game .menu-loading-screen span, .kitchen-stage.is-entering-fishing .menu-loading-screen span { opacity: 1; transform: translateY(0); }
 @keyframes loading-dots { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes loading-rice-assemble { 0%, 8% { opacity: 0; transform: translateY(18%) scale(.72); } 20%, 61% { opacity: 1; transform: translateY(0) scale(1); } 76%, 100% { opacity: 0; transform: translateY(6%) scale(.9); } }
 @keyframes loading-salmon-assemble { 0%, 20% { opacity: 0; transform: translateY(-72%) rotate(-12deg) scale(.7); } 34% { opacity: 1; transform: translateY(4%) rotate(3deg) scale(1.05); } 50%, 61% { opacity: 1; transform: translateY(0) rotate(0) scale(1); } 76%, 100% { opacity: 0; transform: translateY(2%) scale(.93); } }

@@ -8,6 +8,7 @@ const SWING_MIN_ANGLE = 4;
 const SWING_MAX_ANGLE = 70;
 const SWING_SPEED = 54;
 const TARGET_COUNT = 4;
+const INITIAL_TARGET_RETRY_LIMIT = 30;
 const FISH_SPAWN_SLOTS = [
   { angle: 67, distance: 0.7 },
   { angle: 57, distance: 0.73 },
@@ -106,6 +107,7 @@ const state = {
   phase: 'aiming',
   ended: false,
   unlockedFish: [],
+  featuredFish: null,
   rawFish: { salmon: 0, tuna: 0, shrimp: 0, mackerel: 0, seabream: 0, eel: 0 },
   rawFishCapacity: RAW_FISH_CAPACITIES[0],
   sessionCatch: { salmon: 0, tuna: 0, shrimp: 0, mackerel: 0, seabream: 0, eel: 0 },
@@ -126,6 +128,8 @@ const state = {
 
 let popTimer = null;
 let resultCloseTimer = null;
+let initialTargetRetryTimer = null;
+let initialTargetRetryCount = 0;
 
 function fishingModalDuration(duration) {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 1 : duration;
@@ -187,6 +191,11 @@ function canFishFromSavedDay(save) {
 function getUnlockedFish(save) {
   const unlocked = Array.isArray(save.unlockedIngredients) ? save.unlockedIngredients : [];
   return FISH_IDS.filter((id) => unlocked.includes(id));
+}
+
+function featuredFishFromSave(save, unlockedFish) {
+  const featuredFish = typeof save?.fishingFeaturedFish === 'string' ? save.fishingFeaturedFish : null;
+  return featuredFish && unlockedFish.includes(featuredFish) ? featuredFish : null;
 }
 
 function persistCaughtFish(type) {
@@ -398,9 +407,11 @@ function showCatch(type) {
 }
 
 function targetCount() {
-  if (rawFishStorageIsFull()) return 0;
   const poolSize = catchableFish().length;
   if (!poolSize) return 0;
+  // A full freezer prevents casting, not the sea from looking alive. Keeping
+  // fish visible makes the "冰柜已满" state understandable instead of
+  // resembling a failed unlock.
   return Math.min(TARGET_COUNT, 3 + poolSize);
 }
 
@@ -418,6 +429,7 @@ function createTarget(type) {
 
   const sceneRect = getSceneRect();
   const waterRect = getWaterRect();
+  if (!sceneRect.width || !sceneRect.height || !waterRect.width || !waterRect.height) return null;
   const waterLeft = waterRect.left - sceneRect.left;
   const waterTop = waterRect.top - sceneRect.top;
   const bounds = getSafeWaterBounds();
@@ -451,13 +463,37 @@ function createTarget(type) {
   // it with another point that is both in the water and inside the hook arc,
   // rather than falling back to a coordinate that may sit on the pier.
   if (slotIndex < 0) {
+    let foundRandomPosition = false;
     for (let attempt = 0; attempt < 48; attempt += 1) {
       const nextX = randomBetween(bounds.minX, bounds.maxX);
       const nextY = randomBetween(bounds.minY, bounds.maxY);
       if (!isWithinHookSweep(nextX, nextY) || targetsAreTooClose(nextX, nextY)) continue;
       x = nextX;
       y = nextY;
+      foundRandomPosition = true;
       break;
+    }
+
+    // On the first frame a narrow hook arc can make random placement miss.
+    // Scan known-safe arc points before deciding the sea has no fish.
+    if (!foundRandomPosition) {
+      const fallbackAngles = [64, 57, 69, 53, 61, 66, 55];
+      const fallbackDistances = [0.58, 0.68, 0.78, 0.88, 0.96];
+      for (const distanceRatio of fallbackDistances) {
+        let foundFallbackPosition = false;
+        for (const angleDegrees of fallbackAngles) {
+          const angle = angleDegrees * (Math.PI / 180);
+          const length = maxRopeLength() * distanceRatio;
+          const nextX = (state.anchor.x + (Math.sin(angle) * length) - waterLeft) / waterRect.width;
+          const nextY = (state.anchor.y + (Math.cos(angle) * length) - waterTop) / waterRect.height;
+          if (!isInsideSafeWater(nextX, nextY, bounds) || !isWithinHookSweep(nextX, nextY) || targetsAreTooClose(nextX, nextY)) continue;
+          x = nextX;
+          y = nextY;
+          foundFallbackPosition = true;
+          break;
+        }
+        if (foundFallbackPosition) break;
+      }
     }
   }
 
@@ -501,7 +537,9 @@ function spawnTargets() {
   while (state.targets.length < targetCount() && pool.length) {
     const representedTypes = new Set(state.targets.map((target) => target.type));
     const missingTypes = pool.filter((id) => !representedTypes.has(id));
-    const type = weightedFish(missingTypes.length ? missingTypes : pool);
+    const type = state.featuredFish && !representedTypes.has(state.featuredFish)
+      ? state.featuredFish
+      : weightedFish(missingTypes.length ? missingTypes : pool);
     if (!type || !createTarget(type)) break;
   }
 }
@@ -512,18 +550,33 @@ function clearTargets() {
   state.activeTarget = null;
 }
 
+function scheduleInitialTargetRetry() {
+  if (initialTargetRetryTimer !== null || state.ended) return;
+  initialTargetRetryTimer = window.setTimeout(() => {
+    initialTargetRetryTimer = null;
+    prepareInitialTargets();
+  }, 90);
+}
+
 function prepareInitialTargets() {
   if (state.targetsPrepared || state.ended) return;
   // The rod-tip marker has a stable layout before the fisherman image has
   // finished decoding. Do not leave a purchased fishing spot empty just
   // because one decorative image is slow or fails to load.
   if (!syncHookAnchor()) {
-    window.requestAnimationFrame(prepareInitialTargets);
+    scheduleInitialTargetRetry();
     return;
   }
   clearTargets();
   spawnTargets();
+  if (catchableFish().length && !state.targets.length && initialTargetRetryCount < INITIAL_TARGET_RETRY_LIMIT) {
+    initialTargetRetryCount += 1;
+    scheduleInitialTargetRetry();
+    render();
+    return;
+  }
   state.targetsPrepared = true;
+  initialTargetRetryCount = 0;
   render();
 }
 
@@ -771,6 +824,7 @@ function initializeFishing() {
   }
   const inventory = save.inventory && typeof save.inventory === 'object' ? save.inventory : {};
   state.unlockedFish = getUnlockedFish(save);
+  state.featuredFish = featuredFishFromSave(save, state.unlockedFish);
   state.rawFish = normalizeRawFish(inventory.rawFish);
   state.rawFishCapacity = rawFishCapacityFromSave(save);
   state.ropeLength = idleRopeLength();
@@ -793,6 +847,42 @@ function initializeFishing() {
   }
 }
 
+function syncFishingSave() {
+  const save = readSave();
+  if (!canFishFromSavedDay(save)) {
+    window.location.replace('./?scene=kitchen');
+    return false;
+  }
+
+  const inventory = save.inventory && typeof save.inventory === 'object' ? save.inventory : {};
+  const unlockedFish = getUnlockedFish(save);
+  const featuredFish = featuredFishFromSave(save, unlockedFish);
+  const rawFish = normalizeRawFish(inventory.rawFish);
+  const rawFishCapacity = rawFishCapacityFromSave(save);
+  const changed = state.unlockedFish.join(',') !== unlockedFish.join(',')
+    || state.featuredFish !== featuredFish
+    || FISH_IDS.some((id) => state.rawFish[id] !== rawFish[id])
+    || state.rawFishCapacity !== rawFishCapacity;
+
+  if (!changed) return true;
+  state.unlockedFish = unlockedFish;
+  state.featuredFish = featuredFish;
+  state.rawFish = rawFish;
+  state.rawFishCapacity = rawFishCapacity;
+
+  // Returning from a purchased fishing spot (or a BFCache page) must rebuild
+  // the sea from the latest save, rather than keeping the old empty pool.
+  if (state.phase === 'aiming' && !state.ended) {
+    clearTargets();
+    state.targetsPrepared = false;
+    initialTargetRetryCount = 0;
+    prepareInitialTargets();
+  } else {
+    render();
+  }
+  return true;
+}
+
 fishingButton.addEventListener('click', castHook);
 fishingScene.addEventListener('pointerdown', handleSceneLaunch);
 finishFishingButton.addEventListener('click', finishFishing);
@@ -808,19 +898,30 @@ window.addEventListener('resize', () => {
     state.ropeLength = Math.min(state.ropeLength, maxRopeLength());
     updateTargets(0);
     renderHook();
+    if (!state.targets.length && catchableFish().length) {
+      state.targetsPrepared = false;
+      initialTargetRetryCount = 0;
+      prepareInitialTargets();
+    }
   }
 });
 window.addEventListener('pagehide', () => {
   stopAnimationLoop();
   if (popTimer) window.clearTimeout(popTimer);
   if (resultCloseTimer) window.clearTimeout(resultCloseTimer);
+  if (initialTargetRetryTimer !== null) window.clearTimeout(initialTargetRetryTimer);
 });
 window.addEventListener('pageshow', (event) => {
   if (!event.persisted || state.ended) return;
+  if (!syncFishingSave()) return;
   syncHookAnchor();
   updateTargets(0);
   renderHook();
   startAnimationLoop();
+});
+window.addEventListener('storage', (event) => {
+  if (event.key !== SAVE_KEY || event.storageArea !== window.localStorage || state.ended) return;
+  syncFishingSave();
 });
 
 initializeFishing();

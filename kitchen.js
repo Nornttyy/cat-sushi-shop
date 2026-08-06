@@ -534,6 +534,12 @@ function needsFishing(id) {
   return RAW_FISH_IDS.includes(id);
 }
 
+function normalizedFishingFeaturedFish(value, unlockedIngredients = state.unlockedIngredients) {
+  return needsFishing(value) && Array.isArray(unlockedIngredients) && unlockedIngredients.includes(value)
+    ? value
+    : null;
+}
+
 function rawFishYield(id) {
   return id === 'shrimp' ? SHRIMP_BATCH_SIZE : CUT_SLICE_ORIGINS.flat().length;
 }
@@ -784,6 +790,7 @@ const state = {
   platterAssembly: [],
   platterMaking: false,
   rawFish: { salmon: 0, tuna: 0, shrimp: 0, mackerel: 0, seabream: 0, eel: 0 },
+  fishingFeaturedFish: null,
   storageLevels: normalizeStorageLevels({}),
   teaUnlocked: false,
   tutorialCompleted: false,
@@ -1101,6 +1108,7 @@ function buildSaveSnapshot() {
     unlockedDecorations: normalizeUnlockedDecorations(state.unlockedDecorations),
     activeDecoration: normalizedActiveDecoration(state.activeDecoration, state.unlockedDecorations),
     unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isIngredientId))],
+    fishingFeaturedFish: normalizedFishingFeaturedFish(state.fishingFeaturedFish),
     unlockedRecipes: normalizeUnlockedRecipes(state.unlockedRecipes),
     unlockedDrinks: normalizeUnlockedDrinks(state.unlockedDrinks),
     storageLevels: normalizeStorageLevels(state.storageLevels),
@@ -1273,6 +1281,7 @@ function restoreGame() {
     const unlockedIngredients = [...new Set([...INITIAL_UNLOCKED_INGREDIENTS, ...savedUnlocks])];
     const unlockedDecorations = normalizeUnlockedDecorations(saved.unlockedDecorations);
     const activeDecoration = normalizedActiveDecoration(saved.activeDecoration, unlockedDecorations);
+    const fishingFeaturedFish = normalizedFishingFeaturedFish(saved.fishingFeaturedFish, unlockedIngredients);
     const unlockedRecipes = normalizeUnlockedRecipes(saved.unlockedRecipes);
     const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
     const storageLevels = normalizeStorageLevels(saved.storageLevels);
@@ -1378,6 +1387,7 @@ function restoreGame() {
       platterAssembly,
       platterMaking: false,
       rawFish,
+      fishingFeaturedFish,
       storageLevels,
       teaUnlocked: unlockedDrinks.includes('tea'),
       unlockedDrinks,
@@ -1491,6 +1501,7 @@ let daySummaryTransitioning = false;
 let shopPanelClosing = false;
 let pauseOverlayClosing = false;
 let tutorialWelcomeClosing = false;
+let fishingTransitioning = false;
 
 stage.addEventListener('dragstart', (event) => event.preventDefault());
 
@@ -2425,7 +2436,7 @@ function resumeShop() {
 }
 
 function goFishing() {
-  if (state.gamePaused) return;
+  if (state.gamePaused || fishingTransitioning) return;
   if (state.dayPhase !== 'settlement') {
     setMessage('本日结算后，再去海边钓鱼补货。');
     return;
@@ -2435,10 +2446,21 @@ function goFishing() {
     return;
   }
   if (!saveGame()) {
+    // A newer tab may own the save. Refresh that authoritative state instead
+    // of leaving a visible button that cannot complete its scene switch.
+    syncExternalSave();
     setMessage('进度还在保存，等一下再去钓鱼。');
     return;
   }
-  window.location.assign('./?scene=fishing');
+  fishingTransitioning = true;
+  goFishingButton.disabled = true;
+  goFishingButton.setAttribute('aria-busy', 'true');
+  stage.classList.add('is-entering-fishing');
+  const loadingText = exitLoadingOverlay.querySelector('span');
+  if (loadingText) loadingText.textContent = '前往海边';
+  exitLoadingOverlay.setAttribute('aria-label', '正在前往海边');
+  exitLoadingOverlay.setAttribute('aria-hidden', 'false');
+  window.setTimeout(() => window.location.assign('./?scene=fishing'), motionDuration(420));
 }
 
 function pauseGame() {
@@ -3305,6 +3327,7 @@ function buyIngredient(ingredientId) {
     setMessage(recipeMessages[shopItem.recipeId] ?? `${itemName}已解锁。`);
   } else {
     state.unlockedIngredients = [...state.unlockedIngredients, ingredientId];
+    state.fishingFeaturedFish = ingredientId;
     setMessage(`${sushiName(ingredientId)}钓点已开放。它不会直接加入冰柜，每天结算后去钓鱼获得。`);
   }
   // Save the unlock immediately. `goFishing()` also saves before navigation,
@@ -3563,7 +3586,11 @@ function render() {
   renderShrimpHeads();
   trashBin.classList.toggle('is-discarding', state.shrimpHeadDiscarding);
   trashBin.title = '拖入物品丢弃；点击可清空菜板上的食材';
-  const showSettlementActions = state.dayPhase === 'settlement' && !state.daySummaryOpen && !daySummaryTransitioning;
+  const showSettlementActions = state.dayPhase === 'settlement'
+    && !state.daySummaryOpen
+    && !daySummaryTransitioning
+    && !shopPanelClosing
+    && !fishingTransitioning;
   show(settlementActions, showSettlementActions);
   show(openShopButton, showSettlementActions);
   show(goFishingButton, showSettlementActions);
