@@ -3484,12 +3484,15 @@ function renderShrimpBatch() {
     if (!item) {
       item = document.createElement('button');
       const image = document.createElement('img');
+      const guide = document.createElement('span');
       item.type = 'button';
       item.className = 'shrimp-batch-item';
       image.src = `${KITCHEN_ASSET_PATH}shrimp-whole-vivid-v1.png`;
       image.alt = '带头甜虾';
       image.draggable = false;
-      item.append(image);
+      guide.className = 'shrimp-head-cut-guide';
+      guide.setAttribute('aria-hidden', 'true');
+      item.append(image, guide);
       item.addEventListener('pointerdown', startShrimpCut);
       item.addEventListener('pointermove', moveShrimpCut);
       item.addEventListener('pointerup', cancelShrimpCut);
@@ -3503,7 +3506,7 @@ function renderShrimpBatch() {
     }
 
     item.dataset.shrimpId = shrimp.id;
-    item.setAttribute('aria-label', `第 ${index + 1} 只甜虾，按住后向下滑动去头`);
+    item.setAttribute('aria-label', `第 ${index + 1} 只甜虾，在细虚线处按住后向下滑动去头`);
     item.classList.toggle('is-cutting', state.activeShrimpCut === shrimp.id);
     if (shrimpBatch.children[index] !== item) shrimpBatch.append(item);
   });
