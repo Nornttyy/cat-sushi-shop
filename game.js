@@ -150,7 +150,7 @@ function canFishFromSavedDay() {
 // kitchen.js 在空闲时按需预热，避免慢网为尚未解锁的内容等待十几兆图片。
 const kitchenEntryAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg',
-  'assets/restaurant/kitchen-layers/optimized/fish-well-frosted-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/fish-well-frosted-vivid-v2.png',
   'assets/restaurant/kitchen-layers/optimized/cutting-board-vivid-v1.png',
   'assets/restaurant/kitchen-layers/optimized/trash-bin-vivid-v1.png',
   'assets/restaurant/kitchen-layers/optimized/rice-bin-vivid-v1.png',
@@ -160,8 +160,11 @@ const kitchenEntryAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/tamago-slice-vivid-v1.png',
   'assets/restaurant/kitchen-layers/optimized/tamago-nigiri-vivid-v1.png',
   'assets/restaurant/kitchen-layers/optimized/rice-portion-vivid-v1.png',
-  'assets/restaurant/kitchen-layers/optimized/salmon-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/salmon-nigiri.png',
+  'assets/restaurant/kitchen-layers/optimized/salmon-loin-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/salmon-slice-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/salmon-nigiri-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/tea-cup-empty-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/tea-cup-ready-vivid-v1.png',
 ];
 const hookExpeditionAssetSources = [
   // The expedition is a separate illustration set. None of the former
@@ -295,7 +298,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=sushi-menu-v100-20260806';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v101-20260806';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {

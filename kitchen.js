@@ -14,7 +14,7 @@ const SPECIAL_ORDER_SPAWN_CHANCE = 0.36;
 const SPECIAL_ORDER_BONUS_RATE = 0.18;
 const SPECIAL_ORDER_BONUS_MAX = 8;
 const DRINK_TYPES = Object.freeze({
-  tea: Object.freeze({ id: 'tea', name: '茶', price: 3, asset: 'tea-cup-ready.png' }),
+  tea: Object.freeze({ id: 'tea', name: '茶', price: 3, asset: 'tea-cup-ready-vivid-v1.png' }),
   'yuzu-soda': Object.freeze({ id: 'yuzu-soda', name: '柚子苏打', price: 5, asset: 'yuzu-soda-ready.png' }),
   'strawberry-soda': Object.freeze({ id: 'strawberry-soda', name: '草莓苏打', price: 6, asset: 'strawberry-soda-ready.png' }),
 });
@@ -89,7 +89,7 @@ const DECORATION_THEMES = Object.freeze([
   }),
 ]);
 const SHOP_ITEMS = [
-  { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready.png', price: 120, kind: 'drink', drinkId: 'tea' },
+  { id: 'tea', name: '茶饮配方', asset: 'tea-cup-ready-vivid-v1.png', price: 120, kind: 'drink', drinkId: 'tea' },
   { id: 'yuzu-soda', name: '柚子苏打配方', asset: 'yuzu-soda-ready.png', price: 380, kind: 'drink', drinkId: 'yuzu-soda', requiresTea: true },
   { id: 'strawberry-soda', name: '草莓苏打配方', asset: 'strawberry-soda-ready.png', price: 560, kind: 'drink', drinkId: 'strawberry-soda', requiresTea: true },
   { id: 'salmon', price: 180 },
@@ -107,7 +107,7 @@ const STORAGE_UPGRADES = [
   {
     id: 'slices',
     name: '鱼片架扩容',
-    asset: 'salmon-slice.png',
+    asset: 'salmon-slice-vivid-v1.png',
     prices: [180, 360, 650],
     capacities: [12, 16, 20, 24],
     grids: [
@@ -133,7 +133,7 @@ const STORAGE_UPGRADES = [
   {
     id: 'drinks',
     name: '饮品架扩容',
-    asset: 'tea-cup-ready.png',
+    asset: 'tea-cup-ready-vivid-v1.png',
     prices: [140, 300, 550],
     requiresTea: true,
     capacities: [8, 10, 12, 14],
@@ -169,7 +169,7 @@ const STORAGE_UPGRADES = [
   {
     id: 'freezer',
     name: '冰柜扩容',
-    asset: 'fish-well-frosted-vivid-v1.png',
+    asset: 'fish-well-frosted-vivid-v2.png',
     prices: [380, 760, 1320],
     capacities: [12, 18, 26, 36],
     unit: '份',
@@ -181,9 +181,9 @@ const SUSHI_TYPES = {
     name: '三文鱼',
     pickerName: '三文鱼刺身',
     boardName: '大三文鱼',
-    loin: 'salmon-loin.png',
-    slice: 'salmon-slice.png',
-    nigiri: 'salmon-nigiri.png',
+    loin: 'salmon-loin-vivid-v1.png',
+    slice: 'salmon-slice-vivid-v1.png',
+    nigiri: 'salmon-nigiri-vivid-v1.png',
     price: 4,
   },
   tuna: {
@@ -3630,7 +3630,7 @@ function render() {
   const machineDrink = drinkFor(state.machineDrinkId);
   const machineCupSource = state.drinkPouring
     ? drinkAsset(machineDrink.id)
-    : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
+    : `${KITCHEN_ASSET_PATH}tea-cup-empty-vivid-v1.png`;
   if (machineCup.getAttribute('src') !== machineCupSource) machineCup.src = machineCupSource;
   machineCup.classList.toggle('is-filling', state.drinkPouring);
   drinkMachine.classList.toggle('is-pouring', state.drinkPouring);
@@ -3740,7 +3740,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
     : type === 'slice'
       ? sushiAsset(sushiType.id, 'slice')
       : type === 'cup'
-        ? `${KITCHEN_ASSET_PATH}tea-cup-empty.png`
+        ? `${KITCHEN_ASSET_PATH}tea-cup-empty-vivid-v1.png`
         : type === 'serve-drink'
           ? drinkAsset(drink.id)
           : dishAsset(dish.id, 'nigiri');
@@ -4203,7 +4203,7 @@ function discardWorkInProgress() {
     sourceRect = machineCup.getBoundingClientRect();
     src = state.drinkPouring
       ? drinkAsset(machineDrink.id)
-      : `${KITCHEN_ASSET_PATH}tea-cup-empty.png`;
+      : `${KITCHEN_ASSET_PATH}tea-cup-empty-vivid-v1.png`;
     label = state.drinkPouring ? `正在制作的${machineDrink.name}` : '空杯';
     state.cupOnMachine = false;
     state.drinkPouring = false;
@@ -4755,7 +4755,7 @@ function preloadInteractionAssets() {
   // Do not silently download every future customer, fish, and decoration on
   // a new save. Warm only what this shop can use now; newly bought content
   // naturally starts loading when its own UI is opened.
-  const assetNames = new Set(['rice-portion-vivid-v1.png', 'tea-cup-empty.png', 'trash-bin-vivid-v1.png']);
+  const assetNames = new Set(['rice-portion-vivid-v1.png', 'tea-cup-empty-vivid-v1.png', 'trash-bin-vivid-v1.png']);
   const ingredientIds = new Set([
     ...state.unlockedIngredients,
     ...state.sliceTypes,
