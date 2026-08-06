@@ -150,16 +150,16 @@ function canFishFromSavedDay() {
 // kitchen.js 在空闲时按需预热，避免慢网为尚未解锁的内容等待十几兆图片。
 const kitchenEntryAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg',
-  'assets/restaurant/kitchen-layers/optimized/fish-well-frosted.png',
-  'assets/restaurant/kitchen-layers/optimized/cutting-board.png',
-  'assets/restaurant/kitchen-layers/optimized/trash-bin.png',
-  'assets/restaurant/kitchen-layers/optimized/rice-bin.png',
-  'assets/restaurant/kitchen-layers/optimized/drink-machine-opaque.png',
-  'assets/restaurant/kitchen-layers/optimized/cup-station.png',
-  'assets/restaurant/kitchen-layers/optimized/tamago-loin.png',
-  'assets/restaurant/kitchen-layers/optimized/tamago-slice.png',
-  'assets/restaurant/kitchen-layers/optimized/tamago-nigiri.png',
-  'assets/restaurant/kitchen-layers/optimized/rice-portion.png',
+  'assets/restaurant/kitchen-layers/optimized/fish-well-frosted-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/cutting-board-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/trash-bin-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/rice-bin-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/drink-machine-opaque-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/cup-station-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/tamago-loin-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/tamago-slice-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/tamago-nigiri-vivid-v1.png',
+  'assets/restaurant/kitchen-layers/optimized/rice-portion-vivid-v1.png',
   'assets/restaurant/kitchen-layers/optimized/salmon-slice.png',
   'assets/restaurant/kitchen-layers/optimized/salmon-nigiri.png',
 ];
@@ -295,7 +295,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=sushi-menu-v99-20260806';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v100-20260806';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -317,7 +317,7 @@ async function enterFishing() {
       hookExpeditionMarkupReady,
       hookExpeditionAssetWarmup,
       waitForMenuTransition(),
-      loadStylesheet('hook-expedition-style', 'hook-expedition.css?v=hook-expedition-v2-20260806'),
+      loadStylesheet('hook-expedition-style', 'hook-expedition.css?v=hook-expedition-v3-20260806'),
     ]);
     const fishingDocument = new DOMParser().parseFromString(fishingMarkup, 'text/html');
     const fishingStage = fishingDocument.querySelector('main');
@@ -327,7 +327,7 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'hook-expedition.js?v=hook-expedition-v2-20260806';
+    fishingScript.src = 'hook-expedition.js?v=hook-expedition-v3-20260806';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {

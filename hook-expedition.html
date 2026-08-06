@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#11aeca" />
     <title>海边寿司店</title>
-    <link rel="stylesheet" href="hook-expedition.css?v=hook-expedition-v2-20260806" />
+    <link rel="stylesheet" href="hook-expedition.css?v=hook-expedition-v3-20260806" />
     <link rel="preload" as="image" href="assets/diving-expedition/island-base-v1.png" fetchpriority="high" />
     <link rel="preload" as="image" href="assets/diving-expedition/underwater-reef-v1.png" />
   </head>
@@ -14,9 +14,12 @@
       <section class="island-expedition-scene" aria-label="海岛码头">
         <img class="island-expedition-background" src="assets/diving-expedition/island-base-v1.png" alt="阳光明亮的海岛与码头" fetchpriority="high" decoding="async" />
         <div class="island-water-shine" aria-hidden="true"></div>
-        <div class="island-caster" aria-hidden="true"><i></i><b></b><span></span></div>
-        <button id="open-hook-shop" class="island-kiosk-hitbox" type="button" aria-label="打开海岛装备铺" title="海岛装备铺"></button>
-        <div class="island-dock-hint" aria-hidden="true">从码头抛钩，探索今天的海域</div>
+        <button id="launch-hook-button" class="island-fishing-button" type="button" aria-label="在海边钓鱼">
+          <i aria-hidden="true"></i><span>钓鱼</span>
+        </button>
+        <button id="open-hook-shop" class="island-equipment-button" type="button" aria-label="打开海岛装备铺" title="海岛装备铺">
+          <i aria-hidden="true"></i><span>装备</span>
+        </button>
       </section>
 
       <header class="expedition-hud" aria-label="钓鱼状态">
@@ -50,7 +53,6 @@
       <footer class="expedition-actions">
         <p id="expedition-message" aria-live="polite">每次抛钩都会生成一张新的大海域。</p>
         <div>
-          <button id="launch-hook-button" class="expedition-primary" type="button">抛钩探索</button>
           <button id="reel-hook-button" class="expedition-primary is-reel" type="button" disabled>收线带回</button>
           <button id="return-kitchen-button" class="expedition-secondary" type="button">回店里</button>
         </div>
@@ -88,6 +90,6 @@
       </section>
     </main>
     <script src="audio.js?v=material-foley-v4-20260805"></script>
-    <script src="hook-expedition.js?v=hook-expedition-v2-20260806"></script>
+    <script src="hook-expedition.js?v=hook-expedition-v3-20260806"></script>
   </body>
 </html>

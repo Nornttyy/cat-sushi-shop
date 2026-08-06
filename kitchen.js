@@ -120,7 +120,7 @@ const STORAGE_UPGRADES = [
   {
     id: 'sushi',
     name: '寿司架扩容',
-    asset: 'tamago-nigiri.png',
+    asset: 'tamago-nigiri-vivid-v1.png',
     prices: [220, 450, 800],
     capacities: [8, 12, 16, 20],
     grids: [
@@ -147,7 +147,7 @@ const STORAGE_UPGRADES = [
   {
     id: 'rice',
     name: '饭盒扩容',
-    asset: 'rice-bin.png',
+    asset: 'rice-bin-vivid-v1.png',
     prices: [280, 560, 980],
     capacities: [8, 12, 16, 20],
     unit: '团',
@@ -161,7 +161,7 @@ const STORAGE_UPGRADES = [
   {
     id: 'teaMachine',
     name: '饮品机提速',
-    asset: 'drink-machine-opaque.png',
+    asset: 'drink-machine-opaque-vivid-v1.png',
     prices: [320, 650, 1120],
     requiresTea: true,
     durations: [760, 610, 480, 360],
@@ -169,7 +169,7 @@ const STORAGE_UPGRADES = [
   {
     id: 'freezer',
     name: '冰柜扩容',
-    asset: 'fish-well-frosted.png',
+    asset: 'fish-well-frosted-vivid-v1.png',
     prices: [380, 760, 1320],
     capacities: [12, 18, 26, 36],
     unit: '份',
@@ -269,9 +269,9 @@ const SUSHI_TYPES = {
     name: '玉子烧',
     pickerName: '玉子烧',
     boardName: '玉子烧块',
-    loin: 'tamago-loin.png',
-    slice: 'tamago-slice.png',
-    nigiri: 'tamago-nigiri.png',
+    loin: 'tamago-loin-vivid-v1.png',
+    slice: 'tamago-slice-vivid-v1.png',
+    nigiri: 'tamago-nigiri-vivid-v1.png',
     price: 3,
   },
 };
@@ -2657,7 +2657,7 @@ function playSushiMakingAnimation(ingredientId) {
   maker.style.height = `${height}px`;
 
   rice.className = 'sushi-making-rice';
-  rice.src = `${KITCHEN_ASSET_PATH}rice-portion.png`;
+  rice.src = `${KITCHEN_ASSET_PATH}rice-portion-vivid-v1.png`;
   rice.alt = '';
   topping.className = 'sushi-making-topping';
   topping.src = sushiAsset(ingredientId, 'slice');
@@ -3649,7 +3649,7 @@ function render() {
     riceRack,
     state.riceStored - state.incomingRice,
     'stored-rice',
-    `${KITCHEN_ASSET_PATH}rice-portion.png`,
+    `${KITCHEN_ASSET_PATH}rice-portion-vivid-v1.png`,
     '米饭',
     prepareRiceDiscardDrag,
     '拖到垃圾桶丢弃',
@@ -3736,7 +3736,7 @@ function startIngredientDrag(event, type, requestedIngredientId = null) {
       ? `${KITCHEN_ASSET_PATH}shrimp-whole.png`
       : sushiAsset(sushiType.id, 'loin')
     : type === 'rice'
-      ? `${KITCHEN_ASSET_PATH}rice-portion.png`
+      ? `${KITCHEN_ASSET_PATH}rice-portion-vivid-v1.png`
     : type === 'slice'
       ? sushiAsset(sushiType.id, 'slice')
       : type === 'cup'
@@ -3869,7 +3869,7 @@ function takeRice() {
   render();
   flyCompletedItem({
     className: 'rice',
-    src: `${KITCHEN_ASSET_PATH}rice-portion.png`,
+    src: `${KITCHEN_ASSET_PATH}rice-portion-vivid-v1.png`,
     sourceRect,
     targetRect,
     targetIndex,
@@ -4755,7 +4755,7 @@ function preloadInteractionAssets() {
   // Do not silently download every future customer, fish, and decoration on
   // a new save. Warm only what this shop can use now; newly bought content
   // naturally starts loading when its own UI is opened.
-  const assetNames = new Set(['rice-portion.png', 'tea-cup-empty.png', 'trash-bin.png']);
+  const assetNames = new Set(['rice-portion-vivid-v1.png', 'tea-cup-empty.png', 'trash-bin-vivid-v1.png']);
   const ingredientIds = new Set([
     ...state.unlockedIngredients,
     ...state.sliceTypes,
