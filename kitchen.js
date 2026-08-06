@@ -200,8 +200,9 @@ const SUSHI_TYPES = {
     id: 'shrimp',
     name: '甜虾',
     pickerName: '甜虾',
-    boardName: '甜虾食材',
-    loin: 'shrimp-loin-vivid-v1.png',
+    boardName: '一只带头甜虾',
+    // 甜虾按“单只”处理；切菜板的四格只表示可同时摆放的数量。
+    loin: 'shrimp-whole-vivid-v1.png',
     whole: 'shrimp-whole-vivid-v1.png',
     head: 'shrimp-head-vivid-v1.png',
     slice: 'shrimp-slice-vivid-v1.png',
