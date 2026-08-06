@@ -163,20 +163,11 @@ const kitchenEntryAssetSources = [
   'assets/restaurant/kitchen-layers/optimized/salmon-slice.png',
   'assets/restaurant/kitchen-layers/optimized/salmon-nigiri.png',
 ];
-const fishingAssetSources = [
-  'assets/fishing-v2/sea-background.png',
-  'assets/fishing-v2/pier.png',
-  'assets/fishing-v2/fisherman.png',
-  'assets/fishing-v2/basket.png',
-  'assets/fishing-v2/bobber.png',
-  'assets/fishing-v2/golden-fishing-hook.png',
-  'assets/fishing-v2/salmon.png',
-  'assets/fishing-v2/tuna-whole.png',
-  'assets/fishing-v2/mackerel.png',
-  'assets/fishing-v2/seabream.png',
-  'assets/fishing-v2/eel.png',
-  'assets/restaurant/kitchen-layers/optimized/shrimp-whole.png',
-  'assets/restaurant/kitchen-layers/optimized/tuna-loin.png',
+const hookExpeditionAssetSources = [
+  // The expedition is a separate illustration set. None of the former
+  // bobber / golden-hook assets are requested or drawn in this scene.
+  'assets/diving-expedition/island-base-v1.png',
+  'assets/diving-expedition/underwater-reef-v1.png',
 ];
 
 const shouldEnterFishing = requestedScene === 'fishing' && canFishFromSavedDay();
@@ -224,8 +215,8 @@ function loadKitchenMarkup() {
   });
 }
 
-function loadFishingMarkup() {
-  return fetch('fishing.html', { cache: 'no-cache' }).then(async (response) => {
+function loadHookExpeditionMarkup() {
+  return fetch('hook-expedition.html', { cache: 'no-cache' }).then(async (response) => {
     if (!response.ok) throw new Error(`无法载入钓鱼场景：${response.status}`);
     return response.text();
   });
@@ -248,8 +239,8 @@ function loadStylesheet(id, href) {
 
 // 直接打开可用的钓鱼页时，不必预热厨房；若钓鱼条件不满足，优先预热
 // 实际会回退进入的厨房，避免同时下载两套场景。
-const fishingAssetsReady = shouldEnterFishing
-  ? Promise.all(fishingAssetSources.map(preloadImage))
+const hookExpeditionAssetsReady = shouldEnterFishing
+  ? Promise.all(hookExpeditionAssetSources.map(preloadImage))
   : Promise.resolve();
 
 // 场景切换必须等全部核心图像完成解码。此前的 2.2 秒上限会让慢网络
@@ -257,9 +248,9 @@ const fishingAssetsReady = shouldEnterFishing
 let kitchenAssetWarmup = shouldEnterFishing
   ? null
   : Promise.all(kitchenEntryAssetSources.map(preloadImage));
-const fishingAssetWarmup = fishingAssetsReady;
+const hookExpeditionAssetWarmup = hookExpeditionAssetsReady;
 let kitchenMarkupReady = loadKitchenMarkup();
-let fishingMarkupReady = loadFishingMarkup();
+let hookExpeditionMarkupReady = loadHookExpeditionMarkup();
 
 function warmKitchenAssets() {
   // 直接打开钓鱼页时会跳过厨房预加载；若该存档不能钓鱼而回退到营业台，
@@ -304,7 +295,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=sushi-menu-v97-20260806';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v99-20260806';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
@@ -323,10 +314,10 @@ async function enterFishing() {
 
   try {
     const [fishingMarkup] = await Promise.all([
-      fishingMarkupReady,
-      fishingAssetWarmup,
+      hookExpeditionMarkupReady,
+      hookExpeditionAssetWarmup,
       waitForMenuTransition(),
-      loadStylesheet('fishing-scene-style', 'fishing.css?v=sushi-menu-v6-20260805'),
+      loadStylesheet('hook-expedition-style', 'hook-expedition.css?v=hook-expedition-v2-20260806'),
     ]);
     const fishingDocument = new DOMParser().parseFromString(fishingMarkup, 'text/html');
     const fishingStage = fishingDocument.querySelector('main');
@@ -336,13 +327,13 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'fishing.js?v=sushi-menu-v97-20260806';
+    fishingScript.src = 'hook-expedition.js?v=hook-expedition-v2-20260806';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {
-    document.querySelector('#fishing-scene-style')?.remove();
+    document.querySelector('#hook-expedition-style')?.remove();
     menuStage.classList.remove('is-entering-game', 'is-loading-game');
-    fishingMarkupReady = loadFishingMarkup();
+    hookExpeditionMarkupReady = loadHookExpeditionMarkup();
     console.error(error);
   }
 }

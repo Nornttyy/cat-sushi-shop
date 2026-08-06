@@ -702,6 +702,17 @@ function normalizeStorageLevels(value) {
   ]));
 }
 
+// 海岛鱼钩探索独立于厨房储物架：这两个等级只决定水下可到达的距离和
+// 一次收线的暂存数量。顶层保存能让旧存档安全地以 0 级开始。
+const FISHING_UPGRADE_MAX_LEVEL = 3;
+function normalizeFishingUpgrades(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    lineLength: asStoredCount(source.lineLength, FISHING_UPGRADE_MAX_LEVEL),
+    hookCapacity: asStoredCount(source.hookCapacity, FISHING_UPGRADE_MAX_LEVEL),
+  };
+}
+
 function storageLevelFor(id, levels = state.storageLevels) {
   const upgrade = storageUpgradeFor(id);
   if (!upgrade) return 0;
@@ -791,6 +802,7 @@ const state = {
   platterMaking: false,
   rawFish: { salmon: 0, tuna: 0, shrimp: 0, mackerel: 0, seabream: 0, eel: 0 },
   fishingFeaturedFish: null,
+  fishingUpgrades: normalizeFishingUpgrades({}),
   storageLevels: normalizeStorageLevels({}),
   teaUnlocked: false,
   tutorialCompleted: false,
@@ -1109,6 +1121,7 @@ function buildSaveSnapshot() {
     activeDecoration: normalizedActiveDecoration(state.activeDecoration, state.unlockedDecorations),
     unlockedIngredients: [...new Set(state.unlockedIngredients.filter(isIngredientId))],
     fishingFeaturedFish: normalizedFishingFeaturedFish(state.fishingFeaturedFish),
+    fishingUpgrades: normalizeFishingUpgrades(state.fishingUpgrades),
     unlockedRecipes: normalizeUnlockedRecipes(state.unlockedRecipes),
     unlockedDrinks: normalizeUnlockedDrinks(state.unlockedDrinks),
     storageLevels: normalizeStorageLevels(state.storageLevels),
@@ -1282,6 +1295,7 @@ function restoreGame() {
     const unlockedDecorations = normalizeUnlockedDecorations(saved.unlockedDecorations);
     const activeDecoration = normalizedActiveDecoration(saved.activeDecoration, unlockedDecorations);
     const fishingFeaturedFish = normalizedFishingFeaturedFish(saved.fishingFeaturedFish, unlockedIngredients);
+    const fishingUpgrades = normalizeFishingUpgrades(saved.fishingUpgrades);
     const unlockedRecipes = normalizeUnlockedRecipes(saved.unlockedRecipes);
     const inventory = saved.inventory && typeof saved.inventory === 'object' ? saved.inventory : {};
     const storageLevels = normalizeStorageLevels(saved.storageLevels);
@@ -1388,6 +1402,7 @@ function restoreGame() {
       platterMaking: false,
       rawFish,
       fishingFeaturedFish,
+      fishingUpgrades,
       storageLevels,
       teaUnlocked: unlockedDrinks.includes('tea'),
       unlockedDrinks,

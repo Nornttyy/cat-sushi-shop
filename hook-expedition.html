@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#11aeca" />
+    <title>海边寿司店</title>
+    <link rel="stylesheet" href="hook-expedition.css?v=hook-expedition-v2-20260806" />
+    <link rel="preload" as="image" href="assets/diving-expedition/island-base-v1.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="assets/diving-expedition/underwater-reef-v1.png" />
+  </head>
+  <body>
+    <main id="hook-expedition-stage" class="hook-expedition-stage is-island" aria-label="海岛鱼钩探索">
+      <section class="island-expedition-scene" aria-label="海岛码头">
+        <img class="island-expedition-background" src="assets/diving-expedition/island-base-v1.png" alt="阳光明亮的海岛与码头" fetchpriority="high" decoding="async" />
+        <div class="island-water-shine" aria-hidden="true"></div>
+        <div class="island-caster" aria-hidden="true"><i></i><b></b><span></span></div>
+        <button id="open-hook-shop" class="island-kiosk-hitbox" type="button" aria-label="打开海岛装备铺" title="海岛装备铺"></button>
+        <div class="island-dock-hint" aria-hidden="true">从码头抛钩，探索今天的海域</div>
+      </section>
+
+      <header class="expedition-hud" aria-label="钓鱼状态">
+        <div class="expedition-badge expedition-cash"><span>贝壳</span><b id="expedition-cash">¥0</b></div>
+        <div class="expedition-badge expedition-line"><span>鱼线</span><b id="line-length-value">600m</b></div>
+        <div class="expedition-badge expedition-bag"><span>鱼钩</span><b id="hook-bag-value">0 / 5</b></div>
+      </header>
+
+      <section id="underwater-expedition" class="underwater-expedition" aria-label="水下探索区域" aria-hidden="true">
+        <div id="underwater-viewport" class="underwater-viewport">
+          <div id="underwater-world" class="underwater-world">
+            <img class="underwater-world-background" src="assets/diving-expedition/underwater-reef-v1.png" alt="艳丽的水下珊瑚礁" decoding="async" />
+            <div class="underwater-world-tint" aria-hidden="true"></div>
+            <svg id="hook-line-layer" class="hook-line-layer" aria-hidden="true"><line id="hook-line" x1="0" y1="0" x2="0" y2="0"></line></svg>
+            <div id="hook-anchor" class="hook-anchor" aria-hidden="true"><i></i></div>
+            <div id="underwater-obstacles" class="underwater-obstacles" aria-hidden="true"></div>
+            <div id="underwater-fish" class="underwater-fish" aria-live="polite" aria-label="水下鱼群"></div>
+            <button id="explorer-hook" class="explorer-hook" type="button" aria-label="可控制的鱼钩" tabindex="-1"><i></i><b></b><span></span></button>
+            <div id="hook-catch-pop" class="hook-catch-pop" aria-live="polite"></div>
+          </div>
+        </div>
+        <div id="underwater-direction-pad" class="underwater-direction-pad" aria-label="控制鱼钩">
+          <button type="button" data-direction="up" aria-label="向上">▲</button>
+          <button type="button" data-direction="left" aria-label="向左">◀</button>
+          <button type="button" data-direction="down" aria-label="向下">▼</button>
+          <button type="button" data-direction="right" aria-label="向右">▶</button>
+        </div>
+        <div class="underwater-guide" aria-hidden="true"><b>控制鱼钩探索</b><span>靠近鱼即可钓起 · 珊瑚和岩石会挡路</span></div>
+      </section>
+
+      <footer class="expedition-actions">
+        <p id="expedition-message" aria-live="polite">每次抛钩都会生成一张新的大海域。</p>
+        <div>
+          <button id="launch-hook-button" class="expedition-primary" type="button">抛钩探索</button>
+          <button id="reel-hook-button" class="expedition-primary is-reel" type="button" disabled>收线带回</button>
+          <button id="return-kitchen-button" class="expedition-secondary" type="button">回店里</button>
+        </div>
+      </footer>
+
+      <section id="hook-shop-panel" class="hook-shop-panel is-hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="hook-shop-title">
+        <div class="hook-shop-card">
+          <button id="close-hook-shop" class="hook-shop-close" type="button" aria-label="关闭装备铺">×</button>
+          <span class="hook-shop-kicker">海岛装备铺</span>
+          <h1 id="hook-shop-title">让鱼钩走得更远</h1>
+          <p>升级会永久保存，下一次抛钩立即生效。</p>
+          <div class="hook-upgrade-grid">
+            <article class="hook-upgrade-card">
+              <div class="hook-upgrade-icon is-line" aria-hidden="true"></div>
+              <div><b>鱼线长度</b><span id="line-upgrade-detail">600m</span></div>
+              <button id="buy-line-upgrade" type="button">升级</button>
+            </article>
+            <article class="hook-upgrade-card">
+              <div class="hook-upgrade-icon is-bag" aria-hidden="true"></div>
+              <div><b>鱼钩容量</b><span id="hook-upgrade-detail">一次 5 条</span></div>
+              <button id="buy-hook-upgrade" type="button">升级</button>
+            </article>
+          </div>
+          <small id="hook-shop-note" aria-live="polite"></small>
+        </div>
+      </section>
+
+      <section id="hook-result-overlay" class="hook-result-overlay is-hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="hook-result-title">
+        <div class="hook-result-card">
+          <span>鱼钩已回到码头</span>
+          <h1 id="hook-result-title">收获带回冰柜</h1>
+          <p id="hook-result-detail">0 条新鲜食材</p>
+          <button id="close-hook-result" type="button">继续探索</button>
+        </div>
+      </section>
+    </main>
+    <script src="audio.js?v=material-foley-v4-20260805"></script>
+    <script src="hook-expedition.js?v=hook-expedition-v2-20260806"></script>
+  </body>
+</html>
