@@ -49,7 +49,7 @@ const DECORATION_THEMES = Object.freeze([
     id: 'coastal',
     name: '海风原木',
     description: '原本温暖的海边料理台',
-    background: 'kitchen-background-vivid-v2.jpg',
+    background: 'kitchen-background-soft-v3.jpg',
     price: 0,
   }),
   Object.freeze({
