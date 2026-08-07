@@ -149,7 +149,7 @@ function canFishFromSavedDay() {
 // 只有首屏正在看得到的素材会阻塞进入制作台。后续食材、主题和顾客会由
 // kitchen.js 在空闲时按需预热，避免慢网为尚未解锁的内容等待十几兆图片。
 const kitchenEntryAssetSources = [
-  'assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg',
+  'assets/restaurant/kitchen-layers/optimized/kitchen-background-vivid-v2.jpg',
   'assets/restaurant/kitchen-layers/optimized/fish-well-frosted-vivid-v2.png',
   'assets/restaurant/kitchen-layers/optimized/cutting-board-vivid-v1.png',
   'assets/restaurant/kitchen-layers/optimized/trash-bin-vivid-v1.png',
@@ -312,7 +312,7 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=sushi-menu-v104-20260806';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v106-20260807';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {

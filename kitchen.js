@@ -49,7 +49,7 @@ const DECORATION_THEMES = Object.freeze([
     id: 'coastal',
     name: '海风原木',
     description: '原本温暖的海边料理台',
-    background: 'kitchen-background.jpg',
+    background: 'kitchen-background-vivid-v2.jpg',
     price: 0,
   }),
   Object.freeze({
@@ -287,18 +287,18 @@ const PLATTER_TYPES = Object.freeze({
 });
 const PLATTER_TYPE_LIST = Object.values(PLATTER_TYPES);
 const CUSTOMER_CATALOG = Object.freeze([
-  Object.freeze({ avatar: 'customer-summer-vivid-v1.png', customerType: 'standard', minimumDay: 1, patienceMultiplier: 1 }),
-  Object.freeze({ avatar: 'customer-sailor-vivid-v1.png', customerType: 'standard', minimumDay: 3, patienceMultiplier: 1.04 }),
-  Object.freeze({ avatar: 'customer-student-vivid-v1.png', customerType: 'impatient', minimumDay: 5, patienceMultiplier: 0.64 }),
-  Object.freeze({ avatar: 'customer-artist-vivid-v1.png', customerType: 'large-order', minimumDay: 8, patienceMultiplier: 1.14 }),
-  Object.freeze({ avatar: 'customer-beggar-vivid-v1.png', customerType: 'beggar', minimumDay: 7, patienceMultiplier: 0.86 }),
-  Object.freeze({ avatar: 'customer-fisher-vivid-v1.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'salmon', patienceMultiplier: 1.16 }),
-  Object.freeze({ avatar: 'customer-rush-vivid-v1.png', customerType: 'impatient', minimumDay: 12, patienceMultiplier: 0.58 }),
-  Object.freeze({ avatar: 'customer-feast-vivid-v1.png', customerType: 'large-order', minimumDay: 12, patienceMultiplier: 1.18 }),
-  Object.freeze({ avatar: 'customer-regular-vivid-v1.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'tuna', patienceMultiplier: 1.2 }),
+  Object.freeze({ avatar: 'customer-summer-vivid-v2.png', customerType: 'standard', minimumDay: 1, patienceMultiplier: 1 }),
+  Object.freeze({ avatar: 'customer-sailor-vivid-v2.png', customerType: 'standard', minimumDay: 3, patienceMultiplier: 1.04 }),
+  Object.freeze({ avatar: 'customer-student-vivid-v2.png', customerType: 'impatient', minimumDay: 5, patienceMultiplier: 0.64 }),
+  Object.freeze({ avatar: 'customer-artist-vivid-v2.png', customerType: 'large-order', minimumDay: 8, patienceMultiplier: 1.14 }),
+  Object.freeze({ avatar: 'customer-beggar-vivid-v2.png', customerType: 'beggar', minimumDay: 7, patienceMultiplier: 0.86 }),
+  Object.freeze({ avatar: 'customer-fisher-vivid-v2.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'salmon', patienceMultiplier: 1.16 }),
+  Object.freeze({ avatar: 'customer-rush-vivid-v2.png', customerType: 'impatient', minimumDay: 12, patienceMultiplier: 0.58 }),
+  Object.freeze({ avatar: 'customer-feast-vivid-v2.png', customerType: 'large-order', minimumDay: 12, patienceMultiplier: 1.18 }),
+  Object.freeze({ avatar: 'customer-regular-vivid-v2.png', customerType: 'regular', minimumDay: 12, favoriteSushiId: 'tuna', patienceMultiplier: 1.2 }),
 ]);
 const SPECIAL_CUSTOMER_TEMPLATE = Object.freeze({
-  avatar: 'customer-vip-vivid-v1.png',
+  avatar: 'customer-vip-vivid-v2.png',
   customerType: 'special',
   minimumDay: SPECIAL_ORDER_MINIMUM_DAY,
   patienceMultiplier: 1.08,

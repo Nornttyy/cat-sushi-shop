@@ -30,7 +30,7 @@ button { font: inherit; }
   isolation: isolate;
 }
 
-.kitchen-stage { --kitchen-background: url('assets/restaurant/kitchen-layers/optimized/kitchen-background.jpg'); }
+.kitchen-stage { --kitchen-background: url('assets/restaurant/kitchen-layers/optimized/kitchen-background-vivid-v2.jpg'); }
 .kitchen-background { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(1.15) contrast(1.035) brightness(1.02); transition: opacity 260ms ease, filter 260ms ease; }
 .kitchen-background.is-theme-switching { opacity: .72; filter: saturate(.98) contrast(1.02) brightness(1.015); }
 
