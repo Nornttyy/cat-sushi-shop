@@ -59,7 +59,8 @@
   const resultTitle = $('#hook-result-title');
   const resultDetail = $('#hook-result-detail');
   const closeResultButton = $('#close-hook-result');
-  const directionPad = $('#underwater-direction-pad');
+  const touchControl = $('#underwater-touch-control');
+  const touchKnob = $('#underwater-touch-knob');
 
   const state = {
     validEntry: false,
@@ -74,6 +75,8 @@
     hook: { x: WORLD.anchor.x + 72, y: WORLD.anchor.y },
     anchor: { ...WORLD.anchor },
     keys: new Set(),
+    touchVector: { x: 0, y: 0, pointerId: null },
+    surfaceDrag: { pointerId: null, lastX: 0, lastY: 0 },
     obstacles: [],
     fish: [],
     bag: [],
@@ -502,33 +505,39 @@
     playSound('hook');
   }
 
+  function attemptHookMove(deltaX, deltaY) {
+    if (!deltaX && !deltaY) return false;
+    const before = { ...state.hook };
+    setHookPosition(state.hook.x + deltaX, state.hook.y + deltaY);
+    if (collidesObstacle(state.hook, 28)) {
+      state.hook.x = before.x;
+      state.hook.y = before.y;
+      return false;
+    }
+    catchNearbyFish();
+    return true;
+  }
+
   function tryMoveHook(dt) {
-    let horizontal = 0;
-    let vertical = 0;
+    if (state.surfaceDrag.pointerId !== null) return;
+    let horizontal = state.touchVector.x;
+    let vertical = state.touchVector.y;
     if (state.keys.has('left')) horizontal -= 1;
     if (state.keys.has('right')) horizontal += 1;
     if (state.keys.has('up')) vertical -= 1;
     if (state.keys.has('down')) vertical += 1;
     if (!horizontal && !vertical) return;
-    const magnitude = Math.hypot(horizontal, vertical) || 1;
+    const magnitude = Math.hypot(horizontal, vertical);
+    const strength = Math.min(1, magnitude);
     const speed = 355;
-    const candidate = {
-      x: state.hook.x + ((horizontal / magnitude) * speed * dt),
-      y: state.hook.y + ((vertical / magnitude) * speed * dt),
-    };
-    const before = { ...state.hook };
-    setHookPosition(candidate.x, candidate.y);
-    if (collidesObstacle(state.hook, 28)) {
-      state.hook.x = before.x;
-      state.hook.y = before.y;
-      return;
-    }
-    catchNearbyFish();
+    attemptHookMove((horizontal / magnitude) * speed * strength * dt, (vertical / magnitude) * speed * strength * dt);
   }
 
   function finishReel() {
     state.phase = 'island';
     state.keys.clear();
+    clearTouchVector();
+    endSurfaceDrag();
     stage.classList.remove('is-underwater');
     underwater.setAttribute('aria-hidden', 'true');
     reelButton.disabled = true;
@@ -581,6 +590,8 @@
       return;
     }
     closeShop();
+    clearTouchVector();
+    endSurfaceDrag();
     state.phase = 'exploring';
     state.bag = [];
     state.anchor = { ...WORLD.anchor };
@@ -590,7 +601,7 @@
     underwater.setAttribute('aria-hidden', 'false');
     reelButton.disabled = false;
     renderHud();
-    setMessage('用方向键或屏幕方向盘控制鱼钩，别撞上珊瑚和岩石。');
+    setMessage('拖动海面或左下摇杆控制鱼钩，别撞上珊瑚和岩石。');
     playSound('cast');
     window.requestAnimationFrame(() => {
       updateWorld();
@@ -602,6 +613,8 @@
     if (state.phase !== 'exploring') return;
     state.phase = 'reeling';
     state.keys.clear();
+    clearTouchVector();
+    endSurfaceDrag();
     reelButton.disabled = true;
     setMessage('正在收线，鱼钩会把这次的收获带回码头。');
     playSound('reel');
@@ -662,23 +675,126 @@
     const direction = DIRECTIONS[event.code];
     if (!direction || state.phase !== 'exploring') return;
     event.preventDefault();
-    if (pressed) state.keys.add(direction);
+    if (pressed) {
+      clearTouchVector();
+      endSurfaceDrag();
+      state.keys.add(direction);
+    }
     else state.keys.delete(direction);
   }
 
-  function bindDirectionPad() {
-    directionPad.querySelectorAll('[data-direction]').forEach((button) => {
-      const direction = button.dataset.direction;
-      const setPressed = (pressed) => {
-        if (state.phase !== 'exploring') return;
-        if (pressed) state.keys.add(direction);
-        else state.keys.delete(direction);
-      };
-      button.addEventListener('pointerdown', (event) => { event.preventDefault(); button.setPointerCapture?.(event.pointerId); setPressed(true); });
-      button.addEventListener('pointerup', () => setPressed(false));
-      button.addEventListener('pointercancel', () => setPressed(false));
-      button.addEventListener('pointerleave', (event) => { if (event.buttons) return; setPressed(false); });
-    });
+  function releasePointerCapture(element, pointerId) {
+    if (pointerId === null || !element?.hasPointerCapture?.(pointerId)) return;
+    element.releasePointerCapture(pointerId);
+  }
+
+  function clearTouchVector() {
+    const pointerId = state.touchVector.pointerId;
+    state.touchVector.x = 0;
+    state.touchVector.y = 0;
+    state.touchVector.pointerId = null;
+    releasePointerCapture(touchControl, pointerId);
+    touchControl?.classList.remove('is-active');
+    touchKnob?.style.setProperty('--touch-knob-x', '0px');
+    touchKnob?.style.setProperty('--touch-knob-y', '0px');
+  }
+
+  function updateTouchVector(event) {
+    if (state.touchVector.pointerId !== event.pointerId || !touchControl) return;
+    const bounds = touchControl.getBoundingClientRect();
+    const rawX = event.clientX - (bounds.left + (bounds.width / 2));
+    const rawY = event.clientY - (bounds.top + (bounds.height / 2));
+    const rawDistance = Math.hypot(rawX, rawY);
+    const maximum = Math.max(1, Math.min(bounds.width, bounds.height) * .3);
+    const visibleDistance = Math.min(maximum, rawDistance);
+    const visibleX = rawDistance ? (rawX / rawDistance) * visibleDistance : 0;
+    const visibleY = rawDistance ? (rawY / rawDistance) * visibleDistance : 0;
+    const deadZone = maximum * .22;
+    const strength = rawDistance <= deadZone ? 0 : Math.min(1, (visibleDistance - deadZone) / Math.max(1, maximum - deadZone));
+    state.touchVector.x = rawDistance ? (rawX / rawDistance) * strength : 0;
+    state.touchVector.y = rawDistance ? (rawY / rawDistance) * strength : 0;
+    touchKnob?.style.setProperty('--touch-knob-x', `${visibleX.toFixed(1)}px`);
+    touchKnob?.style.setProperty('--touch-knob-y', `${visibleY.toFixed(1)}px`);
+  }
+
+  function startTouchControl(event) {
+    if (state.phase !== 'exploring' || event.isPrimary === false) return;
+    if (state.surfaceDrag.pointerId !== null) endSurfaceDrag();
+    if (state.touchVector.pointerId !== null && state.touchVector.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    state.touchVector.pointerId = event.pointerId;
+    touchControl?.setPointerCapture?.(event.pointerId);
+    touchControl?.classList.add('is-active');
+    updateTouchVector(event);
+  }
+
+  function endTouchControl(event) {
+    if (event && state.touchVector.pointerId !== event.pointerId) return;
+    clearTouchVector();
+  }
+
+  function bindTouchControl() {
+    if (!touchControl) return;
+    touchControl.addEventListener('pointerdown', startTouchControl, { passive: false });
+    touchControl.addEventListener('pointermove', (event) => {
+      if (state.touchVector.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      updateTouchVector(event);
+    }, { passive: false });
+    touchControl.addEventListener('pointerup', endTouchControl);
+    touchControl.addEventListener('pointercancel', endTouchControl);
+    touchControl.addEventListener('lostpointercapture', endTouchControl);
+  }
+
+  function endSurfaceDrag(event) {
+    if (event && state.surfaceDrag.pointerId !== event.pointerId) return;
+    const pointerId = state.surfaceDrag.pointerId;
+    state.surfaceDrag.pointerId = null;
+    state.surfaceDrag.lastX = 0;
+    state.surfaceDrag.lastY = 0;
+    releasePointerCapture(viewport, pointerId);
+    viewport?.classList.remove('is-dragging');
+  }
+
+  function moveHookByDrag(deltaX, deltaY) {
+    const distanceMoved = Math.hypot(deltaX, deltaY);
+    const steps = Math.max(1, Math.ceil(distanceMoved / 14));
+    const stepX = deltaX / steps;
+    const stepY = deltaY / steps;
+    for (let index = 0; index < steps; index += 1) {
+      if (!attemptHookMove(stepX, stepY)) break;
+    }
+  }
+
+  function startSurfaceDrag(event) {
+    if (state.phase !== 'exploring' || event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    if (state.touchVector.pointerId !== null) clearTouchVector();
+    if (state.surfaceDrag.pointerId !== null && state.surfaceDrag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    state.surfaceDrag.pointerId = event.pointerId;
+    state.surfaceDrag.lastX = event.clientX;
+    state.surfaceDrag.lastY = event.clientY;
+    viewport?.setPointerCapture?.(event.pointerId);
+    viewport?.classList.add('is-dragging');
+  }
+
+  function updateSurfaceDrag(event) {
+    if (state.surfaceDrag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    const deltaX = event.clientX - state.surfaceDrag.lastX;
+    const deltaY = event.clientY - state.surfaceDrag.lastY;
+    state.surfaceDrag.lastX = event.clientX;
+    state.surfaceDrag.lastY = event.clientY;
+    if (Math.hypot(deltaX, deltaY) < .35) return;
+    moveHookByDrag(deltaX, deltaY);
+  }
+
+  function bindSurfaceDrag() {
+    viewport.addEventListener('pointerdown', startSurfaceDrag, { passive: false });
+    viewport.addEventListener('pointermove', updateSurfaceDrag, { passive: false });
+    viewport.addEventListener('pointerup', endSurfaceDrag);
+    viewport.addEventListener('pointercancel', endSurfaceDrag);
+    viewport.addEventListener('lostpointercapture', endSurfaceDrag);
   }
 
   function initialize() {
@@ -710,7 +826,18 @@
       handleKey(event, true);
     });
     window.addEventListener('keyup', (event) => handleKey(event, false));
-    window.addEventListener('blur', () => state.keys.clear());
+    window.addEventListener('blur', () => {
+      state.keys.clear();
+      clearTouchVector();
+      endSurfaceDrag();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        state.keys.clear();
+        clearTouchVector();
+        endSurfaceDrag();
+      }
+    });
     window.addEventListener('resize', () => { if (state.phase === 'exploring' || state.phase === 'reeling') updateWorld(); });
     window.addEventListener('storage', (event) => {
       if (event.key !== SAVE_KEY || state.phase !== 'island') return;
@@ -719,7 +846,8 @@
       renderShop();
       renderIslandActions();
     });
-    bindDirectionPad();
+    bindTouchControl();
+    bindSurfaceDrag();
   }
 
   initialize();

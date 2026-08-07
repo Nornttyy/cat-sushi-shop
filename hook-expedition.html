@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#11aeca" />
     <title>海边寿司店</title>
-    <link rel="stylesheet" href="hook-expedition.css?v=hook-expedition-v4-20260806" />
+    <link rel="stylesheet" href="hook-expedition.css?v=hook-expedition-v5-20260807" />
     <link rel="preload" as="image" href="assets/diving-expedition/island-base-v1.png" fetchpriority="high" />
     <link rel="preload" as="image" href="assets/diving-expedition/underwater-reef-v1.png" />
     <link rel="preload" as="image" href="assets/diving-expedition/hook-vivid-v1.png" />
@@ -57,13 +57,11 @@
             <div id="hook-catch-pop" class="hook-catch-pop" aria-live="polite"></div>
           </div>
         </div>
-        <div id="underwater-direction-pad" class="underwater-direction-pad" aria-label="控制鱼钩">
-          <button type="button" data-direction="up" aria-label="向上">▲</button>
-          <button type="button" data-direction="left" aria-label="向左">◀</button>
-          <button type="button" data-direction="down" aria-label="向下">▼</button>
-          <button type="button" data-direction="right" aria-label="向右">▶</button>
+        <div id="underwater-touch-control" class="underwater-touch-control" aria-label="拖动摇杆控制鱼钩" role="application">
+          <span class="underwater-touch-orbit" aria-hidden="true"></span>
+          <span id="underwater-touch-knob" class="underwater-touch-knob" aria-hidden="true"></span>
         </div>
-        <div class="underwater-guide" aria-hidden="true"><b>控制鱼钩探索</b><span>靠近鱼即可钓起 · 珊瑚和岩石会挡路</span></div>
+        <div class="underwater-guide" aria-hidden="true"><b>拖动海面或摇杆探索</b><span>靠近鱼即可钓起 · 珊瑚和岩石会挡路</span></div>
       </section>
 
       <footer class="expedition-actions">
@@ -106,6 +104,6 @@
       </section>
     </main>
     <script src="audio.js?v=material-foley-v4-20260805"></script>
-    <script src="hook-expedition.js?v=hook-expedition-v4-20260806"></script>
+    <script src="hook-expedition.js?v=hook-expedition-v5-20260807"></script>
   </body>
 </html>

@@ -334,7 +334,7 @@ async function enterFishing() {
       hookExpeditionMarkupReady,
       hookExpeditionAssetWarmup,
       waitForMenuTransition(),
-      loadStylesheet('hook-expedition-style', 'hook-expedition.css?v=hook-expedition-v4-20260806'),
+      loadStylesheet('hook-expedition-style', 'hook-expedition.css?v=hook-expedition-v5-20260807'),
     ]);
     const fishingDocument = new DOMParser().parseFromString(fishingMarkup, 'text/html');
     const fishingStage = fishingDocument.querySelector('main');
@@ -344,7 +344,7 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'hook-expedition.js?v=hook-expedition-v4-20260806';
+    fishingScript.src = 'hook-expedition.js?v=hook-expedition-v5-20260807';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {

@@ -69,7 +69,8 @@ body:has(.hook-expedition-stage) {
 .hook-expedition-stage.is-underwater .underwater-expedition { pointer-events: auto; opacity: 1; transform: scale(1); }
 .hook-expedition-stage.is-underwater .island-expedition-scene { opacity: 0; transform: scale(1.07); pointer-events: none; }
 
-.underwater-viewport { position: absolute; inset: 0; overflow: hidden; background: #0c94c4; }
+.underwater-viewport { position: absolute; inset: 0; overflow: hidden; cursor: grab; touch-action: none; overscroll-behavior: contain; background: #0c94c4; }
+.underwater-viewport.is-dragging { cursor: grabbing; }
 .underwater-viewport::before { content: ''; position: absolute; z-index: 5; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgb(201 255 237 / .18), transparent 33%, rgb(0 42 102 / .27)); box-shadow: inset 0 0 78px rgb(0 56 112 / .25); }
 .underwater-viewport::after { content: ''; position: absolute; z-index: 5; inset: 0; pointer-events: none; opacity: .35; background-image: radial-gradient(circle at 12% 21%, rgb(255 255 255 / .75) 0 1px, transparent 1.5px), radial-gradient(circle at 81% 74%, rgb(255 255 255 / .55) 0 1px, transparent 1.5px); background-size: 60px 82px, 73px 104px; animation: small-bubbles 12s linear infinite; }
 
@@ -118,12 +119,14 @@ body:has(.hook-expedition-stage) {
 .hook-catch-pop { position: absolute; z-index: 16; min-width: 80px; transform: translate(-50%, -50%) scale(.7); opacity: 0; pointer-events: none; padding: 7px 11px; border: 3px solid #07536e; border-radius: 14px; color: #07536e; background: #fff7b4; box-shadow: 0 5px 0 rgb(0 67 100 / .2); font-size: 16px; font-weight: 1000; text-align: center; }
 .hook-catch-pop.is-showing { animation: hook-pop 920ms cubic-bezier(.16,.9,.2,1) both; }
 
-.underwater-direction-pad { position: absolute; z-index: 22; right: clamp(18px, 3vw, 48px); bottom: clamp(84px, 13vh, 130px); display: none; grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(2, 46px); gap: 3px; }
-.underwater-direction-pad button { display: grid; place-items: center; cursor: pointer; border: 3px solid #0a617e; border-radius: 15px; color: #0c6178; background: rgb(238 255 222 / .9); box-shadow: 0 4px 0 rgb(0 67 103 / .26); font-size: 17px; font-weight: 1000; touch-action: none; }
-.underwater-direction-pad button[data-direction="up"] { grid-column: 2; }
-.underwater-direction-pad button[data-direction="left"] { grid-column: 1; grid-row: 2; }
-.underwater-direction-pad button[data-direction="down"] { grid-column: 2; grid-row: 2; }
-.underwater-direction-pad button[data-direction="right"] { grid-column: 3; grid-row: 2; }
+.underwater-touch-control { --touch-knob-x: 0px; --touch-knob-y: 0px; position: absolute; z-index: 24; bottom: max(126px, calc(env(safe-area-inset-bottom) + 118px)); left: max(14px, env(safe-area-inset-left)); display: none; width: 146px; height: 146px; place-items: center; overflow: hidden; border: 3px solid rgb(210 255 242 / .72); border-radius: 50%; background: radial-gradient(circle, rgb(10 91 130 / .13) 0 28%, transparent 29%), radial-gradient(circle at 32% 23%, rgb(255 255 255 / .30), transparent 44%), rgb(4 96 138 / .28); box-shadow: inset 0 0 0 10px rgb(190 255 240 / .08), inset 0 -12px 22px rgb(0 45 105 / .17), 0 6px 15px rgb(0 38 100 / .22); backdrop-filter: blur(3px); touch-action: none; user-select: none; -webkit-user-select: none; transition: filter 160ms ease, transform 160ms ease; }
+.underwater-touch-control::before { content: ''; position: absolute; inset: 15px; border: 2px solid rgb(215 255 244 / .42); border-radius: 50%; background: repeating-conic-gradient(from 45deg, rgb(231 255 242 / .32) 0 2deg, transparent 2deg 88deg); opacity: .78; pointer-events: none; }
+.underwater-touch-control.is-active { filter: brightness(1.14) saturate(1.08); transform: scale(1.025); }
+.underwater-touch-orbit { width: 72%; height: 72%; border: 2px dashed rgb(224 255 245 / .48); border-radius: 50%; pointer-events: none; }
+.underwater-touch-knob { position: absolute; top: 50%; left: 50%; width: 57px; height: 57px; border: 3px solid #e5fff1; border-radius: 50%; background: radial-gradient(circle at 33% 26%, #fffed2 0 8%, transparent 9%), radial-gradient(circle at 50% 48%, #ffcc61 0 18%, #18c3c2 20% 47%, #087999 49% 100%); box-shadow: inset 0 5px 0 rgb(255 255 255 / .36), inset 0 -8px 0 rgb(0 71 109 / .25), 0 5px 0 rgb(0 53 98 / .28), 0 9px 12px rgb(0 33 87 / .24); transform: translate3d(calc(-50% + var(--touch-knob-x)), calc(-50% + var(--touch-knob-y)), 0); transition: transform 70ms linear, filter 130ms ease; pointer-events: none; }
+.underwater-touch-knob::before { content: ''; position: absolute; top: 12px; left: 22px; width: 10px; height: 25px; border: 3px solid #effff5; border-top: 0; border-radius: 0 0 50% 50%; box-shadow: inset 3px 0 0 #6ed4d3, 2px 1px 0 #075d78; transform: rotate(-18deg); }
+.underwater-touch-knob::after { content: ''; position: absolute; top: 14px; left: 17px; width: 13px; height: 10px; border: 3px solid #075d78; border-radius: 50% 10px 50% 50%; background: linear-gradient(135deg, #ffec7f, #ff9451); transform: rotate(20deg); }
+.underwater-touch-control.is-active .underwater-touch-knob { filter: brightness(1.12) drop-shadow(0 0 7px rgb(255 238 128 / .65)); }
 .underwater-guide { position: absolute; z-index: 23; top: 10.7%; left: 2.7%; display: grid; gap: 2px; max-width: min(44vw, 360px); padding: 9px 13px; border: 3px solid rgb(5 77 109 / .88); border-radius: 15px; color: #07536d; background: rgb(225 255 238 / .91); box-shadow: 0 4px 0 rgb(0 58 101 / .18); font-size: clamp(10px, .9vw, 15px); pointer-events: none; }
 .underwater-guide b { color: #05759b; font-size: 1.05em; }
 .underwater-guide span { color: #39716f; font-weight: 800; }
@@ -230,7 +233,7 @@ body:has(.hook-expedition-stage) {
   .expedition-badge { min-width: 0; flex: 1; border-width: 2px; border-radius: 13px; padding: 5px 6px; }
   .expedition-badge span { font-size: 9px; }
   .expedition-badge b { font-size: 13px; }
-  .underwater-direction-pad { display: grid; }
+  .underwater-touch-control { display: grid; }
   .underwater-guide { top: 11%; left: 3%; max-width: 45vw; border-width: 2px; padding: 6px 8px; }
   .underwater-guide span { display: none; }
   .expedition-actions { right: 10px; bottom: max(12px, env(safe-area-inset-bottom)); left: 10px; align-items: stretch; flex-direction: column; gap: 7px; padding: 7px; border-radius: 15px; }
