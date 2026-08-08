@@ -291,6 +291,7 @@ async function enterKitchen(event) {
   if (menuStage.classList.contains('is-entering-game')) return;
 
   window.SeasideSushiAudio?.play('ui');
+  window.SeasideSushiAudio?.setMusicScene?.('service');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
   menuStage.classList.add('is-entering-game');
@@ -312,13 +313,14 @@ async function enterKitchen(event) {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=sushi-menu-v107-20260807';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v109-20260808';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
     button.disabled = false;
     button.removeAttribute('aria-busy');
     menuStage.classList.remove('is-entering-game', 'is-loading-game');
+    window.SeasideSushiAudio?.setMusicScene?.('menu');
     kitchenMarkupReady = loadKitchenMarkup();
     console.error(error);
   }
@@ -327,6 +329,7 @@ async function enterKitchen(event) {
 async function enterFishing() {
   if (menuStage.classList.contains('is-entering-game')) return;
   window.SeasideSushiAudio?.play('ui');
+  window.SeasideSushiAudio?.setMusicScene?.('fishing');
   menuStage.classList.add('is-entering-game', 'is-loading-game');
 
   try {
@@ -344,12 +347,13 @@ async function enterFishing() {
     document.title = '海边寿司店';
 
     const fishingScript = document.createElement('script');
-    fishingScript.src = 'hook-expedition.js?v=hook-expedition-v5-20260807';
+    fishingScript.src = 'hook-expedition.js?v=hook-expedition-v6-20260808';
     fishingScript.defer = true;
     document.body.append(fishingScript);
   } catch (error) {
     document.querySelector('#hook-expedition-style')?.remove();
     menuStage.classList.remove('is-entering-game', 'is-loading-game');
+    window.SeasideSushiAudio?.setMusicScene?.('menu');
     hookExpeditionMarkupReady = loadHookExpeditionMarkup();
     console.error(error);
   }
@@ -448,6 +452,8 @@ document.addEventListener('keydown', (event) => {
   event.preventDefault();
   closeResetSaveDialog();
 });
+
+window.SeasideSushiAudio?.setMusicScene?.('menu');
 
 if (requestedScene === 'kitchen' || requestedScene === 'fishing' || returningToMenu) {
   window.history.replaceState({}, document.title, window.location.pathname);

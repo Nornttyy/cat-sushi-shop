@@ -924,4 +924,5 @@ window.addEventListener('storage', (event) => {
   syncFishingSave();
 });
 
+window.SeasideSushiAudio?.setMusicScene?.('fishing');
 initializeFishing();

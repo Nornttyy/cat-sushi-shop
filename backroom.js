@@ -1,8 +1,11 @@
 const businessDoor = document.querySelector('#business-door');
 
+window.SeasideSushiAudio?.setMusicScene?.('other');
+
 async function enterBusiness() {
   businessDoor.disabled = true;
   window.SeasideSushiAudio?.play('ui');
+  window.SeasideSushiAudio?.setMusicScene?.('service');
 
   try {
     const response = await fetch('kitchen.html', { cache: 'no-cache' });
@@ -16,11 +19,12 @@ async function enterBusiness() {
     document.title = '海边寿司店';
 
     const kitchenScript = document.createElement('script');
-    kitchenScript.src = 'kitchen.js?v=settings-clean-v81-20260805';
+    kitchenScript.src = 'kitchen.js?v=sushi-menu-v109-20260808';
     kitchenScript.defer = true;
     document.body.append(kitchenScript);
   } catch (error) {
     businessDoor.disabled = false;
+    window.SeasideSushiAudio?.setMusicScene?.('other');
     console.error(error);
   }
 }

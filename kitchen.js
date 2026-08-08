@@ -906,6 +906,11 @@ function syncSoundSettings() {
   });
 }
 
+function syncKitchenMusic() {
+  const scene = state.dayPhase === 'service' ? 'service' : 'other';
+  window.SeasideSushiAudio?.setMusicScene?.(scene);
+}
+
 function restoreGameSettings() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(SETTINGS_KEY));
@@ -2005,6 +2010,7 @@ function finishDay({ early = false, reason = 'time' } = {}) {
   state.dayEndedEarly = early;
   state.daySummaryOpen = !early;
   daySummaryTransitioning = false;
+  syncKitchenMusic();
   setMessage(reason === 'missing-fish'
     ? '鱼不够了，先去补货。'
     : early
@@ -2443,6 +2449,7 @@ function resumeShop() {
   state.shopOpen = true;
   state.shopPanelOpen = false;
   state.sashimiPickerOpen = false;
+  syncKitchenMusic();
   playSound('dayStart');
   setMessage(continuingCurrentDay ? `继续第 ${state.day} 天营业。` : `第 ${state.day} 天开始营业。`);
   render();
@@ -2476,6 +2483,7 @@ function goFishing() {
   if (loadingText) loadingText.textContent = '前往海边';
   exitLoadingOverlay.setAttribute('aria-label', '正在前往海边');
   exitLoadingOverlay.setAttribute('aria-hidden', 'false');
+  window.SeasideSushiAudio?.setMusicScene?.('fishing');
   window.setTimeout(() => window.location.assign('./?scene=fishing'), motionDuration(420));
 }
 
@@ -2491,6 +2499,7 @@ function pauseGame() {
   pauseStartedAt = performance.now();
   state.gamePaused = true;
   pauseGameplayTimeouts();
+  window.SeasideSushiAudio?.pauseMusic?.();
   setMessage('游戏已暂停。');
   render();
   window.requestAnimationFrame(() => resumeGameButton.focus());
@@ -2502,6 +2511,7 @@ function resumeGame() {
   pauseStartedAt = 0;
   state.gamePaused = false;
   state.pauseSettingsOpen = false;
+  window.SeasideSushiAudio?.resumeMusic?.();
   pauseOverlayClosing = true;
   gamePauseOverlay.setAttribute('aria-hidden', 'true');
   closeModal(gamePauseOverlay, 220, () => {
@@ -4724,6 +4734,7 @@ tutorialSkipButton.addEventListener('click', skipTutorial);
 
 restoreGameSettings();
 restoreGame();
+syncKitchenMusic();
 if (tutorialIsRunning() && state.tutorialStep === TUTORIAL_STEP.SERVE_CUSTOMER && !tutorialCustomer()) {
   spawnTutorialCustomer();
 }

@@ -801,6 +801,7 @@
     world.style.setProperty('--world-width', `${WORLD.width}px`);
     world.style.setProperty('--world-height', `${WORLD.height}px`);
     lineLayer.setAttribute('viewBox', `0 0 ${WORLD.width} ${WORLD.height}`);
+    window.SeasideSushiAudio?.setMusicScene?.('fishing');
     loadSave();
     renderHud();
     renderShop();

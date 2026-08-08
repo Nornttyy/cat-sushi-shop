@@ -12,6 +12,55 @@
   // lifts the whole material mix before a soft limiter catches sharp peaks,
   // so the result is fuller rather than brighter or more piercing.
   const FOLEY_GAIN = 1.8;
+  // Background music intentionally sits well below the material sounds. It
+  // uses its own bus, never the foley boost, so chopping and serving stay in
+  // the foreground instead of turning into a wall of sound.
+  const MUSIC_OUTPUT_GAIN = 0.56;
+  const MUSIC_LOOKAHEAD_SECONDS = 0.34;
+  const MUSIC_SCHEDULER_INTERVAL = 78;
+  const MUSIC_FADE_SECONDS = 0.56;
+  const MUSIC_SCENE_ALIASES = Object.freeze({
+    menu: 'menu',
+    kitchen: 'service',
+    service: 'service',
+    fishing: 'other',
+    other: 'other',
+    none: 'none',
+  });
+  // Three small, original loops made from soft triangle/sine voices. Keeping
+  // the range low and pentatonic avoids the sharp "UI ding" feeling while
+  // remaining light enough for a phone browser.
+  const MUSIC_TRACKS = Object.freeze({
+    menu: Object.freeze({
+      tempo: 72,
+      stepsPerBar: 8,
+      mix: 0.66,
+      chords: [[50, 54, 57, 64], [49, 52, 57, 61], [47, 50, 54, 57], [43, 47, 50, 57], [42, 50, 54, 57], [45, 49, 52, 57], [43, 47, 50, 57], [45, 50, 52, 57]],
+      bass: [38, 37, 35, 31, 30, 33, 31, 33],
+      pulse: [1, 3, 5],
+      melody: [[2, 69, 2], [5, 71, 2], [10, 74, 3], [15, 71, 2], [18, 69, 2], [21, 66, 2], [26, 69, 2], [29, 71, 3], [34, 74, 2], [37, 76, 3], [42, 74, 2], [45, 71, 3], [50, 69, 2], [53, 71, 2], [58, 69, 2], [61, 66, 3]],
+    }),
+    service: Object.freeze({
+      tempo: 94,
+      stepsPerBar: 8,
+      mix: 0.7,
+      chords: [[43, 47, 50, 52], [42, 45, 50, 54], [40, 43, 47, 50], [36, 40, 43, 50], [43, 47, 50, 57], [42, 45, 50, 54], [40, 43, 47, 55], [36, 40, 43, 50]],
+      bass: [31, 30, 28, 24, 31, 30, 28, 24],
+      pulse: [0, 2, 4, 6],
+      brush: [2, 6],
+      melody: [[4, 71, 2], [7, 74, 2], [12, 76, 2], [15, 74, 2], [20, 71, 2], [23, 69, 2], [28, 71, 2], [31, 74, 3], [36, 74, 2], [39, 76, 2], [44, 78, 2], [47, 76, 2], [52, 74, 2], [55, 71, 2], [60, 69, 2], [63, 71, 3]],
+    }),
+    other: Object.freeze({
+      tempo: 66,
+      stepsPerBar: 6,
+      mix: 0.58,
+      chords: [[45, 49, 52, 59], [44, 47, 52, 56], [42, 45, 49, 52], [38, 42, 45, 49], [45, 49, 52, 59], [44, 47, 52, 56], [42, 45, 49, 52], [38, 42, 45, 49]],
+      bass: [33, 32, 30, 26, 33, 32, 30, 26],
+      pulse: [0, 3],
+      water: [1, 4],
+      melody: [[3, 69, 3], [8, 71, 2], [11, 73, 3], [15, 76, 3], [20, 73, 2], [23, 71, 3], [27, 69, 3], [32, 71, 2], [35, 76, 3], [39, 73, 2], [44, 71, 2], [47, 69, 3]],
+    }),
+  });
   const effectCooldowns = new Map();
   const noiseBuffers = new Map();
   let audioContext = null;
@@ -19,6 +68,13 @@
   let foleyGain = null;
   let foleyToneFilter = null;
   let foleyCompressor = null;
+  let musicGain = null;
+  let musicToneFilter = null;
+  let musicCompressor = null;
+  let requestedMusicScene = 'none';
+  let activeMusic = null;
+  let musicPaused = false;
+  let musicWasHidden = false;
   let hasUserGesture = false;
   let settings = readStoredSettings();
 
@@ -53,6 +109,21 @@
   }
 
   function getContext() {
+    // Some mobile browsers reclaim an AudioContext after a long background
+    // stay. Forget that closed graph so the next real interaction can build a
+    // fresh one instead of leaving the whole sound system permanently silent.
+    if (audioContext?.state === 'closed') {
+      if (activeMusic?.scheduler !== null) window.clearInterval(activeMusic.scheduler);
+      activeMusic = null;
+      audioContext = null;
+      masterGain = null;
+      foleyGain = null;
+      foleyToneFilter = null;
+      foleyCompressor = null;
+      musicGain = null;
+      musicToneFilter = null;
+      musicCompressor = null;
+    }
     if (audioContext) return audioContext;
     const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextConstructor) return null;
@@ -63,6 +134,9 @@
       foleyGain = audioContext.createGain();
       foleyToneFilter = audioContext.createBiquadFilter();
       foleyCompressor = audioContext.createDynamicsCompressor();
+      musicGain = audioContext.createGain();
+      musicToneFilter = audioContext.createBiquadFilter();
+      musicCompressor = audioContext.createDynamicsCompressor();
       foleyToneFilter.type = 'highshelf';
       foleyToneFilter.frequency.value = 2400;
       foleyToneFilter.gain.value = -3.5;
@@ -71,11 +145,23 @@
       foleyCompressor.ratio.value = 5;
       foleyCompressor.attack.value = 0.006;
       foleyCompressor.release.value = 0.22;
+      musicToneFilter.type = 'lowpass';
+      musicToneFilter.frequency.value = 1850;
+      musicToneFilter.Q.value = 0.45;
+      musicCompressor.threshold.value = -27;
+      musicCompressor.knee.value = 15;
+      musicCompressor.ratio.value = 2.2;
+      musicCompressor.attack.value = 0.03;
+      musicCompressor.release.value = 0.36;
       foleyGain.gain.value = FOLEY_GAIN;
+      musicGain.gain.value = MUSIC_OUTPUT_GAIN;
       masterGain.gain.value = settings.enabled ? settings.volume : 0;
       foleyGain.connect(foleyToneFilter);
       foleyToneFilter.connect(foleyCompressor);
       foleyCompressor.connect(masterGain);
+      musicGain.connect(musicToneFilter);
+      musicToneFilter.connect(musicCompressor);
+      musicCompressor.connect(masterGain);
       masterGain.connect(audioContext.destination);
       return audioContext;
     } catch {
@@ -84,6 +170,9 @@
       foleyGain = null;
       foleyToneFilter = null;
       foleyCompressor = null;
+      musicGain = null;
+      musicToneFilter = null;
+      musicCompressor = null;
       return null;
     }
   }
@@ -91,8 +180,13 @@
   function wake() {
     hasUserGesture = true;
     const context = getContext();
-    if (!context || context.state === 'running') return context;
-    context.resume?.().catch(() => undefined);
+    if (!context) return null;
+    const startRequestedMusic = () => window.requestAnimationFrame(() => ensureMusicPlayback());
+    if (context.state === 'running') {
+      startRequestedMusic();
+      return context;
+    }
+    context.resume?.().then(startRequestedMusic).catch(() => undefined);
     return context;
   }
 
@@ -667,6 +761,346 @@
     });
   }
 
+  function midiFrequency(midi) {
+    return 440 * (2 ** ((midi - 69) / 12));
+  }
+
+  function rememberMusicSource(player, source) {
+    player.sources.add(source);
+    source.addEventListener('ended', () => player.sources.delete(source), { once: true });
+  }
+
+  function createMusicEnvelope(player, start, duration, peak, attack, release) {
+    const context = player.context;
+    const envelope = context.createGain();
+    const safeDuration = Math.max(0.07, duration);
+    const safeAttack = Math.min(Math.max(0.012, attack), safeDuration * 0.34);
+    const safeRelease = Math.min(Math.max(0.09, release), safeDuration * 0.66);
+    const peakAt = start + safeAttack;
+    const releaseAt = Math.max(peakAt, start + safeDuration - safeRelease);
+
+    envelope.gain.setValueAtTime(MIN_GAIN, start);
+    envelope.gain.exponentialRampToValueAtTime(Math.max(MIN_GAIN, peak), peakAt);
+    envelope.gain.setValueAtTime(Math.max(MIN_GAIN, peak), releaseAt);
+    envelope.gain.exponentialRampToValueAtTime(MIN_GAIN, start + safeDuration);
+    envelope.connect(player.bus);
+    return envelope;
+  }
+
+  function scheduleMusicTone(player, midi, start, duration, {
+    type = 'triangle',
+    gain = 0.032,
+    attack = 0.02,
+    release = 0.28,
+    lowpass = 1500,
+    detune = 0,
+  } = {}) {
+    if (player.stopped || !Number.isFinite(midi)) return;
+    const context = player.context;
+    const oscillator = context.createOscillator();
+    const toneFilter = context.createBiquadFilter();
+    const envelope = createMusicEnvelope(player, start, duration, gain, attack, release);
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(midiFrequency(midi), start);
+    oscillator.detune.setValueAtTime(detune, start);
+    toneFilter.type = 'lowpass';
+    toneFilter.frequency.setValueAtTime(lowpass, start);
+    toneFilter.Q.value = 0.32;
+    oscillator.connect(toneFilter);
+    toneFilter.connect(envelope);
+
+    oscillator.addEventListener('ended', () => {
+      toneFilter.disconnect();
+      envelope.disconnect();
+    }, { once: true });
+
+    oscillator.start(start);
+    oscillator.stop(start + Math.max(0.07, duration) + 0.07);
+    rememberMusicSource(player, oscillator);
+  }
+
+  function scheduleMusicNoise(player, start, duration, {
+    gain = 0.004,
+    lowpass = 1100,
+    highpass = 110,
+    attack = 0.04,
+    release = 0.2,
+    texture = 'soft',
+  } = {}) {
+    if (player.stopped) return;
+    const context = player.context;
+    const source = context.createBufferSource();
+    const highFilter = context.createBiquadFilter();
+    const lowFilter = context.createBiquadFilter();
+    const envelope = createMusicEnvelope(player, start, duration, gain, attack, release);
+
+    source.buffer = getNoiseBuffer(context, texture);
+    highFilter.type = 'highpass';
+    highFilter.frequency.value = highpass;
+    highFilter.Q.value = 0.38;
+    lowFilter.type = 'lowpass';
+    lowFilter.frequency.value = lowpass;
+    lowFilter.Q.value = 0.36;
+    source.connect(highFilter);
+    highFilter.connect(lowFilter);
+    lowFilter.connect(envelope);
+
+    source.addEventListener('ended', () => {
+      highFilter.disconnect();
+      lowFilter.disconnect();
+      envelope.disconnect();
+    }, { once: true });
+
+    const maxOffset = Math.max(0.02, source.buffer.duration - duration - 0.03);
+    source.start(start, randomBetween(0.01, maxOffset));
+    source.stop(start + Math.max(0.07, duration) + 0.06);
+    rememberMusicSource(player, source);
+  }
+
+  function scheduleMusicPad(player, chord, start, duration) {
+    chord.forEach((midi, index) => {
+      const chordGain = 0.053 / chord.length;
+      scheduleMusicTone(player, midi, start, duration, {
+        type: 'sine',
+        gain: chordGain,
+        attack: 0.18,
+        release: 0.7,
+        lowpass: 1160,
+      });
+      // A very quiet triangle layer gives the pad a wood-and-paper warmth
+      // rather than a pure electronic tone.
+      if (index === chord.length - 1 || index === 1) {
+        scheduleMusicTone(player, midi, start + 0.012, duration * 0.94, {
+          type: 'triangle',
+          gain: chordGain * 0.34,
+          attack: 0.13,
+          release: 0.56,
+          lowpass: 1280,
+          detune: index === 1 ? -4 : 4,
+        });
+      }
+    });
+  }
+
+  function scheduleMusicBass(player, midi, start, duration) {
+    scheduleMusicTone(player, midi, start, duration, {
+      type: 'sine',
+      gain: 0.068,
+      attack: 0.026,
+      release: 0.32,
+      lowpass: 560,
+    });
+    scheduleMusicTone(player, midi + 12, start + 0.008, duration * 0.76, {
+      type: 'triangle',
+      gain: 0.012,
+      attack: 0.03,
+      release: 0.24,
+      lowpass: 720,
+    });
+  }
+
+  function scheduleMusicPluck(player, midi, start, duration, isService = false) {
+    scheduleMusicTone(player, midi, start, duration, {
+      type: 'triangle',
+      gain: isService ? 0.048 : 0.043,
+      attack: 0.018,
+      release: isService ? 0.26 : 0.34,
+      lowpass: isService ? 1320 : 1180,
+    });
+    scheduleMusicTone(player, midi + 12, start + 0.006, duration * 0.72, {
+      type: 'sine',
+      gain: 0.009,
+      attack: 0.025,
+      release: 0.22,
+      lowpass: 1500,
+      detune: 5,
+    });
+  }
+
+  function musicTrackForScene(scene) {
+    return MUSIC_SCENE_ALIASES[scene] ?? 'none';
+  }
+
+  function scheduleMusicStep(player) {
+    const track = player.track;
+    const stepInLoop = player.stepIndex % player.loopSteps;
+    const barIndex = Math.floor(stepInLoop / track.stepsPerBar);
+    const stepInBar = stepInLoop % track.stepsPerBar;
+    const start = player.nextStepAt;
+    const chord = track.chords[barIndex % track.chords.length];
+    const stepDuration = player.stepDuration;
+
+    if (stepInBar === 0) {
+      scheduleMusicPad(player, chord, start, stepDuration * (track.stepsPerBar - 0.28));
+      scheduleMusicBass(player, track.bass[barIndex % track.bass.length], start, stepDuration * Math.min(3.8, track.stepsPerBar * 0.56));
+    }
+
+    if (track.pulse.includes(stepInBar)) {
+      const chordIndex = (barIndex + stepInBar) % chord.length;
+      const upperRegister = stepInBar === track.pulse[track.pulse.length - 1] ? 12 : 0;
+      scheduleMusicPluck(player, chord[chordIndex] + upperRegister, start, stepDuration * 0.9, player.id === 'service');
+    }
+
+    if (track.brush?.includes(stepInBar)) {
+      scheduleMusicNoise(player, start, stepDuration * 0.72, {
+        gain: 0.0033,
+        lowpass: 1220,
+        highpass: 360,
+        attack: 0.022,
+        release: 0.13,
+      });
+    }
+
+    if (track.water?.includes(stepInBar)) {
+      scheduleMusicNoise(player, start, stepDuration * 2.1, {
+        gain: 0.0052,
+        lowpass: 690,
+        highpass: 95,
+        attack: 0.16,
+        release: 0.42,
+        texture: 'water',
+      });
+    }
+
+    track.melody.forEach(([step, midi, length]) => {
+      if (step !== stepInLoop) return;
+      scheduleMusicPluck(player, midi, start, stepDuration * length, player.id === 'service');
+    });
+  }
+
+  function scheduleMusic(player) {
+    if (activeMusic !== player || player.stopped || musicPaused || document.hidden || !settings.enabled) return;
+    const now = player.context.currentTime;
+    // Do not play a whole queue of stale notes after the browser briefly
+    // stalls. Advance to the current beat, then let the loop continue cleanly.
+    if (player.nextStepAt < now - 0.08) {
+      const skippedSteps = Math.floor((now - player.nextStepAt) / player.stepDuration) + 1;
+      player.nextStepAt += skippedSteps * player.stepDuration;
+      player.stepIndex += skippedSteps;
+    }
+    while (player.nextStepAt < now + MUSIC_LOOKAHEAD_SECONDS) {
+      scheduleMusicStep(player);
+      player.nextStepAt += player.stepDuration;
+      player.stepIndex += 1;
+    }
+  }
+
+  function stopMusicPlayer(player, duration = MUSIC_FADE_SECONDS) {
+    if (!player || player.stopped) return;
+    player.stopped = true;
+    if (player.scheduler !== null) window.clearInterval(player.scheduler);
+    const now = player.context.currentTime;
+    const fade = Math.max(0.025, duration);
+    player.bus.gain.cancelScheduledValues(now);
+    player.duckGain.gain.cancelScheduledValues(now);
+    player.bus.gain.setTargetAtTime(MIN_GAIN, now, Math.max(0.018, fade / 4));
+    player.duckGain.gain.setTargetAtTime(MIN_GAIN, now, Math.max(0.018, fade / 4));
+    window.setTimeout(() => {
+      player.sources.forEach((source) => {
+        try {
+          source.stop(player.context.currentTime + 0.005);
+        } catch {
+          // A short one-shot may already have finished.
+        }
+      });
+      player.sources.clear();
+      player.bus.disconnect();
+      player.duckGain.disconnect();
+    }, (fade + 0.16) * 1000);
+  }
+
+  function stopMusic({ forget = false, duration = MUSIC_FADE_SECONDS } = {}) {
+    if (forget) requestedMusicScene = 'none';
+    const player = activeMusic;
+    activeMusic = null;
+    stopMusicPlayer(player, duration);
+  }
+
+  function startMusic(trackId) {
+    if (!audioContext || !musicGain || !MUSIC_TRACKS[trackId]) return;
+    if (activeMusic?.id === trackId && !activeMusic.stopped) return;
+    stopMusic({ duration: MUSIC_FADE_SECONDS });
+
+    const track = MUSIC_TRACKS[trackId];
+    const context = audioContext;
+    const bus = context.createGain();
+    const duckGain = context.createGain();
+    bus.gain.setValueAtTime(MIN_GAIN, context.currentTime);
+    bus.gain.setTargetAtTime(track.mix, context.currentTime, MUSIC_FADE_SECONDS / 3);
+    duckGain.gain.value = 1;
+    bus.connect(duckGain);
+    duckGain.connect(musicGain);
+
+    const player = {
+      id: trackId,
+      track,
+      context,
+      bus,
+      duckGain,
+      sources: new Set(),
+      nextStepAt: context.currentTime + 0.08,
+      stepDuration: 60 / track.tempo / 2,
+      loopSteps: track.chords.length * track.stepsPerBar,
+      stepIndex: 0,
+      scheduler: null,
+      stopped: false,
+    };
+    activeMusic = player;
+    scheduleMusic(player);
+    player.scheduler = window.setInterval(() => scheduleMusic(player), MUSIC_SCHEDULER_INTERVAL);
+  }
+
+  function ensureMusicPlayback() {
+    if (!hasUserGesture || musicPaused || document.hidden || !settings.enabled) return;
+    const trackId = musicTrackForScene(requestedMusicScene);
+    if (trackId === 'none') {
+      stopMusic();
+      return;
+    }
+    const context = getContext();
+    if (!context || context.state !== 'running') return;
+    startMusic(trackId);
+  }
+
+  function setMusicScene(scene = 'none') {
+    requestedMusicScene = musicTrackForScene(scene);
+    musicPaused = false;
+    if (requestedMusicScene === 'none') stopMusic();
+    else ensureMusicPlayback();
+    return requestedMusicScene;
+  }
+
+  function pauseMusic() {
+    musicPaused = true;
+    stopMusic({ duration: 0.24 });
+  }
+
+  function resumeMusic() {
+    musicPaused = false;
+    ensureMusicPlayback();
+  }
+
+  function duckMusic() {
+    const player = activeMusic;
+    if (!player || player.stopped) return;
+    const now = player.context.currentTime;
+    player.duckGain.gain.cancelScheduledValues(now);
+    player.duckGain.gain.setTargetAtTime(0.72, now, 0.038);
+    player.duckGain.gain.setTargetAtTime(1, now + 0.14, 0.23);
+  }
+
+  function handleMusicVisibility() {
+    if (document.hidden) {
+      musicWasHidden = requestedMusicScene !== 'none';
+      stopMusic({ duration: 0.16 });
+      return;
+    }
+    if (!musicWasHidden) return;
+    musicWasHidden = false;
+    ensureMusicPlayback();
+  }
+
   function play(name) {
     const cooldown = {
       chop: 75,
@@ -688,6 +1122,7 @@
     const context = playableContext();
     if (!context || !masterGain) return false;
     const start = context.currentTime + 0.006;
+    if (['serve', 'cash', 'purchase', 'dayStart', 'dayEnd', 'cast', 'finish'].includes(name)) duckMusic();
 
     switch (name) {
       case 'ui':
@@ -765,9 +1200,12 @@
   }
 
   function configure(next = {}) {
+    const wasEnabled = settings.enabled;
     if (typeof next.enabled === 'boolean') settings.enabled = next.enabled;
     if (Object.prototype.hasOwnProperty.call(next, 'volume')) settings.volume = normalizedVolume(next.volume);
     updateMasterGain();
+    if (!settings.enabled) stopMusic({ duration: 0.12 });
+    else if (!wasEnabled || hasUserGesture) ensureMusicPlayback();
     return getSettings();
   }
 
@@ -776,9 +1214,22 @@
   }
 
   function stop() {
+    stopMusic({ duration: 0.02 });
     if (!masterGain || !audioContext) return;
     masterGain.gain.cancelScheduledValues(audioContext.currentTime);
     masterGain.gain.setTargetAtTime(0, audioContext.currentTime, 0.02);
+  }
+
+  function restoreAfterPageShow(event) {
+    if (!event.persisted) return;
+    updateMasterGain();
+    if (!audioContext || !hasUserGesture) return;
+    const resumeMusicAfterRestore = () => ensureMusicPlayback();
+    if (audioContext.state === 'running') {
+      resumeMusicAfterRestore();
+      return;
+    }
+    audioContext.resume?.().then(resumeMusicAfterRestore).catch(() => undefined);
   }
 
   window.SeasideSushiAudio = Object.freeze({
@@ -786,6 +1237,10 @@
     wake,
     configure,
     getSettings,
+    setMusicScene,
+    pauseMusic,
+    resumeMusic,
+    stopMusic,
     stop,
   });
 
@@ -794,5 +1249,7 @@
   // naturally without an extra permission prompt.
   window.addEventListener('pointerdown', wake, { capture: true, passive: true, once: true });
   window.addEventListener('keydown', wake, { capture: true, once: true });
-  window.addEventListener('pagehide', stop, { once: true });
+  document.addEventListener('visibilitychange', handleMusicVisibility);
+  window.addEventListener('pagehide', stop);
+  window.addEventListener('pageshow', restoreAfterPageShow);
 })();
