@@ -1,0 +1,16 @@
+{
+  "description": "海边寿司店微信小游戏工程",
+  "setting": {
+    "es6": true,
+    "enhance": true,
+    "postcss": false,
+    "minified": true,
+    "urlCheck": false
+  },
+  "compileType": "game",
+  "libVersion": "3.8.5",
+  "appid": "touristappid",
+  "projectname": "海边寿司店",
+  "simulatorType": "game",
+  "condition": {}
+}
